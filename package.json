@@ -4,19 +4,31 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
-    "typecheck": "oxlint --type-aware --type-check .",
+    "typecheck": "oxlint --type-aware --type-check . && astro check",
     "test": "vitest run",
     "test:watch": "vitest",
     "knip": "knip",
     "knip:production": "knip --production",
     "check": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run knip"
   },
+  "dependencies": {
+    "@astrojs/react": "7.0.1",
+    "astro": "7.3.7",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
   "devDependencies": {
+    "@astrojs/check": "0.9.10",
     "@types/node": "24.13.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
     "knip": "6.4.1",
     "oxfmt": "0.45.0",
     "oxlint": "1.60.0",

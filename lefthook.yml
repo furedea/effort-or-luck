@@ -16,13 +16,13 @@ pre-commit:
       glob: "*.nix"
       run: deadnix --fail .
     format:
-      glob: "*.{ts,tsx,js,jsx}"
+      glob: "*.{ts,tsx,js,jsx,astro}"
       run: pnpm run format:check
     lint:
-      glob: "*.{ts,tsx,js,jsx}"
+      glob: "*.{ts,tsx,js,jsx,astro}"
       run: pnpm run lint
     typecheck:
-      glob: "*.{ts,tsx,js,jsx}"
+      glob: "*.{ts,tsx,js,jsx,astro}"
       run: pnpm run typecheck
     ls-lint:
       run: ls_lint
