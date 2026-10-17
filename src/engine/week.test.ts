@@ -113,3 +113,13 @@ test("a limited routine is open only in the weeks before its event", () => {
   expect(planWeek(richLife(), spec.from, ["summerEsPrep"]).taken).toEqual([spec]);
   expect(planWeek(richLife(), spec.until, ["summerEsPrep"]).taken).toEqual([]);
 });
+
+test("savings stay whole yen week after week", () => {
+  const life = makeLife(1);
+  life.allowance = 30_000;
+
+  for (let week = 0; week < 10; week++) liveWeek(life, week, ["extraWork"]);
+
+  expect(Number.isInteger(weeklyIncomeYen(life))).toBe(true);
+  expect(Number.isInteger(life.money)).toBe(true);
+});

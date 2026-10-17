@@ -94,7 +94,7 @@ function startingStats(difficulty: Difficulty): Record<Stat, number> {
 
 /** Savings gained (or, when negative, lost) each week from allowance and scholarship after living costs. */
 export function weeklyIncomeYen(life: Life): number {
-  return (life.allowance + life.scholarship - MONTHLY_EXPENSE_YEN) / WEEKS_PER_MONTH;
+  return Math.round((life.allowance + life.scholarship - MONTHLY_EXPENSE_YEN) / WEEKS_PER_MONTH);
 }
 
 /** Hours of part-time work a week that would cover the living costs. */
