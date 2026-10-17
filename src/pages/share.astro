@@ -1,7 +1,9 @@
 ---
+import { ShareScreen } from "../components/share_screen";
+import { TITLE } from "../copy/screen";
 import BaseLayout from "../layouts/base_layout.astro";
 ---
 
-<BaseLayout title="結果を見る">
-  <main>結果を見る</main>
+<BaseLayout title={TITLE}>
+  <ShareScreen client:load />
 </BaseLayout>

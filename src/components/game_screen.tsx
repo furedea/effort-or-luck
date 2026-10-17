@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import "../styles/game.css";
-import { TITLE, type View } from "../copy/screen";
+import { PLAY_AGAIN, shareText, TITLE, type View } from "../copy/screen";
 import {
   advanceFor,
   chooseAndAdvance,
@@ -13,10 +13,13 @@ import {
   type YearEnd,
 } from "../engine/cohort";
 import type { Effort, ResultFact } from "../engine/facts";
+import { encode } from "../share/result_link";
 import { PlayView } from "./play_view";
 import { RevealView } from "./reveal_view";
+import { ShareButton } from "./share_button";
 
 interface Game {
+  readonly seed: number;
   readonly cohort: Cohort;
   /** The self the player lives as; the other selves silently make the same choices. */
   readonly player: number;
@@ -24,6 +27,8 @@ interface Game {
   readonly view: View;
   /** What the last choice led to, shown on the next month. */
   readonly carried: ResultFact | null;
+  /** Every choice the player made, in order, so the year can be shared and replayed. */
+  readonly choices: readonly Effort[];
 }
 
 export function GameScreen() {
@@ -56,7 +61,15 @@ export function GameScreen() {
           player={player}
           view={view}
           onView={(next) => setGame({ ...game, view: next })}
-          onRestart={restart}
+          subject="you"
+          actions={
+            <>
+              <ShareButton url={shareUrl(game)} text={shareText(life?.offers.length ?? 0)} />
+              <button type="button" className="next" onClick={restart}>
+                {PLAY_AGAIN}
+              </button>
+            </>
+          }
         />
       ) : life && scene ? (
         <PlayView
@@ -73,22 +86,29 @@ export function GameScreen() {
 }
 
 function newGame(): Game {
+  const seed = randomSeed();
   return {
-    cohort: startCohort(randomSeed()),
+    seed,
+    cohort: startCohort(seed),
     player: Math.floor(Math.random() * COHORT_SIZE),
     yearEnd: null,
     view: "same",
     carried: null,
+    choices: [],
   };
 }
 
 function choose(game: Game, effort: Effort): Game {
   const { cohort, result } = chooseAndAdvance(game.cohort, game.player, effort);
-  return moveOn(game, cohort, result ?? null);
+  return moveOn({ ...game, choices: [...game.choices, effort] }, cohort, result ?? null);
 }
 
 function moveOn(game: Game, cohort: Cohort, carried: ResultFact | null): Game {
   return { ...game, cohort, carried, yearEnd: isOver(cohort) ? replayYear(cohort) : null };
+}
+
+function shareUrl({ seed, player, choices }: Game): string {
+  return `${window.location.origin}/share${encode({ seed, player, choices })}`;
 }
 
 function randomSeed(): number {

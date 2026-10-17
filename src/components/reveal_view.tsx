@@ -1,19 +1,19 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 import {
   actualRate,
   allowanceRow,
   bandSummary,
   offeredCount,
-  PLAY_AGAIN,
   profileText,
   revealLead,
   SAME_LUCK,
   sourceCredit,
   SOURCES_LINK,
   VIEWS,
+  resultLine,
   YEAR_END,
-  yourResult,
+  type Subject,
   type View,
 } from "../copy/screen";
 import { STATISTICS } from "../data/statistics";
@@ -26,10 +26,13 @@ interface Props {
   readonly player: number;
   readonly view: View;
   readonly onView: (view: View) => void;
-  readonly onRestart: () => void;
+  /** Whose year this is: the player's own, or someone else's opened from a shared link. */
+  readonly subject: Subject;
+  /** Buttons at the bottom, such as playing again or sharing. */
+  readonly actions: ReactNode;
 }
 
-export function RevealView({ paths, ranks, player, view, onView, onRestart }: Props) {
+export function RevealView({ paths, ranks, player, view, onView, subject, actions }: Props) {
   const you = paths.same[player];
   const shown = paths[view];
   const rows = revealByAllowance(shown, ranks);
@@ -43,7 +46,7 @@ export function RevealView({ paths, ranks, player, view, onView, onRestart }: Pr
         <h2 className="when" ref={heading} tabIndex={-1}>
           {YEAR_END}
         </h2>
-        <p className="you">{yourResult(you?.offers.length ?? 0)}</p>
+        <p className="you">{resultLine(subject, you?.offers.length ?? 0)}</p>
         <p className="profile">{you ? profileText(you.log) : ""}</p>
       </header>
 
@@ -55,9 +58,8 @@ export function RevealView({ paths, ranks, player, view, onView, onRestart }: Pr
               <span className="sr-only">
                 {bandSummary(
                   row.amount,
-                  row.members.length,
-                  row.offered,
-                  row.members.includes(player),
+                  { total: row.members.length, offered: row.offered },
+                  row.members.includes(player) ? subject : null,
                 )}
               </span>
               <span className="band-label" aria-hidden="true">
@@ -100,9 +102,7 @@ export function RevealView({ paths, ranks, player, view, onView, onRestart }: Pr
         <cite>{sourceCredit(STATISTICS.offersJuneActual.source)}</cite>
       </aside>
       <div className="reveal-actions">
-        <button type="button" className="next" onClick={onRestart}>
-          {PLAY_AGAIN}
-        </button>
+        {actions}
         <a className="sources-link" href="/sources">
           {SOURCES_LINK}
         </a>

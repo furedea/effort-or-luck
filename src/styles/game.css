@@ -104,6 +104,11 @@ main {
   display: grid;
   row-gap: 12px;
 }
+.link-error {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 18px;
+}
 .sources-link {
   justify-self: center;
   font-size: 13px;
@@ -211,6 +216,9 @@ main {
   color: var(--shu);
 }
 .next {
+  box-sizing: border-box;
+  text-align: center;
+  text-decoration: none;
   justify-self: stretch;
   min-height: 52px;
   padding: 12px 28px;
