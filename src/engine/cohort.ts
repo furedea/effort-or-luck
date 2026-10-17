@@ -24,6 +24,8 @@ export interface Cohort {
   readonly turn: Turn | null;
   /** The effort everyone attempted in each month so far. */
   readonly wants: Readonly<Partial<Record<SceneId, Effort>>>;
+  /** Selves who, in some month, could not afford the effort everyone attempted. */
+  readonly everBlocked: ReadonlySet<number>;
 }
 
 interface Turn {
@@ -45,6 +47,7 @@ export function startCohort(baseSeed: number): Cohort {
       lives,
       allowanceRanks: lives.map((life) => amounts.indexOf(life.allowance)),
       wants: {},
+      everBlocked: new Set(),
     },
     0,
   );
@@ -76,7 +79,8 @@ export function chooseForAll(cohort: Cohort, want: Effort): Cohort {
   });
   const month = cohort.scenes.find((scene) => scene?.options.length)?.facts.id;
   const wants = month ? { ...cohort.wants, [month]: want } : cohort.wants;
-  return { ...cohort, wants, turn: { want, taken, results, blocked } };
+  const everBlocked = new Set([...cohort.everBlocked, ...blocked]);
+  return { ...cohort, wants, everBlocked, turn: { want, taken, results, blocked } };
 }
 
 export interface YearEnd {
@@ -93,7 +97,7 @@ export function replayYear(cohort: Cohort): YearEnd {
 }
 
 function load(
-  base: Pick<Cohort, "seeds" | "lives" | "allowanceRanks" | "wants">,
+  base: Pick<Cohort, "seeds" | "lives" | "allowanceRanks" | "wants" | "everBlocked">,
   from: number,
 ): Cohort {
   for (let step = from; step < SCENE_COUNT; step++) {

@@ -116,3 +116,16 @@ test("the reveal sets luck against effort in two labeled parts", () => {
   expect(yours).toEqual(bands);
   expect(host.querySelector(".toggle[aria-pressed]")).toBeNull();
 });
+
+test("the reveal says what counts as effort and how many could not follow the choices", () => {
+  const host = mount();
+  for (let guard = 0; guard < 20 && !host.querySelector(".reveal"); guard++)
+    click(nextAction(host)!);
+
+  expect(host.querySelector(".effort-definition")?.textContent).toContain(
+    "努力 ＝ どれを選ぼうとしたか",
+  );
+  expect(host.querySelector(".blocked-count")?.textContent).toMatch(
+    /^(お金か時間が足りず，選んだことができなかった人：\d+ 人|全員が，選んだとおりにできた．)$/,
+  );
+});

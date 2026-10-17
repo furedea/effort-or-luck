@@ -5,6 +5,8 @@ import {
   ALLOWANCE_HEADER,
   allowanceRow,
   bandSummary,
+  blockedCount,
+  EFFORT_DEFINITION,
   EFFORT_PART,
   effortLead,
   LONG_RUN_NOTE,
@@ -36,6 +38,8 @@ interface Props {
   readonly paths: Readonly<Record<Path, readonly Life[]>>;
   readonly ranks: readonly number[];
   readonly player: number;
+  /** How many selves could not afford, in some month, the effort they all attempted. */
+  readonly blocked: number;
   /** The effort the selves attempted each month, to estimate what those choices usually lead to. */
   readonly wants: Readonly<Partial<Record<SceneId, Effort>>>;
   /** Whose year this is: the player's own, or someone else's opened from a shared link. */
@@ -44,7 +48,7 @@ interface Props {
   readonly actions: ReactNode;
 }
 
-export function RevealView({ paths, ranks, player, wants, subject, actions }: Props) {
+export function RevealView({ paths, ranks, player, blocked, wants, subject, actions }: Props) {
   const you = paths.same[player];
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
@@ -59,7 +63,15 @@ export function RevealView({ paths, ranks, player, wants, subject, actions }: Pr
         <p className="you">{resultLine(subject, you?.offers.length ?? 0)}</p>
         <p className="profile">{you ? profileText(you.log) : ""}</p>
       </header>
-      <LuckPart lives={paths.same} ranks={ranks} player={player} wants={wants} subject={subject} />
+      <p className="effort-definition">{EFFORT_DEFINITION}</p>
+      <LuckPart
+        lives={paths.same}
+        ranks={ranks}
+        player={player}
+        blocked={blocked}
+        wants={wants}
+        subject={subject}
+      />
       <EffortPart paths={paths} ranks={ranks} subject={subject} />
       <aside className="stat">
         <p>{actualRate()}</p>
@@ -80,10 +92,11 @@ function LuckPart(props: {
   lives: readonly Life[];
   ranks: readonly number[];
   player: number;
+  blocked: number;
   wants: Readonly<Partial<Record<SceneId, Effort>>>;
   subject: Subject;
 }) {
-  const { lives, ranks, player, wants, subject } = props;
+  const { lives, ranks, player, blocked, wants, subject } = props;
   const rows = revealByAllowance(lives, ranks);
   const longRun = useLongRun(wants);
   return (
@@ -126,6 +139,7 @@ function LuckPart(props: {
           </div>
         ))}
       </div>
+      <p className="blocked-count">{blockedCount(blocked)}</p>
       <p className="long-run-note">{longRun ? LONG_RUN_NOTE : LONG_RUN_PENDING}</p>
     </div>
   );

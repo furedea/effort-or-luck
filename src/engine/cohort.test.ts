@@ -164,3 +164,20 @@ describe("the reveal", () => {
     }
   });
 });
+
+describe("selves held back by money or time", () => {
+  it("remembers everyone blocked in any month of the year", () => {
+    let cohort = startCohort(46);
+    const seen = new Set<number>();
+    while (!isOver(cohort)) {
+      if (cohort.scenes.some((scene) => scene?.options.length)) {
+        cohort = chooseForAll(cohort, 2);
+        for (const i of cohort.turn?.blocked ?? []) seen.add(i);
+      }
+      cohort = advance(cohort);
+    }
+
+    expect(seen.size).toBeGreaterThan(0);
+    expect([...cohort.everBlocked].sort((a, b) => a - b)).toEqual([...seen].sort((a, b) => a - b));
+  });
+});

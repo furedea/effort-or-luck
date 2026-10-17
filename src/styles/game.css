@@ -334,6 +334,20 @@ main {
   font-weight: 400;
   color: var(--sub);
 }
+.effort-definition {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  background: var(--field);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+}
+.blocked-count {
+  margin: 0;
+  font-size: 13px;
+  color: var(--shu);
+}
 .long-run-note {
   margin: 0;
   font-size: 12px;
