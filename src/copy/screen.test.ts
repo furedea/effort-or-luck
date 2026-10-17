@@ -71,13 +71,3 @@ describe("what choosing an option leaves", () => {
     );
   });
 });
-
-test("savings are shown roughly: whole 10,000s, or 1,000s below that", () => {
-  const savings = (money: number) =>
-    statusItems({ ...base, money }).find((item) => item.label === "貯金")?.value;
-
-  expect(savings(47_692)).toBe("5万円");
-  expect(savings(123_400)).toBe("12万円");
-  expect(savings(7_600)).toBe("8,000円");
-  expect(savings(0)).toBe("0円");
-});

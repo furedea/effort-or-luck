@@ -10,7 +10,7 @@ import {
   WEEKLY_HOURS,
   type Difficulty,
 } from "../engine/parameters";
-import { roughYen, yen } from "./format";
+import { yen } from "./format";
 import { describeLog, STAT_LABELS } from "./scenes";
 
 // Japanese text for the screen around the scenes: the play header and the year-end reveal.
@@ -81,7 +81,7 @@ export function budgetLine(used: number, budget: number): string {
 
 /** This week's hours and savings, shown at an event, e.g. "週26／40時間（あと14時間）・貯金 5万円". */
 export function weekStatusLine(used: number, budget: number, money: number): string {
-  return `${budgetLine(used, budget)}・貯金 ${roughYen(money)}`;
+  return `${budgetLine(used, budget)}・貯金 ${yen(Math.round(money))}`;
 }
 
 interface OptionAfter {
@@ -98,7 +98,7 @@ export function optionAfterLine({ hoursLeft, weeks, moneyAfter }: OptionAfter): 
   const span = weeks > 1 ? `${weeks}週間，毎週` : "今週";
   const time =
     hoursLeft >= 0 ? `${span}あと${hours}時間` : `${span}${hours}時間オーバー（睡眠を削る）`;
-  return `選ぶと：${time}・貯金 ${roughYen(Math.max(0, moneyAfter))}`;
+  return `選ぶと：${time}・貯金 ${yen(Math.max(0, Math.round(moneyAfter)))}`;
 }
 
 /** Hours beyond the free hours, taken from sleep, e.g. "はみ出た週5時間は睡眠を削る（健康 −1／週）". */
@@ -141,7 +141,7 @@ export function statusItems(status: {
     ...(status.scholarship
       ? [{ label: "奨学金", value: yen(status.scholarship), low: false }]
       : []),
-    { label: "貯金", value: roughYen(status.money), low: status.money < LOW_SAVINGS_YEN },
+    { label: "貯金", value: yen(status.money), low: status.money < LOW_SAVINGS_YEN },
     { label: "内定", value: status.offers ? `${status.offers} 社` : "なし", low: false },
   ];
 }
