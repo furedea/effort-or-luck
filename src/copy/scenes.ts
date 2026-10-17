@@ -77,9 +77,33 @@ export function optionLabel(facts: SceneFacts, key: OptionKey): string {
   return OPTION_LABELS[key];
 }
 
-/** What an option costs, e.g. "30時間" or "16時間・6万円"; empty when free. */
-export function optionCost(hours: number, money: number): string {
-  return [hours ? `${hours}時間` : "", money ? yen(money) : ""].filter(Boolean).join("・");
+interface Cost {
+  readonly hours: number;
+  readonly money: number;
+  /** Hours beyond the free time, bought back by working fewer part-time hours. */
+  readonly shortHours: number;
+  /** Savings the option takes: its money plus the wages of the part-time hours given up. */
+  readonly total: number;
+}
+
+/** What an option takes, one line each for time and savings; empty when free. */
+export function optionCostLines({ hours, shortHours, total }: Cost): string[] {
+  const time = shortHours
+    ? `${hours}時間：バイトを${shortHours}時間減らす`
+    : hours
+      ? `${hours}時間`
+      : null;
+  const savings = total ? `貯金 −${yen(total)}` : null;
+  return [time, savings].filter((line) => line !== null);
+}
+
+/** What a choice took from the self, or null when it took nothing. */
+export function paymentLine({
+  shortHours,
+  total,
+}: Pick<Cost, "shortHours" | "total">): string | null {
+  if (shortHours) return `バイトを${shortHours}時間減らし，貯金が${yen(total)}減った．`;
+  return total ? `貯金が${yen(total)}減った．` : null;
 }
 
 export function shortfallReason(shortfall: Shortfall | null): string {
