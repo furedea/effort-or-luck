@@ -442,6 +442,11 @@ main {
   border-radius: 4px;
   cursor: pointer;
 }
+.speeds {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
 .next:focus-visible,
 .toggle:focus-visible {
   outline: 2px solid var(--ink);

@@ -17,11 +17,11 @@ import {
   NEXT,
   oneOffLine,
   overflowLine,
-  PAUSE,
-  PLAY,
   SECTION,
+  SPEED_LABELS,
   statBars,
   statusItems,
+  STEP,
   TIMETABLE_TITLE,
 } from "../copy/screen";
 import { WEEKS } from "../engine/calendar";
@@ -30,6 +30,9 @@ import type { OptionKey, RoutineKey } from "../engine/facts";
 import type { Life } from "../engine/life";
 import { isOpen, ROUTINES, type RoutineSpec } from "../engine/routine";
 import { planWeek } from "../engine/week";
+
+/** How time moves: one week per press, or on its own at normal or double speed. */
+export type Speed = keyof typeof SPEED_LABELS;
 
 export interface FeedEntry {
   readonly week: number;
@@ -42,17 +45,17 @@ interface Props {
   /** The player's event this week, or null while weeks are flowing. */
   readonly event: Event | null;
   readonly timetable: readonly RoutineKey[];
-  readonly playing: boolean;
+  readonly speed: Speed;
   readonly feed: readonly FeedEntry[];
   readonly onTimetable: (timetable: readonly RoutineKey[]) => void;
-  readonly onPlay: () => void;
-  readonly onPause: () => void;
+  readonly onSpeed: (speed: Speed) => void;
+  readonly onStep: () => void;
   readonly onChoose: (option: OptionKey) => void;
   readonly onNext: () => void;
 }
 
 export function PlayView(props: Props) {
-  const { life, week, event, playing, feed } = props;
+  const { life, week, event, speed, feed } = props;
   const heading = useRef<HTMLHeadingElement>(null);
   // An event replaces the controls the player was using, so keyboard focus moves to it.
   useEffect(() => {
@@ -81,13 +84,24 @@ export function PlayView(props: Props) {
             onChange={props.onTimetable}
           />
           <div className="actions">
-            <button
-              type="button"
-              className="next flow"
-              onClick={playing ? props.onPause : props.onPlay}
-            >
-              {playing ? PAUSE : PLAY}
-            </button>
+            {speed === "step" ? (
+              <button type="button" className="next step" onClick={props.onStep}>
+                {STEP}
+              </button>
+            ) : null}
+            <div className="speeds" role="group">
+              {(Object.keys(SPEED_LABELS) as Speed[]).map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  className="toggle"
+                  aria-pressed={speed === key}
+                  onClick={() => props.onSpeed(key)}
+                >
+                  {SPEED_LABELS[key]}
+                </button>
+              ))}
+            </div>
           </div>
         </>
       )}

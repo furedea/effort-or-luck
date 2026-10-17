@@ -75,3 +75,14 @@ describe("living a week", () => {
     expect(liveWeek(life, 0, ["friends"])).toBeNull();
   });
 });
+
+test("savings grow only from part-time work, which takes hours", () => {
+  const life = richLife();
+  const before = life.money;
+
+  liveWeek(life, 0, ["longIntern", "selfAnalysis"]);
+  expect(life.money).toBe(before);
+
+  liveWeek(life, 1, ["extraWork"]);
+  expect(life.money).toBe(before + routineOf("extraWork").weeklyHours * WAGE_YEN_PER_HOUR);
+});

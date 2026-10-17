@@ -38,8 +38,8 @@ export const LINK_ERRORS = {
 } as const;
 
 export const SECTION = { job: "就活", life: "自分のこと", work: "お金" } as const;
-export const PLAY = "▶ 進む";
-export const PAUSE = "⏸ 止める";
+export const STEP = "次の週へ";
+export const SPEED_LABELS = { step: "1週ずつ", normal: "▶ 自動", double: "▶▶ 2倍" } as const;
 export const FEED_TITLE = "これまで";
 export const TIMETABLE_TITLE = "毎週の過ごし方";
 export const CANNOT_PAY = "お金が足りない";

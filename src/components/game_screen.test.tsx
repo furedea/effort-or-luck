@@ -38,7 +38,15 @@ const tileNamed = (host: HTMLElement, name: string) =>
   [...host.querySelectorAll<HTMLButtonElement>(".activity")].find(
     (button) => button.querySelector(".activity-name")?.textContent === name,
   )!;
-const playButton = (host: HTMLElement) => host.querySelector<HTMLButtonElement>(".actions .flow")!;
+const stepButton = (host: HTMLElement) => host.querySelector<HTMLButtonElement>(".actions .step");
+const speedButton = (host: HTMLElement, label: string) =>
+  [...host.querySelectorAll<HTMLButtonElement>(".speeds button")].find(
+    (button) => button.textContent === label,
+  )!;
+const passMs = (ms: number) =>
+  act(() => {
+    vi.advanceTimersByTime(ms);
+  });
 
 test("opens on the first week with the opening notice", () => {
   const host = mount();
@@ -47,34 +55,34 @@ test("opens on the first week with the opening notice", () => {
   expect(host.querySelector(".event .next")?.textContent).toBe("始める");
 });
 
-test("waits for the player to press play after the opening notice", () => {
+test("moves one week per press by default, and not on its own", () => {
   const host = mount();
   startYear(host);
 
-  act(() => {
-    vi.advanceTimersByTime(3000);
-  });
+  passMs(3000);
   expect(when(host)).toBe("4月 第2週");
 
-  click(playButton(host));
-  act(() => {
-    vi.advanceTimersByTime(300);
-  });
+  click(stepButton(host)!);
   expect(when(host)).toBe("4月 第3週");
 });
 
-test("stops flowing when paused", () => {
+test("flows on its own at normal or double speed until set back to one week per press", () => {
   const host = mount();
   startYear(host);
-  click(playButton(host));
 
-  click(playButton(host));
-  const paused = when(host);
-  act(() => {
-    vi.advanceTimersByTime(3000);
-  });
+  click(speedButton(host, "▶ 自動"));
+  passMs(600);
+  expect(when(host)).toBe("4月 第3週");
+  expect(stepButton(host)).toBeNull();
 
-  expect(when(host)).toBe(paused);
+  click(speedButton(host, "▶▶ 2倍"));
+  passMs(300);
+  passMs(300);
+  expect(when(host)).toBe("4月 第5週");
+
+  click(speedButton(host, "1週ずつ"));
+  passMs(3000);
+  expect(when(host)).toBe("4月 第5週");
 });
 
 test("stops only for choices, listing other happenings while time flows", () => {
@@ -84,7 +92,7 @@ test("stops only for choices, listing other happenings while time flows", () => 
   for (const name of ["友達と遊ぶ", "SNS・動画", "研究・ゼミ", "ゆっくり休む"]) {
     click(tileNamed(host, name));
   }
-  click(playButton(host));
+  click(speedButton(host, "▶▶ 2倍"));
 
   const stopsWithoutChoice: string[] = [];
   for (let guard = 0; guard < 400 && !host.querySelector(".event .next"); guard++) {
@@ -117,12 +125,9 @@ test("can be played from the first week to the reveal", () => {
 test("moves focus to an event when time stops for it", () => {
   const host = mount();
   startYear(host);
-  click(playButton(host));
+  click(speedButton(host, "▶▶ 2倍"));
 
-  for (let guard = 0; guard < 100 && !host.querySelector(".event"); guard++)
-    act(() => {
-      vi.advanceTimersByTime(300);
-    });
+  for (let guard = 0; guard < 100 && !host.querySelector(".event"); guard++) passMs(300);
 
   expect(host.querySelector(".event")).not.toBeNull();
   expect(document.activeElement).toBe(host.querySelector(".when"));

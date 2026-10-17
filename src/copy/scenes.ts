@@ -278,7 +278,7 @@ const ROUTINES = {
   infoSessions: { tile: "説明会", label: "説明会に出る" },
   interviewPractice: { tile: "面接練習", label: "面接の練習" },
   jobCourse: { tile: "就活講座", label: "就活講座に通う" },
-  longIntern: { tile: "長期インターン", label: "長期インターン（有給）" },
+  longIntern: { tile: "長期インターン", label: "長期インターン" },
   certification: { tile: "資格の勉強", label: "資格の勉強" },
   friends: { tile: "友達と遊ぶ", label: "友達と遊ぶ・サークル" },
   sns: { tile: "SNS・動画", label: "SNS・動画" },

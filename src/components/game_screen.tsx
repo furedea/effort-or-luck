@@ -19,11 +19,15 @@ import type { Event } from "../engine/events";
 import type { OptionKey, RoutineKey, Stat } from "../engine/facts";
 import { isActive, type Life } from "../engine/life";
 import { encode } from "../share/result_link";
-import { PlayView, type FeedEntry } from "./play_view";
+import { PlayView, type FeedEntry, type Speed } from "./play_view";
 import { RevealView } from "./reveal_view";
 import { ShareButton } from "./share_button";
 
-const WEEK_MS = 300;
+/** Milliseconds per week when time flows on its own; "step" waits for the player. */
+const WEEK_MS = { step: null, normal: 600, double: 300 } as const satisfies Record<
+  Speed,
+  number | null
+>;
 const WARN_BELOW = 20;
 /** Notices that still stop time: the opening, and the end of the player's year. */
 const STOPPING_NOTICES: readonly Event["facts"]["id"][] = ["intro", "june", "over"];
@@ -35,7 +39,7 @@ interface Game {
   readonly player: number;
   /** The timetable being edited; it takes effect when the next week is lived. */
   readonly timetable: readonly RoutineKey[];
-  readonly playing: boolean;
+  readonly speed: Speed;
   /** Happenings that did not stop time, newest first. */
   readonly feed: readonly FeedEntry[];
   /** Stats already warned about, so each warning comes once. */
@@ -53,12 +57,12 @@ export function GameScreen() {
     setGame(newGame());
   }, []);
 
-  const flowing = Boolean(game?.playing && !game.yearEnd && !stopAt(game));
+  const weekMs = game && !game.yearEnd && !stopAt(game) ? WEEK_MS[game.speed] : null;
   useEffect(() => {
-    if (!game || !flowing) return undefined;
-    const timer = setTimeout(() => setGame(advance(game)), WEEK_MS);
+    if (!game || weekMs === null) return undefined;
+    const timer = setTimeout(() => setGame(advance(game)), weekMs);
     return () => clearTimeout(timer);
-  }, [game, flowing]);
+  }, [game, weekMs]);
 
   if (!game) return <main />;
   const { cohort, player, yearEnd } = game;
@@ -91,11 +95,11 @@ export function GameScreen() {
           week={cohort.week}
           event={stopAt(game)}
           timetable={game.timetable}
-          playing={game.playing}
+          speed={game.speed}
           feed={game.feed}
           onTimetable={(timetable) => setGame({ ...game, timetable })}
-          onPlay={() => setGame({ ...game, playing: true })}
-          onPause={() => setGame({ ...game, playing: false })}
+          onSpeed={(speed) => setGame({ ...game, speed })}
+          onStep={() => setGame(advance(game))}
           onChoose={(option: OptionKey) => setGame(decide(game, option))}
           onNext={() => setGame(acknowledge(game))}
         />
@@ -113,7 +117,7 @@ function newGame(): Game {
     cohort,
     player,
     timetable: [],
-    playing: false,
+    speed: "step",
     feed: [],
     warned: [],
     yearEnd: null,
@@ -130,7 +134,7 @@ function advance(game: Game): Game {
   while (life && !isActive(life) && cohort.week < WEEKS && !cohort.events[game.player]) {
     cohort = step(cohort);
   }
-  if (isOver(cohort)) return { ...game, cohort, playing: false, yearEnd: replayYear(cohort) };
+  if (isOver(cohort)) return { ...game, cohort, yearEnd: replayYear(cohort) };
   const falling = life ? warningFor(life, game.warned) : null;
   const warnings =
     falling && life ? [{ week: cohort.week, text: warningLine(falling, life.stats[falling]) }] : [];
@@ -140,23 +144,19 @@ function advance(game: Game): Game {
     feed: [...warnings, ...noticeEntries(cohort, game.player), ...game.feed],
     warned: falling ? [...game.warned, falling] : game.warned,
   };
-  return stopAt(next) ? { ...next, playing: false } : next;
+  return next;
 }
 
 function decide(game: Game, option: OptionKey): Game {
   const cohort = choose(withTimetable(game.cohort, game.timetable), option);
-  return { ...game, cohort, playing: true };
+  return { ...game, cohort };
 }
 
-/**
- * Moves on from a stopping notice; after the results, the year is over. The opening notice leaves
- * time paused so the player can set a timetable first.
- */
+/** Moves on from a stopping notice; after the results, the year is over. */
 function acknowledge(game: Game): Game {
-  const opening = game.cohort.week === 0;
   const cohort = step(withTimetable(game.cohort, game.timetable));
-  if (isOver(cohort)) return { ...game, cohort, playing: false, yearEnd: replayYear(cohort) };
-  return { ...game, cohort, playing: !opening };
+  if (isOver(cohort)) return { ...game, cohort, yearEnd: replayYear(cohort) };
+  return { ...game, cohort };
 }
 
 /** The player's event if it stops time: one with options, or a stopping notice. */

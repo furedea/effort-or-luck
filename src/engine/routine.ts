@@ -60,7 +60,6 @@ export const ROUTINES: readonly RoutineSpec[] = [
     key: "longIntern",
     kind: "job",
     weeklyHours: 16,
-    weeklyPay: 16 * WAGE_YEN_PER_HOUR,
     until: weekOfMonthStart(10),
     prepPerWeek: 0.25,
   }),
