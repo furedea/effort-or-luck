@@ -76,3 +76,20 @@ test("describes each allowance row in words for screen readers", () => {
     [...host.querySelectorAll(".band .sr-only")].filter((n) => n.textContent?.includes("あなた")),
   ).toHaveLength(1);
 });
+
+test("shows, next to this game's counts, the long-run rate for the same choices", async () => {
+  const host = mount();
+  for (let guard = 0; guard < 20 && !host.querySelector(".reveal"); guard++)
+    click(nextAction(host)!);
+
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+
+  const averages = [...host.querySelectorAll(".band .band-average")].map(
+    (node) => node.textContent,
+  );
+  expect(averages).toHaveLength(4);
+  for (const average of averages) expect(average).toMatch(/^平均 \d+%$/);
+  expect(host.querySelector(".long-run-note")?.textContent).toBeTruthy();
+});
