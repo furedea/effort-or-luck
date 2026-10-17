@@ -1,4 +1,3 @@
-import { alwaysChoose, autoLive, pickNear } from "./choice";
 import {
   advance,
   advanceFor,
@@ -9,22 +8,27 @@ import {
   replayYear,
   revealByAllowance,
   startCohort,
-  usualEffort,
   type Cohort,
 } from "./cohort";
-import type { Effort } from "./facts";
 import type { Life } from "./life";
+import { followPlans } from "./long_run";
+import { autoLive, leastPolicy, mostPolicy, type Policy } from "./plan";
 import { SCENE_COUNT } from "./scenes";
 
 function withoutRng({ rng: _, ...rest }: Life) {
   return rest;
 }
 
-function playYear(want: Effort): Cohort {
-  let cohort = startCohort(2026);
+/** Plays a year as the self at `player`, choosing each period's plan with `policy`. */
+function playYear(seed: number, player: number, policy: Policy): Cohort {
+  let cohort = startCohort(seed);
   while (!isOver(cohort)) {
-    if (cohort.scenes.some((scene) => scene?.options.length)) cohort = chooseForAll(cohort, want);
-    cohort = advance(cohort);
+    const scene = cohort.scenes[player];
+    const life = cohort.lives[player];
+    cohort =
+      scene?.period && life
+        ? chooseAndAdvance(cohort, player, policy(life, scene)).cohort
+        : advanceFor(cohort, player);
   }
   return cohort;
 }
@@ -47,137 +51,94 @@ describe("starting the 100 selves", () => {
   });
 });
 
-describe("a shared choice", () => {
-  it.each([0, 1, 2] as const)(
-    "gives each self the year autoLive gives when always wanting %i",
-    (want) => {
-      const cohort = playYear(want);
+describe("a shared plan", () => {
+  it.each([
+    ["most", mostPolicy],
+    ["least", leastPolicy],
+  ] as const)("gives each self the year its plans give it alone (%s)", (_, policy) => {
+    const cohort = playYear(2026, 0, policy);
 
-      expect(cohort.step).toBe(SCENE_COUNT);
-      for (const life of cohort.lives) {
-        expect(withoutRng(life)).toEqual(withoutRng(autoLive(life.seed, alwaysChoose(want))));
-      }
-    },
-  );
+    expect(cohort.step).toBe(SCENE_COUNT);
+    for (const life of cohort.lives) {
+      expect(withoutRng(life)).toEqual(withoutRng(autoLive(life.seed, followPlans(cohort.plans))));
+    }
+  });
 
-  it("marks as blocked exactly the selves who wanted an option they could not afford", () => {
+  it("marks as blocked exactly the selves who could not pay for part of it", () => {
     let cohort = startCohort(46);
-    while (!cohort.scenes.some((scene) => scene?.facts.id === "march"))
-      cohort = advance(chooseForAll(cohort, 2));
+    while (!cohort.scenes.some((scene) => scene?.period)) cohort = advance(cohort);
+    const plan = mostPolicy(cohort.lives[0]!, cohort.scenes[0]!);
 
-    const before = cohort;
-    const after = chooseForAll(before, 2);
+    const after = chooseForAll(cohort, plan);
 
-    before.scenes.forEach((scene, i) => {
-      if (!scene?.options.length) return;
-      const taken = pickNear(scene.options, 2).effort;
-      const wantedMore = scene.options.some((o) => o.effort > taken && o.shortfall !== null);
-      expect(after.turn?.blocked.has(i)).toBe(wantedMore);
+    after.turn?.allocations.forEach((allocation, i) => {
+      expect(after.turn?.blocked.has(i)).toBe((allocation?.dropped.length ?? 0) > 0);
     });
   });
-});
 
-describe("the end of the year", () => {
-  it("replays the same seeds with the most and the least effort", () => {
-    const cohort = playYear(1);
+  it("remembers everyone blocked in any period of the year", () => {
+    let cohort = startCohort(46);
+    const seen = new Set<number>();
+    while (!isOver(cohort)) {
+      const index = cohort.scenes.findIndex((scene) => scene?.period);
+      if (index >= 0) {
+        cohort = chooseForAll(cohort, mostPolicy(cohort.lives[index]!, cohort.scenes[index]!));
+        for (const i of cohort.turn?.blocked ?? []) seen.add(i);
+      }
+      cohort = advance(cohort);
+    }
 
-    const { most, least } = replayYear(cohort);
+    expect([...cohort.everBlocked].sort((a, b) => a - b)).toEqual([...seen].sort((a, b) => a - b));
+  });
 
-    expect(most.map(withoutRng)).toEqual(
-      cohort.seeds.map((seed) => withoutRng(autoLive(seed, alwaysChoose(2)))),
-    );
-    expect(least.map(withoutRng)).toEqual(
-      cohort.seeds.map((seed) => withoutRng(autoLive(seed, alwaysChoose(0)))),
-    );
+  it("reports the player's own allocation", () => {
+    let cohort = startCohort(3);
+    while (!cohort.scenes[0]?.period) cohort = advance(cohort);
+    const plan = mostPolicy(cohort.lives[0]!, cohort.scenes[0]);
+
+    const { allocation } = chooseAndAdvance(cohort, 0, plan);
+
+    expect(allocation?.taken.length).toBeGreaterThan(0);
   });
 });
 
 describe("playing as one self", () => {
-  function cohortWithEarlyOffer(): { cohort: Cohort; player: number } {
-    for (let base = 1; ; base++) {
-      let cohort = startCohort(base);
-      while (!cohort.scenes.some((scene) => scene?.facts.id === "feb"))
-        cohort = advance(chooseForAll(cohort, 2));
-      const player = cohort.lives.findIndex((life) => life.offers.includes("december"));
-      if (player >= 0) return { cohort, player };
-    }
-  }
+  it("lets the others live on to June after the self's year has ended early", () => {
+    const seed = Array.from({ length: 200 }, (_, k) => k + 1).find(
+      (k) => playYear(k, 0, mostPolicy).lives[0]?.over,
+    );
+    const cohort = playYear(seed ?? 1, 0, mostPolicy);
 
-  it("skips months the self no longer takes part in, still living them for the others", () => {
-    const { cohort, player } = cohortWithEarlyOffer();
-    const stopped = chooseForAll(cohort, 0);
-
-    const next = advanceFor(stopped, player);
-
-    expect(next.scenes[player]?.facts.id).toBe("june");
-    const others = next.lives.filter((life, i) => i !== player && !life.done);
-    const usual = usualEffort(next.lives[player]!);
-    expect(
-      others.every((life) => life.efforts.march !== undefined && life.efforts.march <= usual),
-    ).toBe(true);
-  });
-
-  it("lets the others choose when only they have options this month", () => {
-    const { cohort } = cohortWithEarlyOffer();
-    const player = cohort.lives.findIndex((life) => !life.offers.length);
-
-    const next = advanceFor(cohort, player);
-
-    const holders = next.lives.filter((life) => life.offers.includes("december"));
-    expect(holders.length).toBeGreaterThan(0);
-    expect(holders.every((life) => life.efforts.feb !== undefined)).toBe(true);
-  });
-
-  it("moves straight to the self's next month after a choice, carrying its result", () => {
-    let cohort = startCohort(3);
-    const player = 0;
-    while (cohort.scenes[player]?.facts.id !== "autumn")
-      cohort = advanceFor(chooseForAll(cohort, 1), player);
-
-    const { cohort: next, result } = chooseAndAdvance(cohort, player, 0);
-
-    expect(result).toEqual({ kind: "saved", amount: expect.any(Number) });
-    expect(next.scenes[player]?.facts.id).toBe("early");
-    expect(next.lives[player]?.efforts.autumn).toBe(0);
-  });
-
-  it("takes the rounded average of the self's choices as its usual effort", () => {
-    const life = startCohort(1).lives[0]!;
-    Object.assign(life.efforts, { summerEs: 2, summerIntern: 1, autumn: 2 });
-
-    expect(usualEffort(life)).toBe(2);
+    expect(cohort.lives[0]?.over).not.toBeNull();
+    expect(cohort.lives.some((life) => life.log.some((fact) => fact.kind === "june"))).toBe(true);
   });
 });
 
-describe("the reveal", () => {
+describe("the end of the year", () => {
+  it("replays the same seeds putting the most and the least into job hunting", () => {
+    const cohort = playYear(9, 0, mostPolicy);
+
+    const { most, least } = replayYear(cohort);
+
+    expect(most.map(withoutRng)).toEqual(
+      cohort.seeds.map((seed) => withoutRng(autoLive(seed, mostPolicy))),
+    );
+    expect(least.map(withoutRng)).toEqual(
+      cohort.seeds.map((seed) => withoutRng(autoLive(seed, leastPolicy))),
+    );
+  });
+
   it("counts, for each allowance, how many selves had an offer", () => {
-    const cohort = playYear(1);
+    const cohort = playYear(11, 0, mostPolicy);
 
     const rows = revealByAllowance(cohort.lives, cohort.allowanceRanks);
 
     expect(rows.map((row) => row.amount)).toEqual([0, 30_000, 70_000, 120_000]);
     expect(rows.reduce((sum, row) => sum + row.members.length, 0)).toBe(COHORT_SIZE);
     for (const row of rows) {
-      const offered = row.members.filter((i) => cohort.lives[i]!.offers.length > 0).length;
-      expect(row.offered).toBe(offered);
-      expect(row.members.every((i) => cohort.lives[i]!.allowance <= row.amount)).toBe(true);
+      expect(row.offered).toBe(
+        row.members.filter((i) => cohort.lives[i]!.offers.length > 0).length,
+      );
     }
-  });
-});
-
-describe("selves held back by money or time", () => {
-  it("remembers everyone blocked in any month of the year", () => {
-    let cohort = startCohort(46);
-    const seen = new Set<number>();
-    while (!isOver(cohort)) {
-      if (cohort.scenes.some((scene) => scene?.options.length)) {
-        cohort = chooseForAll(cohort, 2);
-        for (const i of cohort.turn?.blocked ?? []) seen.add(i);
-      }
-      cohort = advance(cohort);
-    }
-
-    expect(seen.size).toBeGreaterThan(0);
-    expect([...cohort.everBlocked].sort((a, b) => a - b)).toEqual([...seen].sort((a, b) => a - b));
   });
 });

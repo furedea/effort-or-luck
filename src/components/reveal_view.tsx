@@ -6,6 +6,7 @@ import {
   allowanceRow,
   bandSummary,
   blockedCount,
+  endedCount,
   EFFORT_DEFINITION,
   EFFORT_PART,
   effortLead,
@@ -27,8 +28,9 @@ import {
 } from "../copy/screen";
 import { STATISTICS } from "../data/statistics";
 import { revealByAllowance } from "../engine/cohort";
-import type { Effort, SceneId } from "../engine/facts";
+import type { PeriodId, Stat } from "../engine/facts";
 import type { Life } from "../engine/life";
+import type { Plan } from "../engine/plan";
 import { useLongRun } from "./use_long_run";
 
 const PATHS: readonly Path[] = ["least", "same", "most"];
@@ -40,15 +42,15 @@ interface Props {
   readonly player: number;
   /** How many selves could not afford, in some month, the effort they all attempted. */
   readonly blocked: number;
-  /** The effort the selves attempted each month, to estimate what those choices usually lead to. */
-  readonly wants: Readonly<Partial<Record<SceneId, Effort>>>;
+  /** The plan the selves attempted each period, to estimate what those plans usually lead to. */
+  readonly plans: Readonly<Partial<Record<PeriodId, Plan>>>;
   /** Whose year this is: the player's own, or someone else's opened from a shared link. */
   readonly subject: Subject;
   /** Buttons at the bottom, such as playing again or sharing. */
   readonly actions: ReactNode;
 }
 
-export function RevealView({ paths, ranks, player, blocked, wants, subject, actions }: Props) {
+export function RevealView({ paths, ranks, player, blocked, plans, subject, actions }: Props) {
   const you = paths.same[player];
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
@@ -69,7 +71,7 @@ export function RevealView({ paths, ranks, player, blocked, wants, subject, acti
         ranks={ranks}
         player={player}
         blocked={blocked}
-        wants={wants}
+        plans={plans}
         subject={subject}
       />
       <EffortPart paths={paths} ranks={ranks} subject={subject} />
@@ -93,12 +95,12 @@ function LuckPart(props: {
   ranks: readonly number[];
   player: number;
   blocked: number;
-  wants: Readonly<Partial<Record<SceneId, Effort>>>;
+  plans: Readonly<Partial<Record<PeriodId, Plan>>>;
   subject: Subject;
 }) {
-  const { lives, ranks, player, blocked, wants, subject } = props;
+  const { lives, ranks, player, blocked, plans, subject } = props;
   const rows = revealByAllowance(lives, ranks);
-  const longRun = useLongRun(wants);
+  const longRun = useLongRun(plans);
   return (
     <div className="part">
       <h3 className="part-title">{LUCK_PART}</h3>
@@ -140,6 +142,7 @@ function LuckPart(props: {
         ))}
       </div>
       <p className="blocked-count">{blockedCount(blocked)}</p>
+      <p className="ended-count">{endedCount(endedByStat(lives))}</p>
       <p className="long-run-note">{longRun ? LONG_RUN_NOTE : LONG_RUN_PENDING}</p>
     </div>
   );
@@ -187,4 +190,10 @@ function EffortPart(props: {
       </table>
     </div>
   );
+}
+
+function endedByStat(lives: readonly Life[]): Partial<Record<Stat, number>> {
+  const counts: Partial<Record<Stat, number>> = {};
+  for (const life of lives) if (life.over) counts[life.over] = (counts[life.over] ?? 0) + 1;
+  return counts;
 }

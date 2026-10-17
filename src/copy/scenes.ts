@@ -1,5 +1,5 @@
-import type { Scene } from "../engine/choice";
-import type { LogFact, OptionKey, ResultFact, SceneFacts, Shortfall } from "../engine/facts";
+import type { ActivitySpec } from "../engine/activities";
+import type { ActivityKey, LogFact, PeriodId, SceneFacts, Stat } from "../engine/facts";
 import {
   ALLOWANCE_CUT_YEN,
   FAMILY_TRIP_YEN,
@@ -7,6 +7,7 @@ import {
   SHOP_CLOSED_LOSS_YEN,
   TRIP_YEN,
 } from "../engine/parameters";
+import type { Scene } from "../engine/plan";
 import { region, yen } from "./format";
 
 // Japanese text for what the engine reports. Wording lives here, never in the engine.
@@ -14,111 +15,104 @@ import { region, yen } from "./format";
 interface SceneText {
   readonly when: string;
   readonly lines: readonly string[];
-  /** Label of the button that moves on when the scene has no options. */
+  /** Label of the button that moves on from a notice. */
   readonly next?: string;
 }
 
+export const STAT_LABELS = {
+  health: "健康",
+  mind: "心の余裕",
+  social: "人間関係",
+  research: "研究",
+} as const satisfies Record<Stat, string>;
+
 const WHEN = {
   intro: "3年 4月",
-  summerEs: "3年 5月",
-  summerIntern: "3年 8月",
-  autumn: "3年 10月",
+  earlySummer: "3年 5〜7月",
+  summer: "3年 8〜9月",
+  autumn: "3年 10〜12月",
   early: "3年 12月",
-  jan: "4年 1月",
-  feb: "4年 2月",
+  winter: "4年 1〜2月",
   march: "4年 3月",
-  finals: "4年 4月",
-  june: "4年 6月",
+  finals: "4年 4〜5月",
+  june: "4年 6月1日",
+  over: "その後",
 } as const satisfies Record<SceneFacts["id"], string>;
+
+const PERIOD_SHORT = {
+  earlySummer: "5〜7月",
+  summer: "8〜9月",
+  autumn: "10〜12月",
+  winter: "1〜2月",
+  march: "3月",
+  finals: "4〜5月",
+} as const satisfies Record<PeriodId, string>;
 
 export function describeScene({ facts }: Scene): SceneText {
   const when = WHEN[facts.id];
   switch (facts.id) {
     case "intro":
       return { when, lines: introLines(facts), next: "始める" };
-    case "summerEs":
-      return { when, lines: ["夏のインターンの募集が始まった．", "ES は一社 6 時間かかる．"] };
-    case "summerIntern":
-      return { when, lines: summerInternLines(facts) };
+    case "earlySummer":
+      return { when, lines: ["夏のインターンの募集が始まった．", "この3か月の時間を，何に使う？"] };
+    case "summer":
+      return { when, lines: [...summerLines(facts), "夏休み．この2か月を，何に使う？"] };
     case "autumn":
-      return { when, lines: autumnLines(facts) };
+      return { when, lines: [autumnLine(facts), "秋から年末まで，何に使う？"] };
     case "early":
       return { when, lines: [EARLY[facts.result]] };
-    case "jan":
+    case "winter":
       return {
         when,
         lines: [
-          facts.metro
-            ? "大学の先輩から，会社の話を聞かせてもらえることになった．"
-            : "東京で働く先輩に，話を聞けることになった．",
+          facts.hasOffer ? "内定が一つある．" : "まだ内定はない．",
+          ...(facts.seniorTalk ? ["先輩から，会社の話を聞かせてもらえることになった．"] : []),
         ],
       };
-    case "feb":
-      return { when, lines: [facts.hasOffer ? "内定が一つある．" : "まだ内定はない．"] };
     case "march":
       return {
         when,
         lines: [
           "本選考のエントリーが始まった．",
-          "ES は一社 2 時間．",
-          ...(facts.busy ? ["ゼミの発表と卒論の締切が重なり，今月は時間が減る．"] : []),
+          ...(facts.busy ? ["ゼミの発表と卒論の締切が重なり，時間が減った．"] : []),
         ],
       };
     case "finals":
       return { when, lines: finalsLines(facts) };
     case "june":
       return { when, lines: juneLines(facts), next: "結果を見る" };
+    case "over":
+      return { when, lines: [ENDINGS[facts.stat]], next: "結果を見る" };
   }
 }
 
-export function optionLabel(facts: SceneFacts, key: OptionKey): string {
-  if (facts.id === "finals") return finalsOptionLabel(facts.finals, key);
-  if (facts.id === "march" && key === "skip") return "今はエントリーしない";
-  return OPTION_LABELS[key];
-}
-
-interface Cost {
-  readonly hours: number;
-  readonly money: number;
-  /** Hours beyond the free time, bought back by working fewer part-time hours. */
-  readonly shortHours: number;
-  /** Savings the option takes: its money plus the wages of the part-time hours given up. */
-  readonly total: number;
-}
-
-/** What an option takes, one line each for time and savings; empty when free. */
-export function optionCostLines({ hours, shortHours, total }: Cost): string[] {
-  const time = shortHours
-    ? `${hours}時間：バイトを${shortHours}時間減らす`
-    : hours
-      ? `${hours}時間`
-      : null;
-  const savings = total ? `貯金 −${yen(total)}` : null;
-  return [time, savings].filter((line) => line !== null);
-}
-
-/** What a choice took from the self, or null when it took nothing. */
-export function paymentLine({
-  shortHours,
-  total,
-}: Pick<Cost, "shortHours" | "total">): string | null {
-  if (shortHours) return `バイトを${shortHours}時間減らし，貯金が${yen(total)}減った．`;
-  return total ? `貯金が${yen(total)}減った．` : null;
-}
-
-export function shortfallReason(shortfall: Shortfall | null): string {
-  if (shortfall === "time") return "時間が足りない";
-  if (shortfall === "money") return "お金が足りない";
-  return "";
-}
-
-export function describeResult(result: ResultFact): string {
-  switch (result.kind) {
-    case "saved":
-      return `${yen(result.amount)}貯まった．`;
-    case "ended":
-      return "就活を終えた．";
+export function activityLabel(activity: ActivitySpec, facts: SceneFacts): string {
+  if (facts.id === "finals" && facts.finals > 1) {
+    if (activity.key === "finalsAllFace") return `${facts.finals} 社とも対面で受ける`;
+    if (activity.key === "finalsAllOnline") return "全部オンラインで受ける";
   }
+  return ACTIVITIES[activity.key].label;
+}
+
+/** The short name written on an activity's tile. */
+export function activityTileLabel(activity: ActivitySpec, facts: SceneFacts): string {
+  if (facts.id === "finals" && facts.finals > 1 && activity.key === "finalsAllFace") {
+    return `${facts.finals}社とも対面`;
+  }
+  return TILE_LABELS[activity.key];
+}
+
+/** One line explaining an activity, e.g. "自己分析・業界研究：準備がよく進む". */
+export function activityDetail(activity: ActivitySpec, facts: SceneFacts): string {
+  const oneOf = activity.group ? "（どれか一つ）" : "";
+  return `${activityLabel(activity, facts)}：${ACTIVITIES[activity.key].effect}${oneOf}`;
+}
+
+/** What an activity takes and gives, e.g. "15時間" "3万円" "+14万800円". */
+export function activityCost({ hours, money, pays }: ActivitySpec): string[] {
+  return [hours ? `${hours}時間` : "", money ? yen(money) : "", pays ? `+${yen(pays)}` : ""].filter(
+    Boolean,
+  );
 }
 
 export function describeLog(fact: LogFact): string {
@@ -137,18 +131,20 @@ export function describeLog(fact: LogFact): string {
       return "10月，バイト先が閉店した";
     case "sick":
       return "10月，熱を出した";
-    case "earlyOffer":
-      return "12月，早期選考で内定";
     case "familyIllness":
       return "10月，家族の入院で帰省した";
     case "laptopBroken":
       return "10月，パソコンが壊れた";
+    case "earlyOffer":
+      return "12月，早期選考で内定";
     case "seniorTalk":
       return "1月，先輩に話を聞いた";
     case "thesisCrunch":
       return "3月，卒論の締切が重なった";
-    case "missed":
-      return missedMessage(fact.option);
+    case "dropped":
+      return `${PERIOD_SHORT[fact.period]}，お金が足りず「${ACTIVITIES[fact.activity].label}」をあきらめた`;
+    case "over":
+      return ENDING_LOG[fact.stat];
     case "june":
       return fact.offers ? `6月1日，内定 ${fact.offers} 社` : "6月1日，内定なし";
   }
@@ -162,12 +158,15 @@ function introLines(facts: Facts<"intro">): string[] {
       ? `${region(facts.metro)}で一人暮らし．仕送りは月 ${yen(facts.allowance)}．`
       : `${region(facts.metro)}で一人暮らし．仕送りはない．`,
     ...(facts.scholarship ? [`奨学金を月 ${yen(facts.scholarship)}借りている．`] : []),
-    facts.partTimeHours ? `バイトは月 ${facts.partTimeHours} 時間．` : "バイトはしていない．",
+    facts.partTimeHours
+      ? `生活費のため，バイトは月 ${facts.partTimeHours} 時間．`
+      : "バイトはしていない．",
+    `授業や課題のほかに，自由に使える時間は週 ${facts.weeklyFreeHours} 時間．`,
   ];
 }
 
-function summerInternLines(facts: Facts<"summerIntern">): string[] {
-  switch (facts.result) {
+function summerLines(facts: Facts<"summer">): string[] {
+  switch (facts.intern) {
     case "none":
       return ["同級生はインターンに行っている．"];
     case "failed":
@@ -182,16 +181,15 @@ function summerInternLines(facts: Facts<"summerIntern">): string[] {
   }
 }
 
-function autumnLines(facts: Facts<"autumn">): string[] {
-  const event = {
+function autumnLine(facts: Facts<"autumn">): string {
+  return {
     allowanceCut: `仕送りが月 ${yen(ALLOWANCE_CUT_YEN)}減った．`,
     shopClosed: `バイト先が閉店した．貯金が ${yen(SHOP_CLOSED_LOSS_YEN)}減った．`,
     sick: "一週間，熱が下がらなかった．",
-    familyIllness: `家族が入院し，実家に帰った．交通費で ${yen(FAMILY_TRIP_YEN)}かかり，時間も減った．`,
-    laptopBroken: `パソコンが壊れた．修理に ${yen(LAPTOP_REPAIR_YEN)}かかる．`,
-    calm: "何も起きなかった．",
+    familyIllness: `家族が入院し，実家に帰った．交通費で ${yen(FAMILY_TRIP_YEN)}かかった．`,
+    laptopBroken: `パソコンが壊れた．修理に ${yen(LAPTOP_REPAIR_YEN)}かかった．`,
+    calm: "10月は，何も起きなかった．",
   }[facts.event.kind];
-  return [event, ...(facts.invited ? ["インターン先から早期選考の案内が来た．"] : [])];
 }
 
 const EARLY = {
@@ -229,50 +227,84 @@ function juneLines(facts: Facts<"june">): string[] {
   ];
 }
 
-const OPTION_LABELS = {
-  esFive: "5 社に出す",
-  esTwo: "2 社に出す",
-  onlineSession: "オンライン説明会に出る",
-  keepWorking: "バイトを続ける",
-  attend: "行く",
-  switchOnline: "オンライン版にしてもらう",
-  practice: "面接の練習をする",
-  prepareLightly: "少し準備する",
-  workMore: "バイトを増やす",
-  continue: "第一志望を目指して続ける",
-  stop: "ここで終える",
-  entryTwenty: "20 社に出す",
-  entryEight: "8 社に出す",
-  entryThree: "3 社に出す",
-  skip: "出さない",
-  allFace: "対面で受ける",
-  oneFace: "1 社だけ対面，残りはオンライン",
-  allOnline: "オンラインで受ける",
-  decline: "辞退する",
-  meetSenior: "会って話を聞く",
-  askOnline: "オンラインで少し聞く",
-  pass: "今回は見送る",
-} as const satisfies Record<OptionKey, string>;
+const ENDINGS = {
+  health: "体を壊して入院した．就活どころではなくなった．",
+  mind: "心が折れて，就活を続けられなくなった．",
+  social: "誰とも話さない日が続き，大学に行けなくなった．",
+  research: "研究が進まず，留年が決まった．",
+} as const satisfies Record<Stat, string>;
 
-function finalsOptionLabel(count: number, key: OptionKey): string {
-  if (count > 1 && key === "allFace") return `${count} 社とも対面で受ける`;
-  if (count > 1 && key === "allOnline") return "全部オンラインで受ける";
-  return OPTION_LABELS[key];
-}
+const ENDING_LOG = {
+  health: "体を壊して，就活を続けられなくなった",
+  mind: "心が折れて，就活を続けられなくなった",
+  social: "大学に行けなくなった",
+  research: "留年が決まった",
+} as const satisfies Record<Stat, string>;
 
-const MISSED = {
-  esFive: "5月，ES を 5 社書く時間がなかった",
-  esTwo: "5月，ES を書く時間がなかった",
-  attend: "8月，対面インターンに行けなかった",
-  practice: "10月，面接の練習をする時間がなかった",
-  entryTwenty: "3月，20 社に出す時間がなかった",
-  entryEight: "3月，8 社に出す時間がなかった",
-  allFace: "4月，最終面接を対面で受けられなかった",
-  oneFace: "4月，最終面接に一社も対面で行けなかった",
-  allOnline: "4月，最終面接を受ける時間がなかった",
-} as const satisfies Partial<Record<OptionKey, string>>;
+const ACTIVITIES = {
+  internEsFive: { label: "夏インターンに ES を出す（5社）", effect: "5社に応募" },
+  internEsTwo: { label: "夏インターンに ES を出す（2社）", effect: "2社に応募" },
+  infoSessions: { label: "説明会に6回出る", effect: "準備が進む" },
+  selfAnalysis: { label: "自己分析・業界研究", effect: "準備がよく進む" },
+  jobCourse: { label: "就活講座に通う", effect: "準備がかなり進む" },
+  jobFair: { label: "合同説明会に行く", effect: "準備が進む" },
+  faceIntern: { label: "対面インターンに行く（5日間）", effect: "早期選考の案内が来やすい" },
+  onlineIntern: { label: "オンライン版にしてもらう（1日）", effect: "早期選考の案内が少し来る" },
+  oneDayJobs: { label: "1日の仕事体験に3回", effect: "準備が進む" },
+  longIntern: { label: "長期インターン（有給，週16時間）", effect: "準備がかなり進む．給料が出る" },
+  languageCourse: { label: "短期の語学研修", effect: "準備がかなり進む" },
+  winterIntern: { label: "冬インターン（3日間）", effect: "早期選考の案内が来やすい" },
+  interviewPractice: { label: "面接の練習", effect: "面接に強くなる" },
+  aptitudePrep: { label: "適性検査の対策", effect: "書類が通りやすい" },
+  seniorTalk: { label: "先輩に話を聞く", effect: "準備がよく進む" },
+  obVisits: { label: "東京で OB 訪問（5人）", effect: "準備がよく進む" },
+  paidMockInterviews: { label: "有料の模擬面接（3回）", effect: "面接に強くなる" },
+  stopHunting: { label: "ここで就活を終える", effect: "このあとは就活をしない" },
+  entryTwenty: { label: "20 社にエントリー", effect: "20社に応募" },
+  entryEight: { label: "8 社にエントリー", effect: "8社に応募" },
+  entryThree: { label: "3 社にエントリー", effect: "3社に応募" },
+  companyTalks: { label: "説明会・座談会を回る（8回）", effect: "準備が進む" },
+  finalsAllFace: { label: "対面で受ける", effect: "一番通りやすい" },
+  finalsOneFace: { label: "1 社だけ対面，残りはオンライン", effect: "対面の1社は通りやすい" },
+  finalsAllOnline: { label: "オンラインで受ける", effect: "少し通りにくい" },
+  interviewService: { label: "面接対策サービス", effect: "面接に強くなる" },
+  friends: { label: "友達と遊ぶ・サークル", effect: "心と人間関係が回復．ES の話も増える" },
+  sns: { label: "SNS・動画", effect: "心が少し回復．就活の情報が入る" },
+  certification: { label: "資格の勉強", effect: "書類が通りやすい" },
+  research: { label: "研究・ゼミ", effect: "研究が進む" },
+  rest: { label: "ゆっくり休む", effect: "健康が回復" },
+} as const satisfies Record<ActivityKey, { label: string; effect: string }>;
 
-function missedMessage(key: OptionKey): string {
-  if (key in MISSED) return MISSED[key as keyof typeof MISSED];
-  throw new Error(`option ${key} is never recorded as missed`);
-}
+const TILE_LABELS = {
+  internEsFive: "ES 5社",
+  internEsTwo: "ES 2社",
+  infoSessions: "説明会6回",
+  selfAnalysis: "自己分析",
+  jobCourse: "就活講座",
+  jobFair: "合同説明会",
+  faceIntern: "対面インターン",
+  onlineIntern: "オンライン版",
+  oneDayJobs: "仕事体験3回",
+  longIntern: "長期インターン",
+  languageCourse: "語学研修",
+  winterIntern: "冬インターン",
+  interviewPractice: "面接練習",
+  aptitudePrep: "適性検査対策",
+  seniorTalk: "先輩の話",
+  obVisits: "OB訪問5人",
+  paidMockInterviews: "模擬面接3回",
+  stopHunting: "就活を終える",
+  entryTwenty: "20社エントリー",
+  entryEight: "8社エントリー",
+  entryThree: "3社エントリー",
+  companyTalks: "座談会8回",
+  finalsAllFace: "対面で受ける",
+  finalsOneFace: "1社だけ対面",
+  finalsAllOnline: "オンラインで",
+  interviewService: "面接対策",
+  friends: "友達と遊ぶ",
+  sns: "SNS・動画",
+  certification: "資格の勉強",
+  research: "研究・ゼミ",
+  rest: "ゆっくり休む",
+} as const satisfies Record<ActivityKey, string>;

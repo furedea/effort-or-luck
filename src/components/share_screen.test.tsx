@@ -37,7 +37,7 @@ async function shareLinkOf(host: HTMLElement): Promise<string> {
 
 function playToReveal(host: HTMLElement) {
   for (let guard = 0; guard < 20 && !host.querySelector(".reveal"); guard++) {
-    act(() => host.querySelector<HTMLButtonElement>(".actions button:not(:disabled)")!.click());
+    act(() => host.querySelector<HTMLButtonElement>(".actions .confirm, .actions .next")!.click());
   }
 }
 

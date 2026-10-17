@@ -1,11 +1,21 @@
-// The year as scenes in a fixed order. Each scene may draw from the life's RNG, so the order of
-// draws here is part of what makes a seed reproducible.
-import type { AutumnEvent, Effort, OptionKey, ResultFact, SceneFacts } from "./facts";
-import { freeHours, partTimeHours, tripYen, type Life } from "./life";
+// The year as scenes in a fixed order: notices, and periods in which the self divides its time.
+// Each scene may draw from the life's RNG, so the order of draws here is part of what makes a
+// seed reproducible.
+import {
+  autumnActivities,
+  earlySummerActivities,
+  finalsActivities,
+  marchActivities,
+  PERIOD_WEEKS,
+  summerActivities,
+  winterActivities,
+  type ActivitySpec,
+} from "./activities";
+import type { AutumnEvent, PeriodId, SceneFacts } from "./facts";
+import { isActive, partTimeHours, weeklyFreeHours, type Life } from "./life";
 import {
   ALLOWANCE_CUT_YEN,
   AUTUMN_EVENT,
-  EXTRA_WORK_HOURS,
   FAMILY_TRIP_HOURS,
   FAMILY_TRIP_YEN,
   LAPTOP_REPAIR_YEN,
@@ -17,36 +27,34 @@ import {
   SICK_HOURS,
   THESIS_CRUNCH_CHANCE,
   THESIS_CRUNCH_HOURS,
+  THESIS_CRUNCH_RESEARCH,
   TRAVEL_REIMBURSED_CHANCE,
-  WAGE_YEN_PER_HOUR,
 } from "./parameters";
 import { countSuccesses } from "./random";
+import { setBack, shock } from "./wellbeing";
 
-export interface OptionSpec {
-  readonly key: OptionKey;
-  readonly effort: Effort;
-  readonly hours: number;
-  readonly money: number;
-  /** Whether wanting this option and not affording it is worth recording. */
-  readonly blockable: boolean;
-  readonly apply?: (life: Life) => ResultFact | undefined;
+export interface PeriodDraft {
+  readonly id: PeriodId;
+  readonly weeks: number;
+  readonly fourthYear: boolean;
+  readonly activities: readonly ActivitySpec[];
 }
 
-interface SceneDraft {
+export interface SceneDraft {
   readonly facts: SceneFacts;
-  readonly options: readonly OptionSpec[];
+  /** The period the self divides its time over, or null for a notice. */
+  readonly period: PeriodDraft | null;
 }
 
 type SceneBuilder = (life: Life) => SceneDraft | null;
 
 const SCENES: readonly SceneBuilder[] = [
   intro,
-  summerEs,
-  summerIntern,
+  earlySummer,
+  summer,
   autumn,
   earlySelection,
-  january,
-  february,
+  winter,
   march,
   finals,
   june,
@@ -61,130 +69,74 @@ export function buildScene(life: Life, index: number): SceneDraft | null {
   return builder(life);
 }
 
+function notice(facts: SceneFacts): SceneDraft {
+  return { facts, period: null };
+}
+
+function period(
+  facts: SceneFacts & { id: PeriodId },
+  activities: readonly ActivitySpec[],
+  fourthYear = false,
+): SceneDraft {
+  return { facts, period: { id: facts.id, weeks: PERIOD_WEEKS[facts.id], fourthYear, activities } };
+}
+
 function intro(life: Life): SceneDraft {
   life.log.push({ kind: "profile", allowance: life.allowance, metro: life.metro });
   if (life.scholarship) life.log.push({ kind: "scholarship", amount: life.scholarship });
-  return {
-    facts: {
-      id: "intro",
-      allowance: life.allowance,
-      metro: life.metro,
-      scholarship: life.scholarship,
-      partTimeHours: partTimeHours(life),
-      freeHours: freeHours(life),
-      money: life.money,
-    },
-    options: [],
-  };
+  return notice({
+    id: "intro",
+    allowance: life.allowance,
+    metro: life.metro,
+    scholarship: life.scholarship,
+    partTimeHours: partTimeHours(life),
+    weeklyFreeHours: weeklyFreeHours(life),
+    money: life.money,
+  });
 }
 
-function summerEs(): SceneDraft {
-  return {
-    facts: { id: "summerEs" },
-    options: [
-      option("esFive", 2, { hours: 30, blockable: true }, (x) => {
-        x.internApplications = 5;
-        x.prep += 2;
-      }),
-      option("esTwo", 1, { hours: 12, blockable: true }, (x) => {
-        x.internApplications = 2;
-        x.prep += 1;
-      }),
-      option("skip", 0, {}, (x) => {
-        x.internApplications = 0;
-      }),
-    ],
-  };
+function earlySummer(life: Life): SceneDraft | null {
+  if (!isActive(life)) return null;
+  return period({ id: "earlySummer" }, earlySummerActivities(life));
 }
 
-function summerIntern(life: Life): SceneDraft {
-  const passed = countSuccesses(
-    life.rng,
-    life.internApplications,
-    passChance(PASS.internEs, PASS.internEsPerPrep, life),
-  );
-  const fallback = [
-    option("onlineSession", 1, { hours: 8 }, (x) => {
-      x.prep += 1;
-    }),
-    option("keepWorking", 0),
-  ];
-  if (life.internApplications === 0) {
-    return { facts: { id: "summerIntern", result: "none" }, options: fallback };
-  }
-  if (passed === 0) {
+function summer(life: Life): SceneDraft | null {
+  if (!isActive(life)) return null;
+  const applications = life.internApplications;
+  const passed = countSuccesses(life.rng, applications, documentChance(PASS.internEs, life));
+  const intern = applications === 0 ? "none" : passed === 0 ? "failed" : "passed";
+  if (intern === "failed") {
     life.log.push({ kind: "internAllFailed" });
-    return {
-      facts: { id: "summerIntern", result: "failed", applications: life.internApplications },
-      options: fallback,
-    };
+    shock(life, "rejection");
   }
-  return {
-    facts: {
-      id: "summerIntern",
-      result: "passed",
-      applications: life.internApplications,
-      passed,
-      metro: life.metro,
-    },
-    options: [
-      option("attend", 2, { hours: 40, money: tripYen(life), blockable: true }, (x) => {
-        x.intern = "face";
-        x.prep += 3;
-        x.log.push({ kind: "faceIntern" });
-      }),
-      option("switchOnline", 1, { hours: 8 }, (x) => {
-        x.intern = "online";
-        x.prep += 1;
-      }),
-      option("decline", 0),
-    ],
-  };
+  const facts = { id: "summer", intern, applications, passed, metro: life.metro } as const;
+  return period(facts, summerActivities(life, passed > 0));
 }
 
-function autumn(life: Life): SceneDraft {
+function autumn(life: Life): SceneDraft | null {
+  if (!isActive(life)) return null;
   const event = drawAutumnEvent(life);
-  const inviteChance =
-    life.intern === "face"
-      ? PASS.inviteAfterFaceIntern
-      : life.intern === "online"
-        ? PASS.inviteAfterOnlineIntern
-        : 0;
-  life.invited = life.rng() < inviteChance;
-  return {
-    facts: { id: "autumn", event, invited: life.invited },
-    options: [
-      option("practice", 2, { hours: 20, blockable: true }, (x) => {
-        x.prep += 2;
-      }),
-      option("prepareLightly", 1, { hours: 8 }, (x) => {
-        x.prep += 1;
-      }),
-      option("workMore", 0, {}, (x) => {
-        const amount = Math.min(EXTRA_WORK_HOURS, freeHours(x)) * WAGE_YEN_PER_HOUR;
-        x.money += amount;
-        return { kind: "saved", amount };
-      }),
-    ],
-  };
+  return period({ id: "autumn", event }, autumnActivities(life));
 }
 
 function drawAutumnEvent(life: Life): AutumnEvent {
   const roll = life.rng();
-  if (roll < AUTUMN_EVENT.allowanceCut) {
+  let threshold = AUTUMN_EVENT.allowanceCut;
+  if (roll < threshold) {
     if (life.allowance > 0) {
       life.allowance = Math.max(0, life.allowance - ALLOWANCE_CUT_YEN);
       life.log.push({ kind: "allowanceCut" });
-      return { kind: "allowanceCut", freeHours: freeHours(life) };
+      return { kind: "allowanceCut" };
     }
     life.money = Math.max(0, life.money - SHOP_CLOSED_LOSS_YEN);
     life.log.push({ kind: "shopClosed" });
     return { kind: "shopClosed" };
   }
-  let threshold = AUTUMN_EVENT.allowanceCut + AUTUMN_EVENT.sick;
+  threshold += AUTUMN_EVENT.sick;
   if (roll < threshold) {
     life.lostHours = SICK_HOURS;
     life.log.push({ kind: "sick" });
+    shock(life, "sick");
     return { kind: "sick" };
   }
   threshold += AUTUMN_EVENT.familyIllness;
@@ -192,6 +144,7 @@ function drawAutumnEvent(life: Life): AutumnEvent {
     life.money = Math.max(0, life.money - FAMILY_TRIP_YEN);
     life.lostHours = FAMILY_TRIP_HOURS;
     life.log.push({ kind: "familyIllness" });
+    shock(life, "familyIllness");
     return { kind: "familyIllness" };
   }
   threshold += AUTUMN_EVENT.laptopBroken;
@@ -203,90 +156,56 @@ function drawAutumnEvent(life: Life): AutumnEvent {
   return { kind: "calm" };
 }
 
-function earlySelection(life: Life): SceneDraft {
+function earlySelection(life: Life): SceneDraft | null {
+  if (!isActive(life)) return null;
   life.lostHours = 0;
-  if (!life.invited) {
-    return {
-      facts: { id: "early", result: "notInvited", hadIntern: life.intern !== "none" },
-      options: [],
-    };
-  }
+  const internChance =
+    life.intern === "face"
+      ? PASS.inviteAfterFaceIntern
+      : life.intern === "online"
+        ? PASS.inviteAfterOnlineIntern
+        : 0;
+  life.invited = life.rng() < Math.min(MAX_PASS_PROBABILITY, internChance + life.inviteBonus);
+  if (!life.invited) return notice({ id: "early", result: "notInvited" });
   const passed = life.rng() < passChance(PASS.early, PASS.earlyPerPrep, life);
   if (passed) {
     life.offers.push("december");
     life.log.push({ kind: "earlyOffer" });
+    shock(life, "offer");
+  } else {
+    shock(life, "rejection");
   }
-  return { facts: { id: "early", result: passed ? "passed" : "failed" }, options: [] };
+  return notice({ id: "early", result: passed ? "passed" : "failed" });
 }
 
-function january(life: Life): SceneDraft | null {
+function winter(life: Life): SceneDraft | null {
+  if (!isActive(life)) return null;
+  life.lostHours = 0;
   const chance = life.metro ? SENIOR_TALK_CHANCE.metro : SENIOR_TALK_CHANCE.regional;
-  if (life.rng() >= chance) return null;
-  return {
-    facts: { id: "jan", metro: life.metro },
-    options: [
-      option("meetSenior", 2, { hours: 6 }, (x) => {
-        x.prep += 2;
-        x.log.push({ kind: "seniorTalk" });
-      }),
-      option("askOnline", 1, { hours: 2 }, (x) => {
-        x.prep += 1;
-        x.log.push({ kind: "seniorTalk" });
-      }),
-      option("pass", 0),
-    ],
-  };
-}
-
-function february(life: Life): SceneDraft {
+  const seniorTalk = life.rng() < chance;
   const hasOffer = life.offers.length > 0;
-  return {
-    facts: { id: "feb", hasOffer },
-    options: hasOffer
-      ? [
-          option("continue", 2),
-          option("stop", 0, {}, (x) => {
-            x.done = true;
-            return { kind: "ended" };
-          }),
-        ]
-      : [],
-  };
+  return period(
+    { id: "winter", seniorTalk, hasOffer },
+    winterActivities(life, seniorTalk, hasOffer),
+    true,
+  );
 }
 
 function march(life: Life): SceneDraft | null {
-  if (life.done) return null;
+  if (!isActive(life)) return null;
   const busy = life.rng() < THESIS_CRUNCH_CHANCE;
   life.lostHours = busy ? THESIS_CRUNCH_HOURS : 0;
-  if (busy) life.log.push({ kind: "thesisCrunch" });
-  return {
-    facts: { id: "march", busy },
-    options: [
-      option("entryTwenty", 2, { hours: 40, blockable: true }, (x) => {
-        x.entries = 20;
-        x.prep += 1;
-      }),
-      option("entryEight", 1, { hours: 16, blockable: true }, (x) => {
-        x.entries = 8;
-      }),
-      option("entryThree", 0, { hours: 6 }, (x) => {
-        x.entries = 3;
-      }),
-      option("skip", -1, {}, (x) => {
-        x.entries = 0;
-      }),
-    ],
-  };
+  if (busy) {
+    life.log.push({ kind: "thesisCrunch" });
+    setBack(life, "research", THESIS_CRUNCH_RESEARCH);
+  }
+  return period({ id: "march", busy }, marchActivities(life), true);
 }
 
 function finals(life: Life): SceneDraft | null {
-  if (life.done) return null;
+  if (!isActive(life)) return null;
   life.lostHours = 0;
-  const firstRound = countSuccesses(
-    life.rng,
-    life.entries,
-    passChance(PASS.entryEs, PASS.entryEsPerPrep, life),
-  );
+  const firstRound = countSuccesses(life.rng, life.entries, documentChance(PASS.entryEs, life));
   const count = countSuccesses(
     life.rng,
     firstRound,
@@ -302,40 +221,11 @@ function finals(life: Life): SceneDraft | null {
     reimbursed,
     metro: life.metro,
   } as const;
-  if (!count) return { facts, options: [] };
-  const trip = tripYen(life);
-  const paidTrips = count - reimbursed;
-  const take =
-    (face: number, online: number) =>
-    (x: Life): undefined => {
-      x.finals = { face, online };
-    };
-  return {
-    facts,
-    options: [
-      option(
-        "allFace",
-        2,
-        { hours: 8 * count, money: trip * paidTrips, blockable: true },
-        take(count, 0),
-      ),
-      ...(count > 1
-        ? [
-            option(
-              "oneFace",
-              1,
-              { hours: 8 + 2 * (count - 1), money: reimbursed ? 0 : trip, blockable: true },
-              take(1, count - 1),
-            ),
-          ]
-        : []),
-      option("allOnline", 0, { hours: 2 * count, blockable: true }, take(0, count)),
-      option("decline", -1, {}, take(0, 0)),
-    ],
-  };
+  return period(facts, finalsActivities(life, count, reimbursed), true);
 }
 
 function june(life: Life): SceneDraft {
+  if (life.over) return notice({ id: "over", stat: life.over });
   const chance =
     passChance(PASS.final, PASS.finalPerPrep, life) * (life.metro ? 1 : PASS.regionalFinalFactor);
   const won =
@@ -343,35 +233,22 @@ function june(life: Life): SceneDraft {
     countSuccesses(life.rng, life.finals.online, chance * PASS.onlineFinalFactor);
   for (let i = 0; i < won; i++) life.offers.push("may");
   life.log.push({ kind: "june", offers: life.offers.length });
-  return {
-    facts: {
-      id: "june",
-      done: life.done,
-      won,
-      finalsTaken: life.finals.face + life.finals.online,
-      offers: life.offers.length,
-      scholarshipTotal: life.scholarship * SCHOLARSHIP_MONTHS,
-    },
-    options: [],
-  };
+  return notice({
+    id: "june",
+    done: life.done,
+    won,
+    finalsTaken: life.finals.face + life.finals.online,
+    offers: life.offers.length,
+    scholarshipTotal: life.scholarship * SCHOLARSHIP_MONTHS,
+  });
 }
 
 function passChance(base: number, perPrep: number, life: Life): number {
   return Math.max(0, Math.min(MAX_PASS_PROBABILITY, base + perPrep * life.prep));
 }
 
-function option(
-  key: OptionKey,
-  effort: Effort,
-  cost: { readonly hours?: number; readonly money?: number; readonly blockable?: boolean } = {},
-  apply?: (life: Life) => ResultFact | undefined,
-): OptionSpec {
-  const spec = {
-    key,
-    effort,
-    hours: cost.hours ?? 0,
-    money: cost.money ?? 0,
-    blockable: cost.blockable ?? false,
-  };
-  return apply ? { ...spec, apply } : spec;
+/** Pass chance for written screening, raised by both kinds of preparation. */
+function documentChance(base: number, life: Life): number {
+  const raised = base + PASS.documentPerPrep * (life.prep + 2 * life.documentPrep);
+  return Math.max(0, Math.min(MAX_PASS_PROBABILITY, raised));
 }

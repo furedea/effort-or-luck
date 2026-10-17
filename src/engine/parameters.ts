@@ -2,12 +2,15 @@
 // that always choosing the middle option lands near the surveyed June 1st offer rate.
 
 /** Bump whenever a change alters results, so shared links from older rules are reported as old. */
-export const RULES_VERSION = 2;
+export const RULES_VERSION = 3;
 
 export const WAGE_YEN_PER_HOUR = 1100;
 export const MONTHLY_EXPENSE_YEN = 130_000;
-/** Hours per month left after classes, before part-time work. */
-export const MONTHLY_HOURS = 80;
+/** Hours per week outside classes, coursework, sleep, and chores, before part-time work. */
+export const WEEKLY_HOURS = 40;
+export const WEEKS_PER_MONTH = 52 / 12;
+/** Most extra part-time work a self takes on with hours left over, per week. */
+export const EXTRA_WORK_WEEKLY_HOURS = 10;
 export const STARTING_MONEY_YEN = 50_000;
 export const SCHOLARSHIP_YEN = 50_000;
 /** Lives with less allowance than this borrow a scholarship. */
@@ -27,25 +30,24 @@ export const TRIP_YEN = { metro: 1000, regional: 30_000 } as const;
 export const ALLOWANCE_CUT_YEN = 30_000;
 export const SHOP_CLOSED_LOSS_YEN = 30_000;
 export const SICK_HOURS = 25;
-export const EXTRA_WORK_HOURS = 20;
 
 export const MAX_PASS_PROBABILITY = 0.9;
 export const PASS = {
   internEs: 0.3,
-  internEsPerPrep: 0.03,
   inviteAfterFaceIntern: 0.7,
   inviteAfterOnlineIntern: 0.35,
-  early: 0.28,
-  earlyPerPrep: 0.04,
-  entryEs: 0.55,
-  entryEsPerPrep: 0.02,
-  toFinal: 0.5,
-  toFinalPerPrep: 0.03,
-  final: 0.58,
-  finalPerPrep: 0.03,
-  onlineFinalFactor: 0.7,
+  early: 0.25,
+  earlyPerPrep: 0.015,
+  entryEs: 0.18,
+  /** Written screening; document preparation counts twice. */
+  documentPerPrep: 0.006,
+  toFinal: 0.19,
+  toFinalPerPrep: 0.006,
+  final: 0.25,
+  finalPerPrep: 0.006,
+  onlineFinalFactor: 0.85,
   /** Sized so the metro/regional gap matches the surveyed 関東 vs other-regions offer rates. */
-  regionalFinalFactor: 0.89,
+  regionalFinalFactor: 0.93,
 } as const;
 
 // Chances and sizes below are assumptions unless a source is given.
@@ -60,6 +62,7 @@ export const FAMILY_TRIP_HOURS = 15;
 export const LAPTOP_REPAIR_YEN = 50_000;
 export const THESIS_CRUNCH_CHANCE = 0.3;
 export const THESIS_CRUNCH_HOURS = 20;
+export const THESIS_CRUNCH_RESEARCH = 15;
 /**
  * Chance that a company pays a regional self's travel to a final interview. マイナビ 2025年卒
  * 学生就職モニター調査 (6月): 67.9% of students received travel or lodging from companies, from
@@ -67,3 +70,21 @@ export const THESIS_CRUNCH_HOURS = 20;
  */
 export const TRAVEL_REIMBURSED_CHANCE = 0.5;
 export const SENIOR_TALK_CHANCE = { metro: 0.5, regional: 0.25 } as const;
+
+// Wellbeing: each stat runs 0–100 and the year ends when one reaches zero. All assumptions.
+export const STARTING_STATS = { health: 70, mind: 70, social: 60, research: 50 } as const;
+/** Weekly drift when nothing is done for a stat; research drifts faster in the fourth year. */
+export const WEEKLY_DRIFT = { health: -0.5, mind: -0.6, social: -0.8, research: -0.4 } as const;
+export const FOURTH_YEAR_RESEARCH_DRIFT = -1.2;
+/** Weekly hours of part-time and job hunting together beyond which health wears down. */
+export const HEALTHY_WORKLOAD_WEEKLY_HOURS = 30;
+export const HEALTH_PER_OVERLOAD_HOUR = 0.3;
+export const MIND_PER_JOB_HOUR = 0.06;
+export const MIND_WHEN_BROKE_WEEKLY = 0.8;
+export const BROKE_BELOW_YEN = 10_000;
+export const STAT_SHOCK = {
+  sick: { health: -15 },
+  familyIllness: { mind: -10 },
+  rejection: { mind: -8 },
+  offer: { mind: 20 },
+} as const;

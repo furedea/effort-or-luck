@@ -23,9 +23,9 @@ function click(button: HTMLButtonElement) {
   act(() => button.click());
 }
 
+/** The button that moves the year on: confirming a period's plan, or a notice's next button. */
 function nextAction(host: HTMLElement): HTMLButtonElement | undefined {
-  const enabled = [...host.querySelectorAll<HTMLButtonElement>(".actions button:not(:disabled)")];
-  return enabled[0];
+  return host.querySelector<HTMLButtonElement>(".actions .confirm, .actions .next") ?? undefined;
 }
 
 test("shows the first month once mounted in the browser", () => {
@@ -105,7 +105,7 @@ test("the reveal sets luck against effort in two labeled parts", () => {
   const header = [...host.querySelectorAll(".effort-table thead th")].map(
     (node) => node.textContent,
   );
-  expect(header).toEqual(["仕送り", "いつも楽をする", "あなた", "いつも頑張る"]);
+  expect(header).toEqual(["仕送り", "自分のことだけ", "あなた", "就活に全部使う"]);
 
   const rows = [...host.querySelectorAll(".effort-table tbody tr")];
   expect(rows).toHaveLength(4);
@@ -128,4 +128,63 @@ test("the reveal says what counts as effort and how many could not follow the ch
   expect(host.querySelector(".blocked-count")?.textContent).toMatch(
     /^(お金か時間が足りず，選んだことができなかった人：\d+ 人|全員が，選んだとおりにできた．)$/,
   );
+});
+
+describe("dividing a period's time", () => {
+  function firstPeriod() {
+    const host = mount();
+    click(nextAction(host)!);
+    return host;
+  }
+  const total = (host: HTMLElement) => host.querySelector(".time-total")?.textContent;
+  const activity = (host: HTMLElement, name: string) =>
+    [...host.querySelectorAll<HTMLButtonElement>(".activity")].find((button) =>
+      button.querySelector(".activity-name")?.textContent?.startsWith(name),
+    )!;
+
+  it("adds a chosen activity's hours to the bar and removes them when chosen again", () => {
+    const host = firstPeriod();
+    const before = total(host);
+
+    click(activity(host, "説明会6回"));
+    expect(total(host)).toMatch(/^使う時間 12／\d+時間$/);
+
+    click(activity(host, "説明会6回"));
+    expect(total(host)).toBe(before);
+  });
+
+  it("keeps only one of a group's alternatives", () => {
+    const host = firstPeriod();
+
+    click(activity(host, "ES 5社"));
+    click(activity(host, "ES 2社"));
+
+    const chosen = [...host.querySelectorAll(".activity[aria-pressed='true'] .activity-name")].map(
+      (node) => node.textContent,
+    );
+    expect(chosen.filter((name) => name?.startsWith("ES"))).toEqual(["ES 2社"]);
+  });
+
+  it("explains the last pressed tile in one line", () => {
+    const host = firstPeriod();
+
+    click(activity(host, "自己分析"));
+
+    expect(host.querySelector(".activity-detail")?.textContent).toBe(
+      "自己分析・業界研究：準備がよく進む",
+    );
+  });
+
+  it("lays the tiles out in two columns", () => {
+    const host = firstPeriod();
+
+    expect(host.querySelector(".tiles")).not.toBeNull();
+  });
+
+  it("shows the four stats", () => {
+    const host = firstPeriod();
+
+    const labels = [...host.querySelectorAll(".stat-bar dt")].map((node) => node.textContent);
+    expect(labels).toEqual(["健康", "心の余裕", "人間関係", "研究"]);
+  });
 });
