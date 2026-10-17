@@ -149,6 +149,16 @@ function EventPanel({
           </p>
         ))}
       </div>
+      {text.table ? (
+        <dl className="status event-table">
+          {text.table.map(({ label, value }) => (
+            <div key={label} className="status-item">
+              <dt>{label}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
       <div className="actions">
         {event.options.length ? (
           event.options.map((option) => (

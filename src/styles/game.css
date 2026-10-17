@@ -292,6 +292,12 @@ main {
   font-size: 14px;
   color: var(--ink);
 }
+.event-table {
+  margin: 0;
+}
+.event-table .status-item dd {
+  font-size: 16px;
+}
 .opt {
   display: grid;
   row-gap: 2px;

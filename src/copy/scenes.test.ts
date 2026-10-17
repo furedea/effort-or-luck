@@ -72,25 +72,41 @@ test("an option that could not be taken is logged with its name", () => {
   );
 });
 
-describe("why the year ends on June 1st", () => {
-  it("is said at the start, with the share holding an offer by then", () => {
-    const intro = describeEvent({
-      facts: {
-        id: "intro",
-        allowance: 50_000,
-        metro: true,
-        scholarship: 0,
-        partTimeHours: 0,
-        weeklyFreeHours: 40,
-        money: 0,
-      },
-      options: [],
-    });
+function intro(extra: { partTimeHours?: number } = {}) {
+  return describeEvent({
+    facts: {
+      id: "intro",
+      allowance: 70_000,
+      metro: false,
+      scholarship: 50_000,
+      partTimeHours: 10,
+      weeklyFreeHours: 38,
+      money: 0,
+      ...extra,
+    },
+    options: [],
+  });
+}
 
-    expect(intro.lines.slice(0, 3)).toEqual([
+describe("the opening notice", () => {
+  it("sets out the self's situation as a labeled table, leaving out what the status panel shows", () => {
+    expect(intro().table).toEqual([
+      { label: "住まい", value: "地方で一人暮らし" },
+      { label: "バイト", value: "月 10 時間" },
+      { label: "自由な時間", value: "週 38 時間" },
+    ]);
+  });
+
+  it("says when there is no part-time job", () => {
+    expect(intro({ partTimeHours: 0 }).table?.[1]).toEqual({ label: "バイト", value: "なし" });
+  });
+});
+
+describe("why the year ends on June 1st", () => {
+  it("is said at the start in two short lines, with the share holding an offer by then", () => {
+    expect(intro().lines).toEqual([
       "就活の1年が始まる．",
-      "6月1日は面接が解禁される日．",
-      "この日までに，同級生の8割が内定を持っている．",
+      "6月1日（面接解禁）までに，同級生の8割が内定を持つ．",
     ]);
   });
 

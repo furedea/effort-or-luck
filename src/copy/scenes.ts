@@ -29,8 +29,15 @@ export function weekLabel(week: number): string {
   return `${following ? "翌" : ""}${month}月 第${weekOfMonth}週`;
 }
 
+interface TableRow {
+  readonly label: string;
+  readonly value: string;
+}
+
 interface EventText {
   readonly lines: readonly string[];
+  /** Figures shown under the lines as a labeled table. */
+  readonly table?: readonly TableRow[];
   /** Label of the button that moves on from a notice. */
   readonly next?: string;
 }
@@ -38,7 +45,7 @@ interface EventText {
 export function describeEvent({ facts }: Event): EventText {
   switch (facts.id) {
     case "intro":
-      return { lines: introLines(facts), next: "始める" };
+      return { lines: INTRO_LINES, table: introTable(facts), next: "始める" };
     case "internEs":
       return { lines: ["夏インターンの ES の締切が来た．ES は一社 3 時間．"] };
     case "summerIntern":
@@ -152,19 +159,17 @@ export function describeLog(fact: LogFact): string {
 
 type Facts<Id extends EventFacts["id"]> = Extract<EventFacts, { id: Id }>;
 
-function introLines(facts: Facts<"intro">): string[] {
+const INTRO_LINES = [
+  "就活の1年が始まる．",
+  `6月1日（面接解禁）までに，同級生の${Math.round(JUNE_OFFER_RATE * 10)}割が内定を持つ．`,
+];
+
+/** The self's situation; allowance and scholarship are left to the status panel. */
+function introTable(facts: Facts<"intro">): TableRow[] {
   return [
-    "就活の1年が始まる．",
-    "6月1日は面接が解禁される日．",
-    `この日までに，同級生の${Math.round(JUNE_OFFER_RATE * 10)}割が内定を持っている．`,
-    facts.allowance
-      ? `${region(facts.metro)}で一人暮らし．仕送りは月 ${yen(facts.allowance)}．`
-      : `${region(facts.metro)}で一人暮らし．仕送りはない．`,
-    ...(facts.scholarship ? [`奨学金を月 ${yen(facts.scholarship)}借りている．`] : []),
-    facts.partTimeHours
-      ? `生活費のため，バイトは月 ${facts.partTimeHours} 時間．`
-      : "バイトはしていない．",
-    `授業や課題のほかに，自由に使える時間は週 ${facts.weeklyFreeHours} 時間．`,
+    { label: "住まい", value: `${region(facts.metro)}で一人暮らし` },
+    { label: "バイト", value: facts.partTimeHours ? `月 ${facts.partTimeHours} 時間` : "なし" },
+    { label: "自由な時間", value: `週 ${facts.weeklyFreeHours} 時間` },
   ];
 }
 
