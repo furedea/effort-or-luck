@@ -49,7 +49,7 @@ describe("what an option takes", () => {
     expect(optionCost(option({ hours: 10, money: 20_000, stats: { mind: 5, social: -3 } }))).toBe(
       "10時間・2万円・心の余裕 +5・人間関係 −3",
     );
-    expect(optionCost(option({ hours: 6, prep: 1 }))).toBe("6時間・面接・書類の通過率 +0.6%");
+    expect(optionCost(option({ hours: 6, prep: 1 }))).toBe("6時間・面接・書類の通過率 +0.3%");
   });
 });
 
@@ -71,7 +71,7 @@ describe("final interview labels", () => {
 
 test("a routine's detail gives its weekly hours and effects in numbers", () => {
   expect(routineDetail(routineOf("rest"))).toBe(
-    "ゆっくり休む（週5時間）：健康 +1.2・心の余裕 +0.3／週",
+    "ゆっくり休む（週10時間）：健康 +2.4・心の余裕 +0.6／週",
   );
 });
 

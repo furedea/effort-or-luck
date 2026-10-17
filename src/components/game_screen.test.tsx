@@ -250,7 +250,7 @@ describe("the weekly timetable", () => {
     const before = total(host);
 
     click(tile(host, "説明会"));
-    expect(total(host)).toMatch(/^週2／\d+時間（あと\d+(\.\d)?時間）$/);
+    expect(total(host)).toMatch(/^週6／\d+時間（あと\d+(\.\d)?時間）$/);
 
     click(tile(host, "説明会"));
     expect(total(host)).toBe(before);
@@ -274,7 +274,7 @@ describe("the weekly timetable", () => {
     click(tile(host, "ゆっくり休む"));
 
     expect(host.querySelector(".activity-detail")?.textContent).toBe(
-      "ゆっくり休む（週5時間）：健康 +1.2・心の余裕 +0.3／週",
+      "ゆっくり休む（週10時間）：健康 +2.4・心の余裕 +0.6／週",
     );
   });
 

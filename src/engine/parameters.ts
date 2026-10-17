@@ -2,7 +2,7 @@
 // that always choosing the middle option lands near the surveyed June 1st offer rate.
 
 /** Bump whenever a change alters results, so shared links from older rules are reported as old. */
-export const RULES_VERSION = 7;
+export const RULES_VERSION = 8;
 
 export const WAGE_YEN_PER_HOUR = 1100;
 export const MONTHLY_EXPENSE_YEN = 130_000;
@@ -35,17 +35,17 @@ export const PASS = {
   inviteAfterFaceIntern: 0.7,
   inviteAfterOnlineIntern: 0.35,
   early: 0.25,
-  earlyPerPrep: 0.015,
+  earlyPerPrep: 0.007,
   entryEs: 0.46,
   /** Written screening; document preparation counts twice. */
-  documentPerPrep: 0.006,
+  documentPerPrep: 0.003,
   toFinal: 0.39,
-  toFinalPerPrep: 0.006,
-  final: 0.51,
-  finalPerPrep: 0.006,
+  toFinalPerPrep: 0.003,
+  final: 0.58,
+  finalPerPrep: 0.003,
   onlineFinalFactor: 0.85,
   /** Sized so the metro/regional gap matches the surveyed 関東 vs other-regions offer rates. */
-  regionalFinalFactor: 0.83,
+  regionalFinalFactor: 0.8,
 } as const;
 
 // Chances and sizes below are assumptions unless a source is given.

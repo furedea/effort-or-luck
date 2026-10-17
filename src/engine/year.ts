@@ -1,9 +1,9 @@
 import { WEEKS } from "./calendar";
 import { eventAt, OPTION_EFFORT, pickOption, resolve, type Event } from "./events";
 import type { Effort, OptionKey, RoutineKey } from "./facts";
-import { makeLife, type Life } from "./life";
+import { makeLife, weekBudget, type Life } from "./life";
 import type { Difficulty } from "./parameters";
-import { ROUTINES } from "./routine";
+import { isOpen, ROUTINES, routineOf } from "./routine";
 import { liveWeek } from "./week";
 
 // A whole year lived by a policy: a timetable for every week and a choice at every event.
@@ -27,27 +27,31 @@ export interface Policy {
 
 const JOB_ROUTINES = ROUTINES.filter((spec) => spec.kind === "job").map((spec) => spec.key);
 const LIFE_ROUTINES = ROUTINES.filter((spec) => spec.kind === "life").map((spec) => spec.key);
-/** About half of a typical week on job hunting, the rest on oneself, no paid extras. */
-const MIDDLE_TIMETABLE: readonly RoutineKey[] = [
+/**
+ * What the middle way wants, in priority order: research and friends to keep going, then job
+ * hunting, then rest; it takes only what fits the week, without paid extras.
+ */
+const MIDDLE_PRIORITIES: readonly RoutineKey[] = [
+  "research",
+  "friends",
   "selfAnalysis",
   "infoSessions",
   "interviewPractice",
-  "friends",
-  "research",
   "rest",
 ];
 const MIDDLE_CHOICE: Choice = { key: null, want: 1 };
 
 /** Savings below which the all-in path takes on part-time work to keep paying for job hunting. */
 const LOW_SAVINGS_YEN = 20_000;
-const JOB_ROUTINES_WITH_WORK: readonly RoutineKey[] = [...JOB_ROUTINES, "extraWork"];
+const JOB_ROUTINES_WITH_WORK: readonly RoutineKey[] = ["extraWork", ...JOB_ROUTINES];
 
 /**
- * Every job-hunting routine and the most effortful option at every event; nothing for oneself,
- * apart from part-time work while savings run low.
+ * As much job hunting as the week holds and the most effortful option at every event; nothing
+ * for oneself, apart from part-time work first while savings run low.
  */
 export const mostPolicy: Policy = {
-  timetable: (life) => (life.money < LOW_SAVINGS_YEN ? JOB_ROUTINES_WITH_WORK : JOB_ROUTINES),
+  timetable: (life, week) =>
+    withinBudget(life.money < LOW_SAVINGS_YEN ? JOB_ROUTINES_WITH_WORK : JOB_ROUTINES, life, week),
   choose: () => ({ key: null, want: 2 }),
 };
 
@@ -59,7 +63,7 @@ export const leastPolicy: Policy = {
 
 /** About half the week on job hunting without paid extras, and middle options at events. */
 export const middlePolicy: Policy = {
-  timetable: () => MIDDLE_TIMETABLE,
+  timetable: (life, week) => withinBudget(MIDDLE_PRIORITIES, life, week),
   choose: () => MIDDLE_CHOICE,
 };
 
@@ -83,6 +87,17 @@ export function followDecisions(decisions: readonly Decision[]): Policy {
       return { key: recorded.option, want: OPTION_EFFORT[recorded.option] };
     },
   };
+}
+
+/** The routines in `priorities` that are open and still fit the week's budget, in order. */
+function withinBudget(priorities: readonly RoutineKey[], life: Life, week: number): RoutineKey[] {
+  let room = weekBudget(life);
+  return priorities.filter((key) => {
+    const spec = routineOf(key);
+    if (!isOpen(spec, week) || spec.weeklyHours > room) return false;
+    room -= spec.weeklyHours;
+    return true;
+  });
 }
 
 /** Meets an event with options by `choice`, falling back to what the life can afford. */
