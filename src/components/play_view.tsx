@@ -7,7 +7,7 @@ import {
   optionLabel,
   shortfallReason,
 } from "../copy/scenes";
-import { NEXT, previousChoice, statusParts } from "../copy/screen";
+import { LOW_NOTE, NEXT, previousChoice, statusItems } from "../copy/screen";
 import type { Scene } from "../engine/choice";
 import type { Effort, ResultFact } from "../engine/facts";
 import { freeHours, type Life } from "../engine/life";
@@ -44,17 +44,23 @@ export function PlayView({ life, scene, step, carried, onChoose, onNext }: Props
         <h2 className="when" ref={heading} tabIndex={-1}>
           {text.when}
         </h2>
-        <p className="status">
-          {statusParts({
+        <dl className="status">
+          {statusItems({
             allowance: life.allowance,
             scholarship: life.scholarship,
             money: life.money,
             freeHours: freeHours(life),
             offers: life.offers.length,
-          }).map((part) => (
-            <span key={part}>{part}</span>
+          }).map(({ label, value, low }) => (
+            <div key={label} className={low ? "status-item low" : "status-item"}>
+              <dt>{label}</dt>
+              <dd>
+                {value}
+                {low ? <span className="sr-only">{LOW_NOTE}</span> : null}
+              </dd>
+            </div>
           ))}
-        </p>
+        </dl>
       </header>
       <div className="lines" key={step} aria-live="polite">
         {text.lines.map((line, k) => (

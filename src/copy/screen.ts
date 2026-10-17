@@ -42,20 +42,39 @@ export function previousChoice(result: string): string {
   return `前の選択で，${result}`;
 }
 
-/** The self's situation as short parts, shown under the month. */
-export function statusParts(status: {
+interface StatusItem {
+  readonly label: string;
+  readonly value: string;
+  /** Running low enough to limit what the self can choose. */
+  readonly low: boolean;
+}
+
+/** Read out after a figure flagged as low, since the flag is otherwise only a color. */
+export const LOW_NOTE = "（少ない）";
+
+const LOW_SAVINGS_YEN = 10_000;
+const LOW_FREE_HOURS = 20;
+
+/** The self's situation as labeled figures, shown under the month. */
+export function statusItems(status: {
   allowance: number;
   scholarship: number;
   money: number;
   freeHours: number;
   offers: number;
-}): string[] {
+}): StatusItem[] {
   return [
-    `仕送り ${yen(status.allowance)}`,
-    ...(status.scholarship ? [`奨学金 ${yen(status.scholarship)}`] : []),
-    `貯金 ${yen(status.money)}`,
-    `就活に使える時間 月${status.freeHours}時間`,
-    `内定 ${status.offers ? `${status.offers} 社` : "なし"}`,
+    { label: "仕送り", value: yen(status.allowance), low: false },
+    ...(status.scholarship
+      ? [{ label: "奨学金", value: yen(status.scholarship), low: false }]
+      : []),
+    { label: "貯金", value: yen(status.money), low: status.money < LOW_SAVINGS_YEN },
+    {
+      label: "就活に使える時間",
+      value: `月${status.freeHours}時間`,
+      low: status.freeHours < LOW_FREE_HOURS,
+    },
+    { label: "内定", value: status.offers ? `${status.offers} 社` : "なし", low: false },
   ];
 }
 
