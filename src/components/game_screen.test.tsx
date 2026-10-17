@@ -60,6 +60,12 @@ const passMs = (ms: number) =>
     vi.advanceTimersByTime(ms);
   });
 
+/** Lets a week pass at double speed, setting the speed again if time went back to steps. */
+function keepFlowing(host: HTMLElement) {
+  if (stepButton(host)) click(speedButton(host, "▶▶ 2倍"));
+  passMs(300);
+}
+
 test("asks for a difficulty before the year starts", () => {
   const host = mountRaw();
 
@@ -116,6 +122,21 @@ test("flows on its own at normal or double speed until set back to one week per 
   expect(when(host)).toBe("4月 第5週");
 });
 
+test("returns to one week per press when limited-time preparation appears", () => {
+  const host = mount();
+  startYear(host);
+
+  click(speedButton(host, "▶▶ 2倍"));
+  for (let guard = 0; guard < 10 && !host.querySelector(".limited"); guard++) passMs(300);
+  passMs(3000);
+
+  expect(when(host)).toBe("5月 第1週");
+  expect(stepButton(host)).not.toBeNull();
+  expect(host.querySelector(".feed li")?.textContent).toContain(
+    "★ 今だけ：夏インターンのES対策（あと4週）",
+  );
+});
+
 test("stops only for choices, listing other happenings while time flows", () => {
   const host = mount();
   startYear(host);
@@ -130,13 +151,8 @@ test("stops only for choices, listing other happenings while time flows", () => 
     const event = host.querySelector(".event");
     const option = event?.querySelector<HTMLButtonElement>(".opt:not([disabled])");
     if (event && !event.querySelector(".opt")) stopsWithoutChoice.push(when(host) ?? "");
-    if (option) {
-      click(option);
-    } else {
-      act(() => {
-        vi.advanceTimersByTime(300);
-      });
-    }
+    if (option) click(option);
+    else keepFlowing(host);
   }
 
   expect(stopsWithoutChoice).toEqual([]);
@@ -158,7 +174,7 @@ test("moves focus to an event when time stops for it", () => {
   startYear(host);
   click(speedButton(host, "▶▶ 2倍"));
 
-  for (let guard = 0; guard < 100 && !host.querySelector(".event"); guard++) passMs(300);
+  for (let guard = 0; guard < 100 && !host.querySelector(".event"); guard++) keepFlowing(host);
 
   expect(host.querySelector(".event")).not.toBeNull();
   expect(document.activeElement).toBe(host.querySelector(".when"));

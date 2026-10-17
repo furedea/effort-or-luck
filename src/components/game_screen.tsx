@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 
 import "../styles/game.css";
-import { describeEvent } from "../copy/scenes";
-import { PLAY_AGAIN, shareText, TITLE, warningLine } from "../copy/screen";
+import { describeEvent, routineTileLabel } from "../copy/scenes";
+import { limitedLine, PLAY_AGAIN, shareText, TITLE, warningLine } from "../copy/screen";
 import { WEEKS } from "../engine/calendar";
 import {
   choose,
@@ -19,6 +19,7 @@ import type { Event } from "../engine/events";
 import type { OptionKey, RoutineKey, Stat } from "../engine/facts";
 import { isActive, type Life } from "../engine/life";
 import type { Difficulty } from "../engine/parameters";
+import { isLimited, ROUTINES } from "../engine/routine";
 import { encode } from "../share/result_link";
 import { DifficultyPicker } from "./difficulty_picker";
 import { PlayView, type FeedEntry, type Speed } from "./play_view";
@@ -143,13 +144,23 @@ function advance(game: Game): Game {
   const falling = life ? warningFor(life, game.warned) : null;
   const warnings =
     falling && life ? [{ week: cohort.week, text: warningLine(falling, life.stats[falling]) }] : [];
-  const next = {
+  const appeared = life && isActive(life) ? limitedEntries(cohort.week) : [];
+  return {
     ...game,
     cohort,
-    feed: [...warnings, ...noticeEntries(cohort, game.player), ...game.feed],
+    // Limited-time preparation would pass within seconds at speed, so time waits for the player.
+    speed: appeared.length ? "step" : game.speed,
+    feed: [...appeared, ...warnings, ...noticeEntries(cohort, game.player), ...game.feed],
     warned: falling ? [...game.warned, falling] : game.warned,
   };
-  return next;
+}
+
+/** Limited-time preparation that opens this week. */
+function limitedEntries(week: number): FeedEntry[] {
+  return ROUTINES.filter((spec) => isLimited(spec) && spec.from === week).map((spec) => ({
+    week,
+    text: limitedLine(routineTileLabel(spec.key), spec.until - week),
+  }));
 }
 
 function decide(game: Game, option: OptionKey): Game {

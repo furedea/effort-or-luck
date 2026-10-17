@@ -62,6 +62,11 @@ export const LIMITED_TITLE = "★ 今だけ";
 export function weeksLeftLine(weeks: number): string {
   return `あと${weeks}週`;
 }
+
+/** A limited-time tile that has just appeared, e.g. "★ 今だけ：夏インターンのES対策（あと4週）". */
+export function limitedLine(tile: string, weeks: number): string {
+  return `${LIMITED_TITLE}：${tile}（${weeksLeftLine(weeks)}）`;
+}
 export const CANNOT_PAY = "お金が足りない";
 
 /** The week's hours against the budget, with what is left or over, e.g. "週26／38時間（あと12時間）". */
