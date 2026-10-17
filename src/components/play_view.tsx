@@ -225,7 +225,10 @@ function EventPanel({
         </dl>
       ) : null}
       {event.options.length ? (
-        <p className="week-status">{weekStatusLine(preview.hours, preview.budget, life.money)}</p>
+        <div className="week-status-block">
+          <p className="week-status">{weekStatusLine(preview.hours, preview.budget, life.money)}</p>
+          <HourBar budget={preview.budget} preview={preview} oneOffHours={bookedHours} />
+        </div>
       ) : null}
       <div className="actions">
         {event.options.length ? (
@@ -338,6 +341,26 @@ function WeekBar({
   preview: ReturnType<typeof planWeek>;
   oneOffHours: number;
 }) {
+  return (
+    <div className="time-bar">
+      <p className="time-total">{budgetLine(preview.hours, budget)}</p>
+      <HourBar budget={budget} preview={preview} oneOffHours={oneOffHours} />
+      {oneOffHours ? <p className="time-left">{oneOffLine(oneOffHours)}</p> : null}
+      {preview.shortHours ? <p className="time-over">{overflowLine(preview.shortHours)}</p> : null}
+    </div>
+  );
+}
+
+/** The week's hours as one bar: one-offs, job hunting, oneself, then hours over the budget. */
+function HourBar({
+  budget,
+  preview,
+  oneOffHours,
+}: {
+  budget: number;
+  preview: ReturnType<typeof planWeek>;
+  oneOffHours: number;
+}) {
   const hoursOf = (kind: RoutineSpec["kind"]) =>
     preview.taken
       .filter((spec) => spec.kind === kind)
@@ -348,16 +371,11 @@ function WeekBar({
   const job = Math.min(hoursOf("job"), budget - oneOff);
   const own = Math.min(hoursOf("life") + hoursOf("work"), budget - oneOff - job);
   return (
-    <div className="time-bar">
-      <p className="time-total">{budgetLine(preview.hours, budget)}</p>
-      <div className="bar" aria-hidden="true">
-        <span className="bar-oneoff" style={{ width: width(oneOff) }} />
-        <span className="bar-job" style={{ width: width(job) }} />
-        <span className="bar-life" style={{ width: width(own) }} />
-        <span className="bar-over" style={{ width: width(preview.shortHours) }} />
-      </div>
-      {oneOffHours ? <p className="time-left">{oneOffLine(oneOffHours)}</p> : null}
-      {preview.shortHours ? <p className="time-over">{overflowLine(preview.shortHours)}</p> : null}
+    <div className="bar" aria-hidden="true">
+      <span className="bar-oneoff" style={{ width: width(oneOff) }} />
+      <span className="bar-job" style={{ width: width(job) }} />
+      <span className="bar-life" style={{ width: width(own) }} />
+      <span className="bar-over" style={{ width: width(preview.shortHours) }} />
     </div>
   );
 }
