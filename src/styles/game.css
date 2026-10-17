@@ -341,6 +341,17 @@ main {
   color: var(--sub);
   font-variant-numeric: tabular-nums;
 }
+.opt .after {
+  font-size: 12px;
+  color: var(--suit);
+  font-variant-numeric: tabular-nums;
+}
+.week-status {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
 .opt:disabled {
   cursor: default;
   background: transparent;

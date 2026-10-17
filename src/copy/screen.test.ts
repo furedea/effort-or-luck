@@ -1,4 +1,12 @@
-import { budgetLine, endedCount, overflowLine, statBars, statusItems, warningLine } from "./screen";
+import {
+  budgetLine,
+  endedCount,
+  optionAfterLine,
+  overflowLine,
+  statBars,
+  statusItems,
+  warningLine,
+} from "./screen";
 
 const base = { allowance: 70_000, scholarship: 50_000, money: 20_000, offers: 0 };
 
@@ -48,4 +56,18 @@ test("the week's hours are shown against the budget", () => {
 
 test("a falling stat is warned about with its value", () => {
   expect(warningLine("health", 18.4)).toBe("健康が 18 まで下がった．このままだと危ない．");
+});
+
+describe("what choosing an option leaves", () => {
+  it("gives the hours left this week and the savings after", () => {
+    expect(optionAfterLine({ hoursLeft: 12, weeks: 1, moneyAfter: 30_000 })).toBe(
+      "選ぶと：今週あと12時間・貯金 3万円",
+    );
+  });
+
+  it("says how many weeks the hours last and when they run over", () => {
+    expect(optionAfterLine({ hoursLeft: -4, weeks: 3, moneyAfter: 0 })).toBe(
+      "選ぶと：3週間，毎週4時間オーバー（睡眠を削る）・貯金 0円",
+    );
+  });
 });

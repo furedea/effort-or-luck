@@ -169,6 +169,20 @@ test("can be played from the first week to the reveal", () => {
   expect(host.querySelectorAll(".dots i")).toHaveLength(100);
 });
 
+test("shows this week's hours and what each option leaves at an event", () => {
+  const host = mount();
+  startYear(host);
+  click(speedButton(host, "▶▶ 2倍"));
+  for (let guard = 0; guard < 100 && !host.querySelector(".event .opt"); guard++) {
+    keepFlowing(host);
+  }
+
+  expect(host.querySelector(".event .week-status")?.textContent).toMatch(/^週.+時間（.+）・貯金 /);
+  const afters = [...host.querySelectorAll(".event .opt .after")].map((n) => n.textContent);
+  expect(afters.length).toBeGreaterThan(0);
+  for (const after of afters) expect(after).toMatch(/^選ぶと：/);
+});
+
 test("moves focus to an event when time stops for it", () => {
   const host = mount();
   startYear(host);
