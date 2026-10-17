@@ -5,7 +5,7 @@ export interface Statistic {
   readonly source: string;
 }
 
-const SOURCES = {
+export const SOURCES = {
   seikyo: "全国大学生協連 第60回学生生活実態調査（2024）",
   jasso: "日本学生支援機構 令和4年度学生生活調査",
   mynavi: "マイナビ 2026年卒 インターンシップ・就職活動準備に関する調査",
@@ -41,6 +41,10 @@ export const STATISTICS = {
   },
   offersJune: {
     text: `6月1日の時点で，同級生の ${(JUNE_OFFER_RATE * 100).toFixed(1)}% が内定を持っていた．`,
+    source: SOURCES.indeed,
+  },
+  offersJuneActual: {
+    text: `6月1日の時点で，実際の同級生の ${(JUNE_OFFER_RATE * 100).toFixed(1)}% が内定を持っていた．`,
     source: SOURCES.indeed,
   },
 } as const satisfies Record<string, Statistic>;
