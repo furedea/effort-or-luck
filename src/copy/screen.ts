@@ -21,6 +21,16 @@ export const SOURCES_LINK = "数字の出典と仮定について";
 export const SOURCES_TITLE = "数字の出典と仮定";
 export const BACK_TO_GAME = "ゲームに戻る";
 export const PLAY_AGAIN = "もう一度";
+export const SHARE = "結果を共有する";
+export const COPIED = "リンクをコピーした";
+export const PLAY_YOURSELF = "自分も遊ぶ";
+
+export type Subject = "you" | "them";
+
+export const LINK_ERRORS = {
+  unreadable: "このリンクは読み取れなかった．",
+  oldRules: "このリンクは今とは違うルールで遊んだ結果なので，再現できない．",
+} as const;
 
 export const VIEWS = [
   ["same", "あなたの選択"],
@@ -49,8 +59,15 @@ export function statusParts(status: {
   ];
 }
 
-export function yourResult(offers: number): string {
-  return offers ? `あなたには，内定が ${offers} 社ある．` : "あなたには，内定がない．";
+const SUBJECT = { you: "あなた", them: "この人" } as const;
+
+export function resultLine(subject: Subject, offers: number): string {
+  const who = SUBJECT[subject];
+  return offers ? `${who}には，内定が ${offers} 社ある．` : `${who}には，内定がない．`;
+}
+
+export function shareText(offers: number): string {
+  return `${TITLE}｜6月1日，内定 ${offers ? `${offers} 社` : "なし"}`;
 }
 
 export function revealLead(size: number): string {
@@ -72,11 +89,11 @@ export function sourceCredit(source: string): string {
 /** One allowance row read out in words, since the dots carry no text. */
 export function bandSummary(
   amount: number,
-  total: number,
-  offered: number,
-  hasYou: boolean,
+  counts: { total: number; offered: number },
+  member: Subject | null,
 ): string {
-  return `仕送り${yen(amount)}の ${total} 人のうち，内定は ${offered} 人．${hasYou ? "あなたもこの中にいる．" : ""}`;
+  const among = member ? `${SUBJECT[member]}もこの中にいる．` : "";
+  return `仕送り${yen(amount)}の ${counts.total} 人のうち，内定は ${counts.offered} 人．${among}`;
 }
 
 export function offeredCount(offered: number, total: number): string {
