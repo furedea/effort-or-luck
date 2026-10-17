@@ -71,7 +71,7 @@ describe("a share link", () => {
     ["missing fields", "?r=4&s=abc"],
     ["a player outside the 100", `?r=${RULES_VERSION}&s=1&p=100&c=0t0`],
     ["a character that names no routine", `?r=${RULES_VERSION}&s=1&p=0&c=0tz`],
-    ["a character that names no option", `?r=${RULES_VERSION}&s=1&p=0&c=9oz`],
+    ["a character that names no option", `?r=${RULES_VERSION}&s=1&p=0&c=9ozz`],
     ["a decision without a week", `?r=${RULES_VERSION}&s=1&p=0&c=t0`],
     ["a seed that is not a number", `?r=${RULES_VERSION}&s=zz!&p=0&c=0t0`],
   ])("is unreadable with %s", (_, search) => {
@@ -116,6 +116,6 @@ test("a recorded link still replays to the recorded result under the current rul
   if (!replayed.ok) return;
   const offersPerSelf = replayed.value.cohort.lives.map((life) => life.offers.length).join("");
   expect(offersPerSelf).toBe(
-    "1032131113111321212112311351010112021211111102112122132411210110113211011242401202113211111111211131",
+    "1032131123110321213102312351010113022213111102102122132411210110113211010242401202113312011121311131",
   );
 });

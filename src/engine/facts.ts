@@ -40,6 +40,17 @@ export type RoutineKey =
 /** Selection stages that limited-time preparation raises the pass rate of. */
 export type Boost = "internEs" | "early" | "entryEs" | "final";
 
+/** Light two-way choices between the big events. */
+export type SmallEventId =
+  | "gwTrip"
+  | "seminarTalk"
+  | "summerCamp"
+  | "extraShift"
+  | "obChance"
+  | "yearEnd"
+  | "midterm"
+  | "studyGroup";
+
 export type EventFacts =
   | {
       readonly id: "intro";
@@ -81,7 +92,8 @@ export type EventFacts =
       readonly offers: number;
       readonly scholarshipTotal: number;
     }
-  | { readonly id: "over"; readonly stat: Stat };
+  | { readonly id: "over"; readonly stat: Stat }
+  | { readonly id: SmallEventId };
 
 export type EventId = EventFacts["id"];
 
@@ -106,7 +118,23 @@ export type OptionKey =
   | "finalsAllFace"
   | "finalsOneFace"
   | "finalsAllOnline"
-  | "finalsDecline";
+  | "finalsDecline"
+  | "tripGo"
+  | "tripSkip"
+  | "seminarTake"
+  | "seminarDecline"
+  | "campJoin"
+  | "campSkip"
+  | "shiftYes"
+  | "shiftNo"
+  | "obVisit"
+  | "obSkip"
+  | "homeGo"
+  | "homeStay"
+  | "midtermPrep"
+  | "midtermMinimal"
+  | "studyJoin"
+  | "studySkip";
 
 export type LogFact =
   | { readonly kind: "profile"; readonly allowance: number; readonly metro: boolean }
