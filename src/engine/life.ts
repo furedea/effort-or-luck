@@ -12,7 +12,7 @@ import {
 } from "./parameters";
 import { createRng, pickWeighted, type Rng } from "./random";
 
-export type InternKind = "none" | "face" | "online";
+type InternKind = "none" | "face" | "online";
 
 /** One self's state through the year. Scenes and choices advance it in place. */
 export interface Life {

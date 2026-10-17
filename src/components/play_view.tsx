@@ -25,8 +25,15 @@ interface Props {
 
 export function PlayView({ life, scene, step, carried, onChoose, onNext }: Props) {
   const text = describeScene(scene);
+  const heading = useRef<HTMLHeadingElement>(null);
+  const hasOptions = scene.options.length > 0;
+  // The chosen button disappears with the month, so keyboard focus moves to the new month.
+  // Months without options focus their next button instead.
+  useEffect(() => {
+    if (hasOptions) heading.current?.focus({ preventScroll: true });
+  }, [step, hasOptions]);
   return (
-    <section className="play" aria-live="polite">
+    <section className="play">
       <ol className="progress" aria-hidden="true">
         {Array.from({ length: SCENE_COUNT }, (_, i) => (
           <li key={i} className={i < step ? "done" : i === step ? "now" : ""} />
@@ -34,7 +41,9 @@ export function PlayView({ life, scene, step, carried, onChoose, onNext }: Props
       </ol>
       <header className="play-head">
         {carried ? <p className="carried">{previousChoice(describeResult(carried))}</p> : null}
-        <h2 className="when">{text.when}</h2>
+        <h2 className="when" ref={heading} tabIndex={-1}>
+          {text.when}
+        </h2>
         <p className="status">
           {statusParts({
             allowance: life.allowance,
@@ -47,7 +56,7 @@ export function PlayView({ life, scene, step, carried, onChoose, onNext }: Props
           ))}
         </p>
       </header>
-      <div className="lines" key={step}>
+      <div className="lines" key={step} aria-live="polite">
         {text.lines.map((line, k) => (
           <p key={k} style={{ animationDelay: `${k * 0.2}s` }}>
             {line}
