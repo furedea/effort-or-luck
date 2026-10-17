@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import "../styles/game.css";
-import { assumptionsNote, sourcesNote, TITLE, type View } from "../copy/screen";
+import { TITLE, type View } from "../copy/screen";
 import {
   advanceFor,
   chooseAndAdvance,
@@ -67,12 +67,6 @@ export function GameScreen() {
           onChoose={(effort: Effort) => setGame(choose(game, effort))}
           onNext={() => setGame(moveOn(game, advanceFor(cohort, player), null))}
         />
-      ) : null}
-      {yearEnd ? (
-        <footer className="notes">
-          <p>{sourcesNote()}</p>
-          <p>{assumptionsNote()}</p>
-        </footer>
       ) : null}
     </main>
   );

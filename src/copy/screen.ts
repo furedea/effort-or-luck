@@ -1,4 +1,4 @@
-import { JUNE_OFFER_RATE, SOURCES } from "../data/statistics";
+import { JUNE_OFFER_RATE } from "../data/statistics";
 import type { LogFact } from "../engine/facts";
 import {
   METRO_SHARE,
@@ -17,25 +17,37 @@ export const TITLE = "努力か，運か";
 export const NEXT = "次へ";
 export const YEAR_END = "4年 6月1日";
 export const SAME_LUCK = "同じ運のまま，選び方だけ変えると";
+export const SOURCES_LINK = "数字の出典と仮定について";
+export const SOURCES_TITLE = "数字の出典と仮定";
+export const BACK_TO_GAME = "ゲームに戻る";
 export const PLAY_AGAIN = "もう一度";
 export const YOU = "あなた";
 
 export const VIEWS = [
   ["same", "あなたの選択"],
-  ["most", "いつも一番頑張る"],
-  ["least", "いつも一番楽をする"],
+  ["most", "いつも頑張る"],
+  ["least", "いつも楽をする"],
 ] as const satisfies readonly (readonly [View, string])[];
 
 export function previousChoice(result: string): string {
   return `前の選択で，${result}`;
 }
 
-export function savings(money: number): string {
-  return `貯金 ${yen(money)}`;
-}
-
-export function hours(free: number): string {
-  return `就活に使える時間 月 ${free} 時間`;
+/** The self's situation as short parts, shown under the month. */
+export function statusParts(status: {
+  allowance: number;
+  scholarship: number;
+  money: number;
+  freeHours: number;
+  offers: number;
+}): string[] {
+  return [
+    `仕送り ${yen(status.allowance)}`,
+    ...(status.scholarship ? [`奨学金 ${yen(status.scholarship)}`] : []),
+    `貯金 ${yen(status.money)}`,
+    `時間 月${status.freeHours}時間`,
+    `内定 ${status.offers ? `${status.offers} 社` : "なし"}`,
+  ];
 }
 
 export function yourResult(offers: number): string {
@@ -43,21 +55,23 @@ export function yourResult(offers: number): string {
 }
 
 export function revealLead(size: number): string {
-  return `あなたと同じ選択を，仕送りの違う ${size} 人のあなたがしていた．`;
+  return `同じ選択を，仕送りの違う ${size} 人のあなたがしていた．`;
 }
 
 export function allowanceRow(amount: number): string {
-  return `仕送り ${yen(amount)}`;
+  return yen(amount);
+}
+
+export function actualRate(): string {
+  return `実際の同級生は ${(JUNE_OFFER_RATE * 100).toFixed(1)}% が内定を持っていた．`;
+}
+
+export function sourceCredit(source: string): string {
+  return `出典：${source}`;
 }
 
 export function offeredCount(offered: number, total: number): string {
   return `${offered} / ${total} 人`;
-}
-
-/** One self's year as a sentence, leaving out the profile and scholarship it started with. */
-export function pathText(log: readonly LogFact[]): string {
-  const steps = log.filter((fact) => fact.kind !== "profile" && fact.kind !== "scholarship");
-  return steps.map(describeLog).join("．") + "．";
 }
 
 export function profileText(log: readonly LogFact[]): string {
@@ -65,10 +79,6 @@ export function profileText(log: readonly LogFact[]): string {
     .filter((fact) => fact.kind === "profile" || fact.kind === "scholarship")
     .map(describeLog)
     .join("・");
-}
-
-export function sourcesNote(): string {
-  return "数字の出典　" + Object.values(SOURCES).join("．") + "．";
 }
 
 export function assumptionsNote(): string {

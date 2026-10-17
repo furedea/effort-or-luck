@@ -7,7 +7,7 @@ import {
   optionLabel,
   shortfallReason,
 } from "../copy/scenes";
-import { hours, NEXT, previousChoice, savings } from "../copy/screen";
+import { NEXT, previousChoice, statusParts } from "../copy/screen";
 import type { Scene } from "../engine/choice";
 import type { Effort, ResultFact } from "../engine/facts";
 import { freeHours, type Life } from "../engine/life";
@@ -36,8 +36,15 @@ export function PlayView({ life, scene, step, carried, onChoose, onNext }: Props
         {carried ? <p className="carried">{previousChoice(describeResult(carried))}</p> : null}
         <h2 className="when">{text.when}</h2>
         <p className="status">
-          <span>{savings(life.money)}</span>
-          <span>{hours(freeHours(life))}</span>
+          {statusParts({
+            allowance: life.allowance,
+            scholarship: life.scholarship,
+            money: life.money,
+            freeHours: freeHours(life),
+            offers: life.offers.length,
+          }).map((part) => (
+            <span key={part}>{part}</span>
+          ))}
         </p>
       </header>
       <div className="lines" key={step}>

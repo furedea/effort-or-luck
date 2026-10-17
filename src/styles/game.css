@@ -83,7 +83,23 @@ main {
 }
 .reveal {
   display: grid;
-  row-gap: 20px;
+  grid-template-rows: auto auto auto 1fr;
+  row-gap: 18px;
+}
+.reveal-head,
+.bands-block {
+  display: grid;
+  row-gap: 8px;
+}
+.reveal-actions {
+  align-self: end;
+  display: grid;
+  row-gap: 12px;
+}
+.sources-link {
+  justify-self: center;
+  font-size: 13px;
+  color: var(--sub);
 }
 .progress {
   display: grid;
@@ -115,7 +131,7 @@ main {
 .status {
   display: flex;
   flex-wrap: wrap;
-  gap: 2px 16px;
+  gap: 2px 14px;
   margin: 0;
   font-size: 13px;
   color: var(--sub);
@@ -212,22 +228,26 @@ main {
   font-size: 22px;
 }
 .profile {
-  margin: -12px 0 0;
+  margin: 0;
   font-size: 13px;
   color: var(--sub);
 }
 .lead {
-  margin: 8px 0 0;
+  margin: 0;
   font-family: var(--display);
-  font-size: 18px;
+  font-size: 17px;
+}
+.lead.small {
+  margin-top: 8px;
+  font-size: 15px;
 }
 .bands {
   display: grid;
-  row-gap: 12px;
+  row-gap: 10px;
 }
 .band {
   display: grid;
-  grid-template-columns: 7.5em 1fr auto;
+  grid-template-columns: 4em 1fr auto;
   align-items: center;
   column-gap: 12px;
   font-size: 13px;
@@ -279,11 +299,6 @@ main {
   color: var(--suit);
   font-weight: 700;
 }
-.path {
-  margin: 0;
-  font-size: 14px;
-  color: var(--sub);
-}
 .stat {
   display: grid;
   row-gap: 2px;
@@ -299,17 +314,19 @@ main {
   font-size: 11px;
   color: var(--sub);
 }
-.notes {
-  display: grid;
-  row-gap: 6px;
-  padding-top: 12px;
-  border-top: 1px solid var(--rule);
-  font-size: 11.5px;
-  line-height: 1.7;
-  color: var(--sub);
+
+.sources {
+  grid-template-rows: none;
+  align-content: start;
+  font-size: 14px;
 }
-.notes p {
+.sources ul {
   margin: 0;
+  padding-left: 1.2em;
+}
+.sources p {
+  margin: 0;
+  color: var(--sub);
 }
 
 @media (prefers-reduced-motion: reduce) {
