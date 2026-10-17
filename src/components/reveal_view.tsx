@@ -28,9 +28,9 @@ import {
 } from "../copy/screen";
 import { STATISTICS } from "../data/statistics";
 import { revealByAllowance } from "../engine/cohort";
-import type { PeriodId, Stat } from "../engine/facts";
+import type { Stat } from "../engine/facts";
 import type { Life } from "../engine/life";
-import type { Plan } from "../engine/plan";
+import type { Decision } from "../engine/year";
 import { useLongRun } from "./use_long_run";
 
 const PATHS: readonly Path[] = ["least", "same", "most"];
@@ -42,15 +42,15 @@ interface Props {
   readonly player: number;
   /** How many selves could not afford, in some month, the effort they all attempted. */
   readonly blocked: number;
-  /** The plan the selves attempted each period, to estimate what those plans usually lead to. */
-  readonly plans: Readonly<Partial<Record<PeriodId, Plan>>>;
+  /** What the selves attempted, to estimate what those decisions usually lead to. */
+  readonly decisions: readonly Decision[];
   /** Whose year this is: the player's own, or someone else's opened from a shared link. */
   readonly subject: Subject;
   /** Buttons at the bottom, such as playing again or sharing. */
   readonly actions: ReactNode;
 }
 
-export function RevealView({ paths, ranks, player, blocked, plans, subject, actions }: Props) {
+export function RevealView({ paths, ranks, player, blocked, decisions, subject, actions }: Props) {
   const you = paths.same[player];
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
@@ -71,7 +71,7 @@ export function RevealView({ paths, ranks, player, blocked, plans, subject, acti
         ranks={ranks}
         player={player}
         blocked={blocked}
-        plans={plans}
+        decisions={decisions}
         subject={subject}
       />
       <EffortPart paths={paths} ranks={ranks} subject={subject} />
@@ -95,12 +95,12 @@ function LuckPart(props: {
   ranks: readonly number[];
   player: number;
   blocked: number;
-  plans: Readonly<Partial<Record<PeriodId, Plan>>>;
+  decisions: readonly Decision[];
   subject: Subject;
 }) {
-  const { lives, ranks, player, blocked, plans, subject } = props;
+  const { lives, ranks, player, blocked, decisions, subject } = props;
   const rows = revealByAllowance(lives, ranks);
-  const longRun = useLongRun(plans);
+  const longRun = useLongRun(decisions);
   return (
     <div className="part">
       <h3 className="part-title">{LUCK_PART}</h3>

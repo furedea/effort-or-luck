@@ -3,13 +3,19 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 
 import { GameScreen } from "./game_screen";
+import { playToReveal } from "./play_to_reveal";
 import { ShareScreen } from "./share_screen";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 beforeEach(() => {
+  vi.useFakeTimers();
   vi.spyOn(window, "scrollTo").mockImplementation((() =>
     Promise.resolve()) as typeof window.scrollTo);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 function mount(node: React.ReactNode) {
@@ -33,12 +39,6 @@ async function shareLinkOf(host: HTMLElement): Promise<string> {
   });
   await act(async () => host.querySelector<HTMLButtonElement>(".share")!.click());
   return copied;
-}
-
-function playToReveal(host: HTMLElement) {
-  for (let guard = 0; guard < 20 && !host.querySelector(".reveal"); guard++) {
-    act(() => host.querySelector<HTMLButtonElement>(".actions .confirm, .actions .next")!.click());
-  }
 }
 
 function summary(host: HTMLElement) {

@@ -1,70 +1,91 @@
 import { useEffect, useRef, useState } from "react";
 
-import { activityCost, activityDetail, activityTileLabel, describeScene } from "../copy/scenes";
+import {
+  describeEvent,
+  optionCost,
+  optionLabel,
+  routineDetail,
+  routineTileLabel,
+  shortfallReason,
+  weekLabel,
+} from "../copy/scenes";
 import {
   budgetLine,
   CANNOT_PAY,
-  CONFIRM,
-  leftoverLine,
   LOW_NOTE,
   NEXT,
+  oneOffLine,
   overflowLine,
+  PAUSE,
+  PLAY,
   SECTION,
   statBars,
   statusItems,
+  TIMETABLE_TITLE,
 } from "../copy/screen";
-import type { ActivitySpec } from "../engine/activities";
-import type { ActivityKey } from "../engine/facts";
+import { WEEKS } from "../engine/calendar";
+import type { Event } from "../engine/events";
+import type { OptionKey, RoutineKey } from "../engine/facts";
 import type { Life } from "../engine/life";
-import { allocate, type Plan, type Scene } from "../engine/plan";
-import { SCENE_COUNT } from "../engine/scenes";
+import { isOpen, ROUTINES, type RoutineSpec } from "../engine/routine";
+import { planWeek } from "../engine/week";
 
 interface Props {
   readonly life: Life;
-  readonly scene: Scene;
-  readonly step: number;
-  /** What the previous period did, shown at the top of this scene. */
-  readonly carried: string | null;
-  readonly onConfirm: (plan: Plan) => void;
+  readonly week: number;
+  /** The player's event this week, or null while weeks are flowing. */
+  readonly event: Event | null;
+  readonly timetable: readonly RoutineKey[];
+  readonly playing: boolean;
+  /** A line about what happened since the last stop, or a warning. */
+  readonly notice: string | null;
+  readonly onTimetable: (timetable: readonly RoutineKey[]) => void;
+  readonly onPlay: () => void;
+  readonly onPause: () => void;
+  readonly onChoose: (option: OptionKey) => void;
   readonly onNext: () => void;
 }
 
-export function PlayView({ life, scene, step, carried, onConfirm, onNext }: Props) {
-  const text = describeScene(scene);
+export function PlayView(props: Props) {
+  const { life, week, event, playing, notice } = props;
   const heading = useRef<HTMLHeadingElement>(null);
-  const isPeriod = scene.period !== null;
-  // A new scene replaces the controls the player was using, so keyboard focus moves to it.
+  // An event replaces the controls the player was using, so keyboard focus moves to it.
   useEffect(() => {
-    if (isPeriod) heading.current?.focus({ preventScroll: true });
-  }, [step, isPeriod]);
+    if (event) heading.current?.focus({ preventScroll: true });
+  }, [event]);
   return (
     <section className="play">
-      <ol className="progress" aria-hidden="true">
-        {Array.from({ length: SCENE_COUNT }, (_, i) => (
-          <li key={i} className={i < step ? "done" : i === step ? "now" : ""} />
-        ))}
-      </ol>
+      <div className="progress-bar" aria-hidden="true">
+        <span style={{ width: `${(Math.min(week, WEEKS) / WEEKS) * 100}%` }} />
+      </div>
       <header className="play-head">
-        {carried ? <p className="carried">{carried}</p> : null}
+        {notice ? <p className="carried">{notice}</p> : null}
         <h2 className="when" ref={heading} tabIndex={-1}>
-          {text.when}
+          {weekLabel(week)}
         </h2>
         <Status life={life} />
       </header>
-      <div className="lines" key={step} aria-live="polite">
-        {text.lines.map((line, k) => (
-          <p key={k} style={{ animationDelay: `${k * 0.2}s` }}>
-            {line}
-          </p>
-        ))}
-      </div>
-      <div className="actions" key={`actions-${step}`}>
-        {isPeriod ? (
-          <Allocation life={life} scene={scene} onConfirm={onConfirm} />
-        ) : (
-          <NextButton label={text.next ?? NEXT} onClick={onNext} />
-        )}
-      </div>
+      {event ? (
+        <EventPanel event={event} onChoose={props.onChoose} onNext={props.onNext} />
+      ) : (
+        <>
+          <Timetable
+            life={life}
+            week={week}
+            timetable={props.timetable}
+            onChange={props.onTimetable}
+          />
+          <div className="actions">
+            <button
+              type="button"
+              className="next flow"
+              onClick={playing ? props.onPause : props.onPlay}
+            >
+              {playing ? PAUSE : PLAY}
+            </button>
+          </div>
+        </>
+      )}
     </section>
   );
 }
@@ -109,97 +130,140 @@ function Status({ life }: { life: Life }) {
   );
 }
 
-function Allocation({
-  life,
-  scene,
-  onConfirm,
+function EventPanel({
+  event,
+  onChoose,
+  onNext,
 }: {
-  life: Life;
-  scene: Scene;
-  onConfirm: (plan: Plan) => void;
+  event: Event;
+  onChoose: (option: OptionKey) => void;
+  onNext: () => void;
 }) {
-  const [selected, setSelected] = useState<ActivityKey[]>([]);
-  const [pressed, setPressed] = useState<ActivitySpec | null>(null);
-  const period = scene.period;
-  if (!period) return null;
-  const preview = allocate(life, scene, selected);
-  const toggle = (activity: ActivitySpec) => {
-    setPressed(activity);
-    setSelected((current) => {
-      if (current.includes(activity.key)) return current.filter((key) => key !== activity.key);
-      const rivals = period.activities
-        .filter((a) => a.group && a.group === activity.group)
-        .map((a) => a.key);
-      return [...current.filter((key) => !rivals.includes(key)), activity.key];
-    });
-  };
+  const text = describeEvent(event);
   return (
-    <>
-      <TimeBar budget={period.budget} preview={preview} />
-      <p className="activity-detail" aria-live="polite">
-        {pressed ? activityDetail(pressed, scene.facts) : ""}
-      </p>
-      {(["job", "life"] as const).map((kind) => (
-        <div className="activity-group" key={kind}>
-          <h3 className="activity-section">{SECTION[kind]}</h3>
-          <div className="tiles">
-            {period.activities
-              .filter((activity) => activity.kind === kind)
-              .map((activity) => {
-                const chosen = selected.includes(activity.key);
-                const dropped = preview.dropped.includes(activity.key);
-                return (
-                  <button
-                    key={activity.key}
-                    type="button"
-                    className={["activity", chosen ? "chosen" : "", dropped ? "dropped" : ""]
-                      .filter(Boolean)
-                      .join(" ")}
-                    aria-pressed={chosen}
-                    aria-label={activityDetail(activity, scene.facts)}
-                    onClick={() => toggle(activity)}
-                  >
-                    <span className="activity-name">
-                      {activityTileLabel(activity, scene.facts)}
-                    </span>
-                    <span className="activity-cost">
-                      {dropped ? CANNOT_PAY : activityCost(activity).join("・")}
-                    </span>
-                  </button>
-                );
-              })}
-          </div>
-        </div>
-      ))}
-      <button type="button" className="next confirm" onClick={() => onConfirm(selected)}>
-        {CONFIRM}
-      </button>
-    </>
+    <div className="event">
+      <div className="lines" aria-live="polite">
+        {text.lines.map((line, k) => (
+          <p key={k} style={{ animationDelay: `${k * 0.2}s` }}>
+            {line}
+          </p>
+        ))}
+      </div>
+      <div className="actions">
+        {event.options.length ? (
+          event.options.map((option) => (
+            <button
+              key={option.key}
+              type="button"
+              className="opt"
+              disabled={option.shortfall !== null}
+              onClick={() => onChoose(option.key)}
+            >
+              <span className="label">{optionLabel(option, event.facts)}</span>
+              <span className="cost">
+                {option.shortfall ? shortfallReason(option.shortfall) : optionCost(option)}
+              </span>
+            </button>
+          ))
+        ) : (
+          <NextButton label={text.next ?? NEXT} onClick={onNext} />
+        )}
+      </div>
+    </div>
   );
 }
 
-function TimeBar({ budget, preview }: { budget: number; preview: ReturnType<typeof allocate> }) {
-  const jobHours = preview.taken
-    .filter((a) => a.kind === "job")
-    .reduce((sum, a) => sum + a.hours, 0);
-  const lifeHours = preview.hours - jobHours;
+function Timetable({
+  life,
+  week,
+  timetable,
+  onChange,
+}: {
+  life: Life;
+  week: number;
+  timetable: readonly RoutineKey[];
+  onChange: (timetable: readonly RoutineKey[]) => void;
+}) {
+  const [pressed, setPressed] = useState<RoutineSpec | null>(null);
+  const preview = planWeek(life, week, timetable);
+  const toggle = (spec: RoutineSpec) => {
+    setPressed(spec);
+    onChange(
+      timetable.includes(spec.key)
+        ? timetable.filter((key) => key !== spec.key)
+        : [...timetable, spec.key],
+    );
+  };
+  const oneOffHours = life.oneOff.weeks > 0 ? life.oneOff.hours / life.oneOff.weeks : 0;
+  return (
+    <div className="timetable">
+      <h3 className="activity-section">{TIMETABLE_TITLE}</h3>
+      <WeekBar budget={preview.budget} preview={preview} oneOffHours={oneOffHours} />
+      <p className="activity-detail" aria-live="polite">
+        {pressed ? routineDetail(pressed) : ""}
+      </p>
+      {(["job", "life", "work"] as const).map((kind) => (
+        <div className="activity-group" key={kind}>
+          <h4 className="activity-section">{SECTION[kind]}</h4>
+          <div className="tiles">
+            {ROUTINES.filter((spec) => spec.kind === kind && isOpen(spec, week)).map((spec) => {
+              const chosen = timetable.includes(spec.key);
+              const dropped = preview.dropped.includes(spec.key);
+              return (
+                <button
+                  key={spec.key}
+                  type="button"
+                  className={["activity", chosen ? "chosen" : "", dropped ? "dropped" : ""]
+                    .filter(Boolean)
+                    .join(" ")}
+                  aria-pressed={chosen}
+                  aria-label={routineDetail(spec)}
+                  onClick={() => toggle(spec)}
+                >
+                  <span className="activity-name">{routineTileLabel(spec.key)}</span>
+                  <span className="activity-cost">
+                    {dropped ? CANNOT_PAY : `週${spec.weeklyHours}時間`}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function WeekBar({
+  budget,
+  preview,
+  oneOffHours,
+}: {
+  budget: number;
+  preview: ReturnType<typeof planWeek>;
+  oneOffHours: number;
+}) {
+  const hoursOf = (kind: RoutineSpec["kind"]) =>
+    preview.taken
+      .filter((spec) => spec.kind === kind)
+      .reduce((sum, spec) => sum + spec.weeklyHours, 0);
   const scale = Math.max(budget, preview.hours) || 1;
   const width = (hours: number) => `${(hours / scale) * 100}%`;
-  const withinJob = Math.min(jobHours, budget);
-  const withinLife = Math.min(lifeHours, Math.max(0, budget - withinJob));
+  const oneOff = Math.min(oneOffHours, budget);
+  const job = Math.min(hoursOf("job"), budget - oneOff);
+  const own = Math.min(hoursOf("life") + hoursOf("work"), budget - oneOff - job);
   return (
     <div className="time-bar">
       <p className="time-total">{budgetLine(preview.hours, budget)}</p>
       <div className="bar" aria-hidden="true">
-        <span className="bar-job" style={{ width: width(withinJob) }} />
-        <span className="bar-life" style={{ width: width(withinLife) }} />
+        <span className="bar-oneoff" style={{ width: width(oneOff) }} />
+        <span className="bar-job" style={{ width: width(job) }} />
+        <span className="bar-life" style={{ width: width(own) }} />
         <span className="bar-over" style={{ width: width(preview.shortHours) }} />
       </div>
+      {oneOffHours ? <p className="time-left">{oneOffLine(oneOffHours)}</p> : null}
       {preview.shortHours ? (
         <p className="time-over">{overflowLine(preview.shortHours, preview.paid)}</p>
-      ) : null}
-      {preview.extraWorkHours ? (
-        <p className="time-left">{leftoverLine(preview.extraWorkHours, preview.earned)}</p>
       ) : null}
     </div>
   );

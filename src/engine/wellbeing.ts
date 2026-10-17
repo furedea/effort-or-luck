@@ -1,4 +1,3 @@
-import type { ActivitySpec } from "./activities";
 import type { Stat } from "./facts";
 import { weeklyPartTimeHours, type Life } from "./life";
 import {
@@ -20,7 +19,7 @@ const MAX_STAT = 100;
 interface PeriodLoad {
   readonly weeks: number;
   readonly fourthYear: boolean;
-  readonly taken: readonly ActivitySpec[];
+  readonly taken: readonly { readonly statsPerWeek?: Readonly<Partial<Record<Stat, number>>> }[];
   readonly jobHours: number;
   readonly extraWorkHours: number;
 }

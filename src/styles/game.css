@@ -113,23 +113,15 @@ main {
   font-size: 13px;
   color: var(--sub);
 }
-.progress {
-  display: grid;
-  grid-template-columns: repeat(9, 1fr);
-  gap: 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.progress li {
+.progress-bar {
   height: 3px;
   background: var(--rule);
 }
-.progress li.done {
-  background: var(--suit-soft);
-}
-.progress li.now {
+.progress-bar > span {
+  display: block;
+  height: 100%;
   background: var(--suit);
+  transition: width 0.3s linear;
 }
 .play-head {
   display: grid;
@@ -267,6 +259,9 @@ main {
   height: 100%;
   transition: width 0.3s ease;
 }
+.bar-oneoff {
+  background: var(--ink);
+}
 .bar-job {
   background: var(--suit);
 }
@@ -286,6 +281,51 @@ main {
 }
 .time-left {
   color: var(--sub);
+}
+.event,
+.timetable {
+  display: grid;
+  row-gap: 12px;
+}
+.timetable > .activity-section {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink);
+}
+.opt {
+  display: grid;
+  row-gap: 2px;
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 16px;
+  text-align: left;
+  font: inherit;
+  color: var(--ink);
+  background: var(--field);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.opt:hover:not(:disabled),
+.opt:focus-visible {
+  outline: 2px solid var(--suit);
+  outline-offset: -1px;
+}
+.opt .label {
+  font-weight: 700;
+}
+.opt .cost {
+  font-size: 13px;
+  color: var(--sub);
+  font-variant-numeric: tabular-nums;
+}
+.opt:disabled {
+  cursor: default;
+  background: transparent;
+  color: var(--sub);
+}
+.opt:disabled .cost {
+  color: var(--shu);
 }
 .activity-group {
   display: grid;

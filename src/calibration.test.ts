@@ -1,5 +1,5 @@
 import { JUNE_OFFER_RATE, JUNE_OFFER_RATE_BY_REGION } from "./data/statistics";
-import { autoLive, middlePolicy, mostPolicy, type Policy } from "./engine/plan";
+import { autoLive, middlePolicy, mostPolicy, type Policy } from "./engine/year";
 
 const LIVES = 20_000;
 const TOLERANCE = 0.02;

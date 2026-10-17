@@ -2,15 +2,13 @@
 // that always choosing the middle option lands near the surveyed June 1st offer rate.
 
 /** Bump whenever a change alters results, so shared links from older rules are reported as old. */
-export const RULES_VERSION = 3;
+export const RULES_VERSION = 4;
 
 export const WAGE_YEN_PER_HOUR = 1100;
 export const MONTHLY_EXPENSE_YEN = 130_000;
 /** Hours per week outside classes, coursework, sleep, and chores, before part-time work. */
 export const WEEKLY_HOURS = 40;
 export const WEEKS_PER_MONTH = 52 / 12;
-/** Most extra part-time work a self takes on with hours left over, per week. */
-export const EXTRA_WORK_WEEKLY_HOURS = 10;
 export const STARTING_MONEY_YEN = 50_000;
 export const SCHOLARSHIP_YEN = 50_000;
 /** Lives with less allowance than this borrow a scholarship. */
@@ -38,16 +36,16 @@ export const PASS = {
   inviteAfterOnlineIntern: 0.35,
   early: 0.25,
   earlyPerPrep: 0.015,
-  entryEs: 0.18,
+  entryEs: 0.46,
   /** Written screening; document preparation counts twice. */
   documentPerPrep: 0.006,
-  toFinal: 0.19,
+  toFinal: 0.39,
   toFinalPerPrep: 0.006,
-  final: 0.25,
+  final: 0.51,
   finalPerPrep: 0.006,
   onlineFinalFactor: 0.85,
   /** Sized so the metro/regional gap matches the surveyed 関東 vs other-regions offer rates. */
-  regionalFinalFactor: 0.93,
+  regionalFinalFactor: 0.83,
 } as const;
 
 // Chances and sizes below are assumptions unless a source is given.
@@ -78,8 +76,8 @@ export const WEEKLY_DRIFT = { health: -0.5, mind: -0.6, social: -0.8, research: 
 export const FOURTH_YEAR_RESEARCH_DRIFT = -1.2;
 /** Weekly hours of part-time and job hunting together beyond which health wears down. */
 export const HEALTHY_WORKLOAD_WEEKLY_HOURS = 30;
-export const HEALTH_PER_OVERLOAD_HOUR = 0.3;
-export const MIND_PER_JOB_HOUR = 0.06;
+export const HEALTH_PER_OVERLOAD_HOUR = 0.15;
+export const MIND_PER_JOB_HOUR = 0.025;
 export const MIND_WHEN_BROKE_WEEKLY = 0.8;
 export const BROKE_BELOW_YEN = 10_000;
 export const STAT_SHOCK = {

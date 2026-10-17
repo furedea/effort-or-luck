@@ -1,69 +1,55 @@
-import type { SceneFacts, SceneId } from "./facts";
-import { makeLife, periodBudget, tripYen, weeklyFreeHours } from "./life";
+import { WEEKS } from "./calendar";
+import { eventAt, pickOption, resolve, type Event } from "./events";
+import type { EventFacts, EventId } from "./facts";
+import { makeLife, tripYen, weekBudget, type Life } from "./life";
 import {
   FAMILY_TRIP_HOURS,
   FAMILY_TRIP_YEN,
   LAPTOP_REPAIR_YEN,
   SENIOR_TALK_CHANCE,
+  SICK_HOURS,
   THESIS_CRUNCH_HOURS,
 } from "./parameters";
-import { carryOut, middlePolicy, mostPolicy, sceneAt, type Policy, type Scene } from "./plan";
-import { SCENE_COUNT } from "./scenes";
+import { liveWeek } from "./week";
+import { leastPolicy, meet, middlePolicy, mostPolicy, type Policy } from "./year";
 
-/** One self's state around a scene: just before it, once it is drawn, and after its period. */
+/** One self's state at an event: just before it and once it is drawn. */
 interface Moment {
-  readonly scene: Scene;
-  readonly metro: boolean;
+  readonly life: Life;
+  readonly event: Event;
   readonly moneyBefore: number;
   readonly moneyAt: number;
-  readonly freeWeekly: number;
-  readonly researchBefore: number;
-  readonly researchAt: number;
-  readonly prepAt: number;
-  readonly prepAfter: number;
-  readonly loggedNow: readonly string[];
+  readonly lostWeeklyAt: number;
+  readonly lostWeeksAt: number;
 }
 
-function momentsAt(id: SceneId, policy: Policy, seeds: number): Moment[] {
+function momentsAt(id: EventId, policy: Policy, seeds: number): Moment[] {
   const moments: Moment[] = [];
   for (let seed = 1; seed <= seeds; seed++) {
     const life = makeLife(seed);
-    for (let index = 0; index < SCENE_COUNT; index++) {
+    for (let week = 0; week <= WEEKS; week++) {
       const moneyBefore = life.money;
-      const researchBefore = life.stats.research;
-      const logged = life.log.length;
-      const scene = sceneAt(life, index);
-      if (!scene) continue;
-      const at = {
-        moneyAt: life.money,
-        freeWeekly: weeklyFreeHours(life),
-        researchAt: life.stats.research,
-        prepAt: life.prep,
-      };
-      if (scene.period) carryOut(life, scene, policy(life, scene));
-      if (scene.facts.id !== id) continue;
-      const loggedNow = life.log.slice(logged).map((fact) => fact.kind);
-      moments.push({
-        scene,
-        metro: life.metro,
-        moneyBefore,
-        researchBefore,
-        ...at,
-        prepAfter: life.prep,
-        loggedNow,
-      });
+      const event = eventAt(life, week);
+      if (event?.facts.id === id) {
+        moments.push({
+          life,
+          event,
+          moneyBefore,
+          moneyAt: life.money,
+          lostWeeklyAt: life.lostWeekly,
+          lostWeeksAt: life.lostWeeks,
+        });
+      }
+      if (event?.options.length) meet(life, event, policy.choose(life, event, week));
+      if (week < WEEKS) liveWeek(life, week, policy.timetable(life, week));
     }
   }
   return moments;
 }
 
-function factsOf<Id extends SceneId>({ scene }: Moment, id: Id): Extract<SceneFacts, { id: Id }> {
-  if (scene.facts.id !== id) throw new Error(`expected ${id}`);
-  return scene.facts as Extract<SceneFacts, { id: Id }>;
-}
-
-function budgetOf({ scene }: Moment): number {
-  return scene.period?.budget ?? 0;
+function factsOf<Id extends EventId>({ event }: Moment, id: Id): Extract<EventFacts, { id: Id }> {
+  if (event.facts.id !== id) throw new Error(`expected ${id}`);
+  return event.facts as Extract<EventFacts, { id: Id }>;
 }
 
 describe("autumn events", () => {
@@ -71,14 +57,20 @@ describe("autumn events", () => {
   const withEvent = (kind: string) =>
     autumns.filter((m) => factsOf(m, "autumn").event.kind === kind);
 
-  it("can send a self home for a family illness, costing money and hours", () => {
+  it("can make a self ill, losing hours over two weeks", () => {
+    const ill = withEvent("sick");
+
+    expect(ill.length).toBeGreaterThan(0);
+    for (const m of ill) expect([m.lostWeeklyAt, m.lostWeeksAt]).toEqual([SICK_HOURS / 2, 2]);
+  });
+
+  it("can send a self home for a family illness, costing money and a week's hours", () => {
     const trips = withEvent("familyIllness");
 
     expect(trips.length).toBeGreaterThan(0);
     for (const m of trips) {
       expect(m.moneyAt).toBe(Math.max(0, m.moneyBefore - FAMILY_TRIP_YEN));
-      expect(budgetOf(m)).toBe(Math.max(0, m.freeWeekly * 12 - FAMILY_TRIP_HOURS));
-      expect(m.loggedNow).toContain("familyIllness");
+      expect([m.lostWeeklyAt, m.lostWeeksAt]).toEqual([FAMILY_TRIP_HOURS, 1]);
     }
   });
 
@@ -86,73 +78,84 @@ describe("autumn events", () => {
     const breaks = withEvent("laptopBroken");
 
     expect(breaks.length).toBeGreaterThan(0);
-    for (const m of breaks) {
-      expect(m.moneyAt).toBe(Math.max(0, m.moneyBefore - LAPTOP_REPAIR_YEN));
-      expect(m.loggedNow).toContain("laptopBroken");
-    }
+    for (const m of breaks) expect(m.moneyAt).toBe(Math.max(0, m.moneyBefore - LAPTOP_REPAIR_YEN));
   });
 });
 
-describe("the March thesis crunch", () => {
-  it("takes hours and research away for some selves", () => {
-    const marches = momentsAt("march", middlePolicy, 3000);
-    const busy = marches.filter((m) => factsOf(m, "march").busy);
-    const calm = marches.filter((m) => !factsOf(m, "march").busy);
+test("the March thesis crunch takes hours for four weeks from some selves", () => {
+  const entries = momentsAt("entries", middlePolicy, 3000);
+  const busy = entries.filter((m) => factsOf(m, "entries").busy);
 
-    expect(busy.length).toBeGreaterThan(0);
-    expect(calm.length).toBeGreaterThan(0);
-    for (const m of busy) {
-      expect(budgetOf(m)).toBe(Math.max(0, m.freeWeekly * 4 - THESIS_CRUNCH_HOURS));
-      expect(m.researchAt).toBeLessThan(m.researchBefore);
-    }
-    for (const m of calm) expect(budgetOf(m)).toBe(m.freeWeekly * 4);
-  });
+  expect(busy.length).toBeGreaterThan(0);
+  expect(entries.length - busy.length).toBeGreaterThan(0);
+  for (const m of busy)
+    expect([m.lostWeeklyAt, m.lostWeeksAt]).toEqual([THESIS_CRUNCH_HOURS / 4, 4]);
 });
 
-describe("travel paid by companies for final interviews", () => {
-  it("lowers the in-person cost by the trips that are reimbursed", () => {
-    const finals = momentsAt("finals", mostPolicy, 3000).filter(
-      (m) => factsOf(m, "finals").finals > 0,
-    );
+test("companies paying travel lower a regional self's in-person finals cost", () => {
+  const finals = momentsAt("finals", mostPolicy, 3000).filter(
+    (m) => factsOf(m, "finals").finals > 0,
+  );
 
-    expect(finals.some((m) => !m.metro && factsOf(m, "finals").reimbursed > 0)).toBe(true);
-    for (const m of finals) {
-      const facts = factsOf(m, "finals");
-      const allFace = m.scene.period?.activities.find((a) => a.key === "finalsAllFace");
-      const trip = tripYen({ metro: m.metro } as Parameters<typeof tripYen>[0]);
-      expect(allFace?.money).toBe(trip * (facts.finals - facts.reimbursed));
-    }
-  });
+  expect(finals.some((m) => !m.life.metro && factsOf(m, "finals").reimbursed > 0)).toBe(true);
+  for (const m of finals) {
+    const facts = factsOf(m, "finals");
+    const allFace = m.event.options.find((o) => o.key === "finalsAllFace");
+    expect(allFace?.money).toBe(tripYen(m.life) * (facts.finals - facts.reimbursed));
+  }
 });
 
-describe("a chance to talk with a senior", () => {
-  const lives = 6000;
-  const winters = momentsAt("winter", mostPolicy, lives);
+test("a chance to talk with a senior comes more often in the metro area", () => {
+  const lives = 4000;
+  // Nobody living only for themselves ends the year early, so every life reaches January.
+  const talks = momentsAt("seniorTalk", leastPolicy, lives);
+  const share = (metro: boolean) => talks.filter((m) => m.life.metro === metro).length;
 
-  it("comes more often in the metro area", () => {
-    const share = (metro: boolean) => {
-      const group = winters.filter((m) => m.metro === metro);
-      return group.filter((m) => factsOf(m, "winter").seniorTalk).length / group.length;
+  expect(share(true) / (lives * 0.4)).toBeCloseTo(SENIOR_TALK_CHANCE.metro, 1);
+  expect(share(false) / (lives * 0.6)).toBeCloseTo(SENIOR_TALK_CHANCE.regional, 1);
+});
+
+describe("choosing at an event", () => {
+  function internEs(life: Life): Event {
+    const event = eventAt(life, 9);
+    if (event?.facts.id !== "internEs") throw new Error("expected the ES deadline in week 9");
+    return event;
+  }
+
+  it("spreads an option's hours over its weeks when pricing it", () => {
+    const life = makeLife(1);
+    life.money = 0;
+    const five = internEs(life).options.find((o) => o.key === "esFive")!;
+
+    expect(five.shortfall).toBe(5 > weekBudget(life) ? "time" : null);
+  });
+
+  it("takes the wanted option, or the affordable one nearest below its effort", () => {
+    const life = makeLife(1);
+    const event = internEs(life);
+    const broke = {
+      ...event,
+      options: event.options.map((o) =>
+        o.key === "esFive" ? { ...o, shortfall: "money" as const } : o,
+      ),
     };
 
-    expect(share(true)).toBeCloseTo(SENIOR_TALK_CHANCE.metro, 1);
-    expect(share(false)).toBeCloseTo(SENIOR_TALK_CHANCE.regional, 1);
+    expect(pickOption(event, "esFive", 2).key).toBe("esFive");
+    expect(pickOption(broke, "esFive", 2).key).toBe("esTwo");
   });
 
-  it("is offered only to selves who have the chance, and advances preparation when taken", () => {
-    for (const m of winters) {
-      const offered = m.scene.period?.activities.some((a) => a.key === "seniorTalk") ?? false;
-      expect(offered).toBe(factsOf(m, "winter").seniorTalk);
-    }
-    const went = winters.filter((m) => m.loggedNow.includes("seniorTalk"));
-    expect(went.length).toBeGreaterThan(0);
-    for (const m of went) expect(m.prepAfter).toBeGreaterThan(m.prepAt);
+  it("records an option the self wanted but could not take", () => {
+    const life = makeLife(1);
+    const event = internEs(life);
+
+    resolve(
+      life,
+      event,
+      event.options.find((o) => o.key === "esTwo")!,
+      "esFive",
+    );
+
+    expect(life.log).toContainEqual({ kind: "missed", event: "internEs", option: "esFive" });
+    expect(life.oneOff).toEqual({ hours: 6, weeks: 3 });
   });
-});
-
-test("a period's budget is the weekly free hours times its weeks, less hours lost", () => {
-  const life = makeLife(3);
-  life.lostHours = 7;
-
-  expect(periodBudget(life, 8)).toBe(Math.max(0, weeklyFreeHours(life) * 8 - 7));
 });

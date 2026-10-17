@@ -1,4 +1,12 @@
-import { endedCount, overflowLine, periodSummary, statBars, statusItems } from "./screen";
+import {
+  budgetLine,
+  endedCount,
+  overflowLine,
+  periodSummary,
+  statBars,
+  statusItems,
+  warningLine,
+} from "./screen";
 
 const base = { allowance: 70_000, scholarship: 50_000, money: 20_000, offers: 0 };
 
@@ -39,12 +47,20 @@ test("a period's summary names the change in savings and in each stat that moved
 });
 
 test("hours beyond the budget are said to come from savings", () => {
-  expect(overflowLine(20, 22_000)).toBe(
-    "足りない 20 時間は，バイトを減らして貯金から（−2万2,000円）",
+  expect(overflowLine(5, 5_500)).toBe(
+    "足りない週5時間は，バイトを減らして貯金から（−5,500円／週）",
   );
 });
 
 test("selves who ended early are counted by reason", () => {
   expect(endedCount({ mind: 5, research: 3 })).toBe("途中で終わった人：心が折れた 5 人・留年 3 人");
   expect(endedCount({})).toBe("途中で終わった人はいない．");
+});
+
+test("the week's hours are shown against the budget", () => {
+  expect(budgetLine(32.5, 40)).toBe("週32.5／40時間");
+});
+
+test("a falling stat is warned about with its value", () => {
+  expect(warningLine("health", 18.4)).toBe("健康が 18 まで下がった．このままだと危ない．");
 });
