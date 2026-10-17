@@ -1,3 +1,4 @@
+import { JUNE_OFFER_RATE } from "../data/statistics";
 import { dateOf, WEEKS } from "../engine/calendar";
 import type { Event, PricedOption } from "../engine/events";
 import type { EventFacts, LogFact, OptionKey, RoutineKey, Stat } from "../engine/facts";
@@ -153,7 +154,9 @@ type Facts<Id extends EventFacts["id"]> = Extract<EventFacts, { id: Id }>;
 
 function introLines(facts: Facts<"intro">): string[] {
   return [
-    "就活の1年が始まる．翌年の6月1日まで．",
+    "就活の1年が始まる．",
+    "6月1日は面接が解禁される日．",
+    `この日までに，同級生の${Math.round(JUNE_OFFER_RATE * 10)}割が内定を持っている．`,
     facts.allowance
       ? `${region(facts.metro)}で一人暮らし．仕送りは月 ${yen(facts.allowance)}．`
       : `${region(facts.metro)}で一人暮らし．仕送りはない．`,
@@ -224,6 +227,7 @@ function juneLines(facts: Facts<"june">): string[] {
     ...(facts.scholarshipTotal
       ? [`奨学金の借入は卒業までに ${yen(facts.scholarshipTotal)}．`]
       : []),
+    "就活はこの後も続く．ここでは6月1日の時点で比べている．",
   ];
 }
 

@@ -1,7 +1,14 @@
 import { weekOfMonthStart } from "../engine/calendar";
 import type { PricedOption } from "../engine/events";
 import { routineOf } from "../engine/routine";
-import { describeLog, optionCost, optionLabel, routineDetail, weekLabel } from "./scenes";
+import {
+  describeEvent,
+  describeLog,
+  optionCost,
+  optionLabel,
+  routineDetail,
+  weekLabel,
+} from "./scenes";
 
 describe("week labels", () => {
   it("name the month and its week, marking the following spring", () => {
@@ -63,4 +70,36 @@ test("an option that could not be taken is logged with its name", () => {
   expect(describeLog({ kind: "missed", event: "internEs", option: "esFive" })).toBe(
     "お金か時間が足りず「5 社に出す」ができなかった",
   );
+});
+
+describe("why the year ends on June 1st", () => {
+  it("is said at the start, with the share holding an offer by then", () => {
+    const intro = describeEvent({
+      facts: {
+        id: "intro",
+        allowance: 50_000,
+        metro: true,
+        scholarship: 0,
+        partTimeHours: 0,
+        weeklyFreeHours: 40,
+        money: 0,
+      },
+      options: [],
+    });
+
+    expect(intro.lines.slice(0, 3)).toEqual([
+      "就活の1年が始まる．",
+      "6月1日は面接が解禁される日．",
+      "この日までに，同級生の8割が内定を持っている．",
+    ]);
+  });
+
+  it("is recalled with the result: job hunting goes on after it", () => {
+    const june = describeEvent({
+      facts: { id: "june", done: false, won: 0, finalsTaken: 0, offers: 0, scholarshipTotal: 0 },
+      options: [],
+    });
+
+    expect(june.lines.at(-1)).toBe("就活はこの後も続く．ここでは6月1日の時点で比べている．");
+  });
 });
