@@ -92,25 +92,20 @@ function startingStats(difficulty: Difficulty): Record<Stat, number> {
   return stats;
 }
 
-/** Part-time hours a month needed to cover living costs. */
-export function partTimeHours(life: Life): number {
-  const shortYen = Math.max(0, MONTHLY_EXPENSE_YEN - life.allowance - life.scholarship);
-  return Math.ceil(shortYen / WAGE_YEN_PER_HOUR);
+/** Savings gained (or, when negative, lost) each week from allowance and scholarship after living costs. */
+export function weeklyIncomeYen(life: Life): number {
+  return (life.allowance + life.scholarship - MONTHLY_EXPENSE_YEN) / WEEKS_PER_MONTH;
 }
 
-export function weeklyPartTimeHours(life: Life): number {
-  return Math.round(partTimeHours(life) / WEEKS_PER_MONTH);
-}
-
-/** Free hours a week after the part-time work living costs require. */
-export function weeklyFreeHours(life: Life): number {
-  return Math.max(0, WEEKLY_HOURS - weeklyPartTimeHours(life));
+/** Hours of part-time work a week that would cover the living costs. */
+export function neededWorkHours(life: Life): number {
+  return Math.ceil(Math.max(0, -weeklyIncomeYen(life)) / WAGE_YEN_PER_HOUR);
 }
 
 /** Hours the self can divide this week, after any hours lost. */
 export function weekBudget(life: Life): number {
   const lost = life.lostWeeks > 0 ? life.lostWeekly : 0;
-  return Math.max(0, weeklyFreeHours(life) - lost);
+  return Math.max(0, WEEKLY_HOURS - lost);
 }
 
 /** Loses `weekly` hours each week for the next `weeks` weeks. */

@@ -1,5 +1,5 @@
 import { EVENT_WEEKS } from "./calendar";
-import { makeLife, weekBudget, type Life } from "./life";
+import { makeLife, weekBudget, weeklyIncomeYen, type Life } from "./life";
 import { WAGE_YEN_PER_HOUR } from "./parameters";
 import { routineOf } from "./routine";
 import { liveWeek, planWeek } from "./week";
@@ -24,7 +24,7 @@ describe("a week's timetable", () => {
     expect(planWeek(richLife(), 0, ["interviewPractice"]).taken).toEqual([]);
   });
 
-  it("buys hours beyond the budget back with savings", () => {
+  it("takes hours beyond the budget from sleep, without paying for them", () => {
     const life = richLife();
     const budget = weekBudget(life);
     const timetable = ["longIntern", "friends", "rest", "sns", "research"] as const;
@@ -33,7 +33,7 @@ describe("a week's timetable", () => {
     const outcome = planWeek(life, 0, timetable);
 
     expect(outcome.shortHours).toBe(Math.max(0, hours - budget));
-    expect(outcome.paid).toBe(outcome.shortHours * WAGE_YEN_PER_HOUR);
+    expect(outcome.paid).toBe(0);
   });
 
   it("drops a routine the self cannot pay for and keeps later ones it can", () => {
@@ -65,7 +65,9 @@ describe("living a week", () => {
     const outcome = liveWeek(life, 0, ["extraWork"]);
 
     expect(outcome?.earned).toBe(routineOf("extraWork").weeklyHours * WAGE_YEN_PER_HOUR);
-    expect(life.money).toBe(before + (outcome?.earned ?? 0) - (outcome?.paid ?? 0));
+    expect(life.money).toBeCloseTo(
+      before + weeklyIncomeYen(life) + (outcome?.earned ?? 0) - (outcome?.paid ?? 0),
+    );
     expect(life.oneOff).toEqual({ hours: 20, weeks: 2 });
     expect(life.lostWeeks).toBe(1);
   });
@@ -78,15 +80,29 @@ describe("living a week", () => {
   });
 });
 
-test("savings grow only from part-time work, which takes hours", () => {
+test("savings move by allowance and scholarship after living costs, plus part-time pay", () => {
   const life = richLife();
   const before = life.money;
+  const income = weeklyIncomeYen(life);
 
   liveWeek(life, 0, ["longIntern", "selfAnalysis"]);
-  expect(life.money).toBe(before);
+  expect(life.money).toBeCloseTo(before + income);
 
   liveWeek(life, 1, ["extraWork"]);
-  expect(life.money).toBe(before + routineOf("extraWork").weeklyHours * WAGE_YEN_PER_HOUR);
+  expect(life.money).toBeCloseTo(
+    before + 2 * income + routineOf("extraWork").weeklyHours * WAGE_YEN_PER_HOUR,
+  );
+});
+
+test("without part-time work, a self whose allowance falls short loses savings each week", () => {
+  const life = makeLife(1);
+  life.allowance = 0;
+  const before = life.money;
+
+  liveWeek(life, 0, ["friends"]);
+
+  expect(weeklyIncomeYen(life)).toBeLessThan(0);
+  expect(life.money).toBeLessThan(before);
 });
 
 test("a limited routine is open only in the weeks before its event", () => {

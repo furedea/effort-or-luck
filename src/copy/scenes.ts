@@ -190,8 +190,13 @@ const INTRO_LINES = [
 function introTable(facts: Facts<"intro">): TableRow[] {
   return [
     { label: "住まい", value: `${region(facts.metro)}で一人暮らし` },
-    { label: "バイト", value: facts.partTimeHours ? `月 ${facts.partTimeHours} 時間` : "なし" },
-    { label: "自由な時間", value: `週 ${facts.weeklyFreeHours} 時間` },
+    { label: "自由な時間", value: `週 ${facts.weeklyHours} 時間` },
+    {
+      label: "必要なバイト",
+      value: facts.neededWorkHours
+        ? `週 ${facts.neededWorkHours} 時間（しないと貯金が減る）`
+        : "なし",
+    },
   ];
 }
 
@@ -340,7 +345,8 @@ const ROUTINES = {
   sns: { tile: "SNS・動画", label: "SNS・動画" },
   research: { tile: "研究・ゼミ", label: "研究・ゼミ" },
   rest: { tile: "ゆっくり休む", label: "ゆっくり休む" },
-  extraWork: { tile: "バイトを増やす", label: "バイトを増やす" },
+  extraWork: { tile: "バイト", label: "バイト" },
+  moreWork: { tile: "バイト（多め）", label: "バイト（多め）" },
   summerEsPrep: { tile: "夏インターンのES対策", label: "夏インターンの ES 対策" },
   earlyPrep: { tile: "早期選考の対策", label: "早期選考の対策" },
   entryPrep: { tile: "本選考のES準備", label: "本選考の ES 準備" },

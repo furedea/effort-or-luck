@@ -1,5 +1,5 @@
 import { eventAt } from "./events";
-import { makeLife, weekBudget } from "./life";
+import { makeLife, neededWorkHours, weekBudget } from "./life";
 import { routineOf } from "./routine";
 import { autoLive, followDecisions, middlePolicy, mostPolicy, type Decision } from "./year";
 
@@ -37,23 +37,32 @@ test("the same seed and policy always give the same year", () => {
   expect(second).toEqual(first);
 });
 
-test("putting everything into job hunting adds part-time work only while savings run low", () => {
+test("the policies take on part-time work only while savings run low", () => {
   const life = makeLife(1);
+  life.allowance = 0;
+  const works = (timetable: readonly string[]) =>
+    timetable.some((key) => key === "extraWork" || key === "moreWork");
 
-  life.money = 19_999;
-  expect(mostPolicy.timetable(life, 0)).toContain("extraWork");
+  life.money = 49_999;
+  expect(works(mostPolicy.timetable(life, 0))).toBe(true);
+  expect(works(middlePolicy.timetable(life, 0))).toBe(true);
 
-  life.money = 20_000;
-  expect(mostPolicy.timetable(life, 0)).not.toContain("extraWork");
+  life.money = 50_000;
+  expect(works(mostPolicy.timetable(life, 0))).toBe(false);
+  expect(works(middlePolicy.timetable(life, 0))).toBe(false);
 });
 
-test("the middle way takes only what fits the week, research and friends first", () => {
+test("the middle way works the hours living costs need, then research and friends first", () => {
   for (const seed of [1, 2, 3, 4, 5, 6]) {
     const life = makeLife(seed);
+    life.money = 0;
     const timetable = middlePolicy.timetable(life, 30);
     const hours = timetable.reduce((sum, key) => sum + routineOf(key).weeklyHours, 0);
 
     expect(hours).toBeLessThanOrEqual(weekBudget(life));
-    expect(timetable.slice(0, 2)).toEqual(["research", "friends"]);
+    const work = timetable.filter((key) => routineOf(key).kind === "work");
+    const workHours = work.reduce((sum, key) => sum + routineOf(key).weeklyHours, 0);
+    expect(workHours).toBeGreaterThanOrEqual(neededWorkHours(life));
+    expect(timetable.slice(work.length, work.length + 2)).toEqual(["research", "friends"]);
   }
 });

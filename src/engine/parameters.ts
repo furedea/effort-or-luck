@@ -2,7 +2,7 @@
 // that always choosing the middle option lands near the surveyed June 1st offer rate.
 
 /** Bump whenever a change alters results, so shared links from older rules are reported as old. */
-export const RULES_VERSION = 8;
+export const RULES_VERSION = 9;
 
 export const WAGE_YEN_PER_HOUR = 1100;
 export const MONTHLY_EXPENSE_YEN = 130_000;
@@ -86,6 +86,8 @@ export const FOURTH_YEAR_RESEARCH_DRIFT = -1.2;
 /** Weekly hours of part-time and job hunting together beyond which health wears down. */
 export const HEALTHY_WORKLOAD_WEEKLY_HOURS = 30;
 export const HEALTH_PER_OVERLOAD_HOUR = 0.15;
+/** Health lost per hour beyond the week's free hours, taken from sleep. */
+export const HEALTH_PER_SLEEP_HOUR = 0.2;
 export const MIND_PER_JOB_HOUR = 0.025;
 export const MIND_WHEN_BROKE_WEEKLY = 0.8;
 export const BROKE_BELOW_YEN = 10_000;

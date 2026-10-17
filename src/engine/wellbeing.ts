@@ -1,10 +1,11 @@
 import type { Stat } from "./facts";
-import { weeklyPartTimeHours, type Life } from "./life";
+import type { Life } from "./life";
 import {
   BROKE_BELOW_YEN,
   DIFFICULTY,
   FOURTH_YEAR_RESEARCH_DRIFT,
   HEALTH_PER_OVERLOAD_HOUR,
+  HEALTH_PER_SLEEP_HOUR,
   HEALTHY_WORKLOAD_WEEKLY_HOURS,
   MIND_PER_JOB_HOUR,
   MIND_WHEN_BROKE_WEEKLY,
@@ -23,12 +24,14 @@ interface PeriodLoad {
   readonly taken: readonly { readonly statsPerWeek?: Readonly<Partial<Record<Stat, number>>> }[];
   readonly jobHours: number;
   readonly extraWorkHours: number;
+  /** Hours beyond the free hours, taken from sleep. */
+  readonly shortHours: number;
 }
 
 /** Moves every stat for a period of living, then ends the year if one reached zero. */
 export function liveThroughPeriod(life: Life, load: PeriodLoad): void {
   if (life.over) return;
-  const { weeks, fourthYear, taken, jobHours, extraWorkHours } = load;
+  const { weeks, fourthYear, taken, jobHours, extraWorkHours, shortHours } = load;
   const change: Record<Stat, number> = { ...WEEKLY_DRIFT };
   if (fourthYear) change.research = FOURTH_YEAR_RESEARCH_DRIFT;
   const { driftFactor } = DIFFICULTY[life.difficulty];
@@ -36,9 +39,10 @@ export function liveThroughPeriod(life: Life, load: PeriodLoad): void {
   for (const activity of taken) {
     for (const stat of STATS) change[stat] += (activity.statsPerWeek?.[stat] ?? 0) * weeks;
   }
-  const weeklyLoad = weeklyPartTimeHours(life) + (jobHours + extraWorkHours) / weeks;
+  const weeklyLoad = (jobHours + extraWorkHours) / weeks;
   change.health -=
     Math.max(0, weeklyLoad - HEALTHY_WORKLOAD_WEEKLY_HOURS) * HEALTH_PER_OVERLOAD_HOUR * weeks;
+  change.health -= shortHours * HEALTH_PER_SLEEP_HOUR;
   change.mind -= jobHours * MIND_PER_JOB_HOUR;
   if (life.money < BROKE_BELOW_YEN) change.mind -= MIND_WHEN_BROKE_WEEKLY * weeks;
   shift(life, change);

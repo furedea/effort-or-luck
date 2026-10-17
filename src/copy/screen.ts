@@ -2,7 +2,9 @@ import { JUNE_OFFER_RATE, JUNE_OFFER_RATE_BY_REGION } from "../data/statistics";
 import type { LogFact, Stat } from "../engine/facts";
 import {
   DIFFICULTY,
+  HEALTH_PER_SLEEP_HOUR,
   METRO_SHARE,
+  MONTHLY_EXPENSE_YEN,
   STARTING_MONEY_YEN,
   WAGE_YEN_PER_HOUR,
   WEEKLY_HOURS,
@@ -77,8 +79,11 @@ export function budgetLine(used: number, budget: number): string {
   return `週${hours(used)}／${budget}時間（${rest}）`;
 }
 
-export function overflowLine(shortHours: number, paid: number): string {
-  return `足りない週${Number(shortHours.toFixed(1))}時間は，バイトを減らして貯金から（−${yen(Math.round(paid))}／週）`;
+/** Hours beyond the free hours, taken from sleep, e.g. "はみ出た週5時間は睡眠を削る（健康 −1／週）". */
+export function overflowLine(shortHours: number): string {
+  const hours = Number(shortHours.toFixed(1));
+  const health = Number((shortHours * HEALTH_PER_SLEEP_HOUR).toFixed(1));
+  return `はみ出た週${hours}時間は睡眠を削る（健康 −${health}／週）`;
 }
 
 export function oneOffLine(hours: number): string {
@@ -231,7 +236,7 @@ export function assumptionsNote(): string {
     "近くなるよう，地方の最終面接の通過率を少し下げています．差が生まれる理由は調査からはわからないため，この形は仮定です．" +
     "地方の最終面接の交通費は，企業が一社ごとに半々の確率で出してくれるとしました．" +
     "交通費や宿泊費の支給を受けた学生が 67.9%（平均 2.7 社）という調査に合わせた仮定です．" +
-    `授業・課題・睡眠・家事などを除いて自由に使える時間は週 ${WEEKLY_HOURS} 時間とし，そこから生活費のためのバイトの時間を引きました．` +
+    `授業・課題・睡眠・家事などを除いて自由に使える時間は週 ${WEEKLY_HOURS} 時間とし，生活費のためのバイトもこの中で選ぶ形にしました．仕送りと奨学金で生活費（月 ${yen(MONTHLY_EXPENSE_YEN)}）に足りない分は，毎週貯金から減ります．` +
     "毎週やることの時間・費用・効果，出来事でかかる時間，健康・心の余裕・人間関係・研究の増え方と減り方，" +
     "10月の家族の入院やパソコンの故障，3月の卒論の締切，先輩の話を聞く機会（首都圏で起こりやすい），数週ごとの小さな出来事の時間・費用・効果は，すべて仮定です．" +
     `時給は ${WAGE_YEN_PER_HOUR.toLocaleString("ja-JP")} 円，最初の貯金は ${yen(STARTING_MONEY_YEN)}，首都圏に住む人は ${METRO_SHARE * 10} 割と置きました．`

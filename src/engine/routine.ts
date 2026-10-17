@@ -118,6 +118,7 @@ export const ROUTINES: readonly RoutineSpec[] = [
   limited("earlyPrep", EVENT_WEEKS.early, 4, { early: 0.03 }),
   limited("entryPrep", EVENT_WEEKS.entries, 4, { entryEs: 0.02 }),
   limited("finalPrep", EVENT_WEEKS.finals, 6, { final: 0.02 }),
+  routine({ key: "moreWork", kind: "work", weeklyHours: 16, weeklyPay: 16 * WAGE_YEN_PER_HOUR }),
 ];
 
 /** Whether the routine is preparation open only in the weeks leading up to one event. */

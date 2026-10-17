@@ -1,13 +1,13 @@
 import { FINAL_STRETCH_FROM } from "./calendar";
 import type { RoutineKey } from "./facts";
-import { isActive, weekBudget, type Life } from "./life";
-import { WAGE_YEN_PER_HOUR } from "./parameters";
+import { isActive, weekBudget, weeklyIncomeYen, type Life } from "./life";
 import { isOpen, practise, routineOf, type RoutineSpec } from "./routine";
 import { liveThroughPeriod } from "./wellbeing";
 
 // One week: a booked one-off comes first, then the timetable in the order it was set. Hours
-// beyond the week's budget are bought back from part-time work and paid from savings; a routine
-// the self cannot pay for is dropped that week; hours left over stay free.
+// beyond the week's free hours come out of sleep and cost health; a routine the self cannot pay
+// for is dropped that week. Allowance and scholarship minus living costs move savings every week,
+// so savings grow only through part-time work.
 
 export interface WeekOutcome {
   readonly budget: number;
@@ -15,6 +15,7 @@ export interface WeekOutcome {
   /** Routines in the timetable the self could not pay for this week. */
   readonly dropped: readonly RoutineKey[];
   readonly hours: number;
+  /** Hours beyond the free hours, taken from sleep. */
   readonly shortHours: number;
   readonly paid: number;
   /** Money earned from paid routines such as extra work or a paid internship. */
@@ -26,25 +27,22 @@ export function planWeek(life: Life, week: number, timetable: readonly RoutineKe
   const budget = weekBudget(life);
   const oneOffHours = life.oneOff.weeks > 0 ? life.oneOff.hours / life.oneOff.weeks : 0;
   let hours = oneOffHours;
-  let shortHours = Math.max(0, oneOffHours - budget);
-  let paid = shortHours * WAGE_YEN_PER_HOUR;
+  let paid = 0;
   const taken: RoutineSpec[] = [];
   const dropped: RoutineKey[] = [];
   for (const key of new Set(timetable)) {
     const spec = routineOf(key);
     if (!isOpen(spec, week)) continue;
-    const over = Math.max(0, hours + spec.weeklyHours - budget) - Math.max(0, hours - budget);
-    const cost = spec.weeklyMoney + over * WAGE_YEN_PER_HOUR;
-    if (paid + cost > life.money) {
+    if (paid + spec.weeklyMoney > life.money) {
       dropped.push(key);
       continue;
     }
     taken.push(spec);
     hours += spec.weeklyHours;
-    shortHours += over;
-    paid += cost;
+    paid += spec.weeklyMoney;
   }
   const earned = taken.reduce((sum, spec) => sum + spec.weeklyPay, 0);
+  const shortHours = Math.max(0, hours - budget);
   return { budget, taken, dropped, hours, shortHours, paid, earned };
 }
 
@@ -56,7 +54,7 @@ export function liveWeek(
 ): WeekOutcome | null {
   if (!isActive(life)) return null;
   const outcome = planWeek(life, week, timetable);
-  life.money = Math.max(0, life.money + outcome.earned - outcome.paid);
+  life.money = Math.max(0, life.money + weeklyIncomeYen(life) + outcome.earned - outcome.paid);
   for (const spec of outcome.taken) practise(life, spec);
   const oneOffHours = life.oneOff.weeks > 0 ? life.oneOff.hours / life.oneOff.weeks : 0;
   const hoursOf = (kind: "job" | "work") =>
@@ -69,6 +67,7 @@ export function liveWeek(
     taken: outcome.taken,
     jobHours: hoursOf("job") + oneOffHours,
     extraWorkHours: hoursOf("work"),
+    shortHours: outcome.shortHours,
   });
   if (life.oneOff.weeks > 0) {
     life.oneOff = { hours: life.oneOff.hours - oneOffHours, weeks: life.oneOff.weeks - 1 };

@@ -81,15 +81,15 @@ test("an option that could not be taken is logged with its name", () => {
   );
 });
 
-function intro(extra: { partTimeHours?: number } = {}) {
+function intro(extra: { neededWorkHours?: number } = {}) {
   return describeEvent({
     facts: {
       id: "intro",
       allowance: 70_000,
       metro: false,
       scholarship: 50_000,
-      partTimeHours: 10,
-      weeklyFreeHours: 38,
+      neededWorkHours: 3,
+      weeklyHours: 40,
       money: 0,
       ...extra,
     },
@@ -101,13 +101,16 @@ describe("the opening notice", () => {
   it("sets out the self's situation as a labeled table, leaving out what the status panel shows", () => {
     expect(intro().table).toEqual([
       { label: "住まい", value: "地方で一人暮らし" },
-      { label: "バイト", value: "月 10 時間" },
-      { label: "自由な時間", value: "週 38 時間" },
+      { label: "自由な時間", value: "週 40 時間" },
+      { label: "必要なバイト", value: "週 3 時間（しないと貯金が減る）" },
     ]);
   });
 
-  it("says when there is no part-time job", () => {
-    expect(intro({ partTimeHours: 0 }).table?.[1]).toEqual({ label: "バイト", value: "なし" });
+  it("says when living costs are covered without part-time work", () => {
+    expect(intro({ neededWorkHours: 0 }).table?.[2]).toEqual({
+      label: "必要なバイト",
+      value: "なし",
+    });
   });
 });
 
