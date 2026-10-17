@@ -1,6 +1,9 @@
+import { useEffect, useRef } from "react";
+
 import {
   actualRate,
   allowanceRow,
+  bandSummary,
   offeredCount,
   PLAY_AGAIN,
   profileText,
@@ -10,7 +13,6 @@ import {
   SOURCES_LINK,
   VIEWS,
   YEAR_END,
-  YOU,
   yourResult,
   type View,
 } from "../copy/screen";
@@ -31,10 +33,16 @@ export function RevealView({ paths, ranks, player, view, onView, onRestart }: Pr
   const you = paths.same[player];
   const shown = paths[view];
   const rows = revealByAllowance(shown, ranks);
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    heading.current?.focus({ preventScroll: true });
+  }, []);
   return (
     <section className="reveal">
       <header className="reveal-head">
-        <h2 className="when">{YEAR_END}</h2>
+        <h2 className="when" ref={heading} tabIndex={-1}>
+          {YEAR_END}
+        </h2>
         <p className="you">{yourResult(you?.offers.length ?? 0)}</p>
         <p className="profile">{you ? profileText(you.log) : ""}</p>
       </header>
@@ -44,19 +52,30 @@ export function RevealView({ paths, ranks, player, view, onView, onRestart }: Pr
         <div className="bands">
           {rows.map((row) => (
             <div className="band" key={row.amount}>
-              <span className="band-label">{allowanceRow(row.amount)}</span>
-              <span className="dots">
+              <span className="sr-only">
+                {bandSummary(
+                  row.amount,
+                  row.members.length,
+                  row.offered,
+                  row.members.includes(player),
+                )}
+              </span>
+              <span className="band-label" aria-hidden="true">
+                {allowanceRow(row.amount)}
+              </span>
+              <span className="dots" aria-hidden="true">
                 {row.members.map((i) => (
                   <i
                     key={i}
                     className={[shown[i]?.offers.length ? "offer" : "", i === player ? "you" : ""]
                       .filter(Boolean)
                       .join(" ")}
-                    aria-label={i === player ? YOU : undefined}
                   />
                 ))}
               </span>
-              <span className="band-count">{offeredCount(row.offered, row.members.length)}</span>
+              <span className="band-count" aria-hidden="true">
+                {offeredCount(row.offered, row.members.length)}
+              </span>
             </div>
           ))}
         </div>

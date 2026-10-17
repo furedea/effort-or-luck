@@ -21,7 +21,6 @@ export const SOURCES_LINK = "数字の出典と仮定について";
 export const SOURCES_TITLE = "数字の出典と仮定";
 export const BACK_TO_GAME = "ゲームに戻る";
 export const PLAY_AGAIN = "もう一度";
-export const YOU = "あなた";
 
 export const VIEWS = [
   ["same", "あなたの選択"],
@@ -68,6 +67,16 @@ export function actualRate(): string {
 
 export function sourceCredit(source: string): string {
   return `出典：${source}`;
+}
+
+/** One allowance row read out in words, since the dots carry no text. */
+export function bandSummary(
+  amount: number,
+  total: number,
+  offered: number,
+  hasYou: boolean,
+): string {
+  return `仕送り${yen(amount)}の ${total} 人のうち，内定は ${offered} 人．${hasYou ? "あなたもこの中にいる．" : ""}`;
 }
 
 export function offeredCount(offered: number, total: number): string {

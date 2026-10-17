@@ -9,7 +9,6 @@
   --suit-soft: #8ea6dc;
   --shu: #b2442d;
   --field: #ffffff;
-  --empty: #dfe2e8;
   --display: "BIZ UDPMincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
   --body: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
 }
@@ -23,7 +22,6 @@
     --suit-soft: #5470ad;
     --shu: #e58b73;
     --field: #181c24;
-    --empty: #2a2f39;
     color-scheme: dark;
   }
 }
@@ -36,7 +34,6 @@
   --suit-soft: #5470ad;
   --shu: #e58b73;
   --field: #181c24;
-  --empty: #2a2f39;
   color-scheme: dark;
 }
 
@@ -65,6 +62,17 @@ main {
   font-weight: 400;
   letter-spacing: 0.24em;
   color: var(--sub);
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.when:focus {
+  outline: none;
 }
 .when {
   margin: 0;
@@ -265,13 +273,16 @@ main {
   gap: 3px;
 }
 .dots i {
+  box-sizing: border-box;
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--empty);
+  border: 1.5px solid var(--sub);
+  background: transparent;
   transition: background-color 0.4s ease;
 }
 .dots i.offer {
+  border-color: var(--suit);
   background: var(--suit);
 }
 .dots i.you {
