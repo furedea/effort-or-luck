@@ -12,9 +12,9 @@ import {
   type Cohort,
   type YearEnd,
 } from "../engine/cohort";
-import type { Effort, ResultFact } from "../engine/facts";
+import type { Effort } from "../engine/facts";
 import { encode } from "../share/result_link";
-import { PlayView } from "./play_view";
+import { PlayView, type Carried } from "./play_view";
 import { RevealView } from "./reveal_view";
 import { ShareButton } from "./share_button";
 
@@ -26,7 +26,7 @@ interface Game {
   readonly yearEnd: YearEnd | null;
   readonly view: View;
   /** What the last choice led to, shown on the next month. */
-  readonly carried: ResultFact | null;
+  readonly carried: Carried | null;
   /** Every choice the player made, in order, so the year can be shared and replayed. */
   readonly choices: readonly Effort[];
 }
@@ -102,11 +102,13 @@ function newGame(): Game {
 }
 
 function choose(game: Game, effort: Effort): Game {
+  const option = game.cohort.scenes[game.player]?.options.find((o) => o.effort === effort);
   const { cohort, result } = chooseAndAdvance(game.cohort, game.player, effort);
-  return moveOn({ ...game, choices: [...game.choices, effort] }, cohort, result ?? null);
+  const carried = { result, shortHours: option?.shortHours ?? 0, total: option?.total ?? 0 };
+  return moveOn({ ...game, choices: [...game.choices, effort] }, cohort, carried);
 }
 
-function moveOn(game: Game, cohort: Cohort, carried: ResultFact | null): Game {
+function moveOn(game: Game, cohort: Cohort, carried: Carried | null): Game {
   return { ...game, cohort, carried, yearEnd: isOver(cohort) ? replayYear(cohort) : null };
 }
 

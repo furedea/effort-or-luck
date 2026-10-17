@@ -3,8 +3,9 @@ import { useEffect, useRef } from "react";
 import {
   describeResult,
   describeScene,
-  optionCost,
+  optionCostLines,
   optionLabel,
+  paymentLine,
   shortfallReason,
 } from "../copy/scenes";
 import { LOW_NOTE, NEXT, previousChoice, statusItems } from "../copy/screen";
@@ -13,18 +14,25 @@ import type { Effort, ResultFact } from "../engine/facts";
 import { freeHours, type Life } from "../engine/life";
 import { SCENE_COUNT } from "../engine/scenes";
 
+/** What the previous choice took and led to, shown at the top of the next month. */
+export interface Carried {
+  readonly result: ResultFact | undefined;
+  readonly shortHours: number;
+  readonly total: number;
+}
+
 interface Props {
   readonly life: Life;
   readonly scene: Scene;
   readonly step: number;
-  /** What the previous choice led to, shown at the top of this month. */
-  readonly carried: ResultFact | null;
+  readonly carried: Carried | null;
   readonly onChoose: (effort: Effort) => void;
   readonly onNext: () => void;
 }
 
 export function PlayView({ life, scene, step, carried, onChoose, onNext }: Props) {
   const text = describeScene(scene);
+  const carriedText = carried ? carriedLines(carried).join("") : "";
   const heading = useRef<HTMLHeadingElement>(null);
   const hasOptions = scene.options.length > 0;
   // The chosen button disappears with the month, so keyboard focus moves to the new month.
@@ -40,7 +48,7 @@ export function PlayView({ life, scene, step, carried, onChoose, onNext }: Props
         ))}
       </ol>
       <header className="play-head">
-        {carried ? <p className="carried">{previousChoice(describeResult(carried))}</p> : null}
+        {carriedText ? <p className="carried">{previousChoice(carriedText)}</p> : null}
         <h2 className="when" ref={heading} tabIndex={-1}>
           {text.when}
         </h2>
@@ -81,9 +89,12 @@ export function PlayView({ life, scene, step, carried, onChoose, onNext }: Props
             >
               <span className="label">{optionLabel(scene.facts, option.key)}</span>
               <span className="cost">
-                {option.shortfall
-                  ? shortfallReason(option.shortfall)
-                  : optionCost(option.hours, option.money)}
+                {(option.shortfall
+                  ? [shortfallReason(option.shortfall)]
+                  : optionCostLines(option)
+                ).map((line) => (
+                  <span key={line}>{line}</span>
+                ))}
               </span>
             </button>
           ))
@@ -105,4 +116,10 @@ function NextButton({ label, onClick }: { label: string; onClick: () => void }) 
       {label}
     </button>
   );
+}
+
+function carriedLines(carried: Carried): string[] {
+  const payment = paymentLine(carried);
+  const result = carried.result ? describeResult(carried.result) : null;
+  return [payment, result].filter((line) => line !== null);
 }
