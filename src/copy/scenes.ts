@@ -18,7 +18,7 @@ interface SceneText {
   readonly next?: string;
 }
 
-const WHEN = {
+export const WHEN = {
   intro: "3年 4月",
   summerEs: "3年 5月",
   summerIntern: "3年 8月",
