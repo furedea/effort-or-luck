@@ -53,7 +53,11 @@ interface EventText {
 export function describeEvent({ facts }: Event): EventText {
   switch (facts.id) {
     case "intro":
-      return { lines: INTRO_LINES, table: introTable(facts), next: "始める" };
+      return {
+        lines: [...INTRO_LINES, `${region(facts.metro)}で一人暮らし．`],
+        table: introTable(facts),
+        next: "始める",
+      };
     case "internEs":
       return { lines: ["夏インターンの ES の締切が来た．ES は一社 3 時間．"] };
     case "summerIntern":
@@ -189,12 +193,11 @@ const INTRO_LINES = [
 /** The self's situation; allowance and scholarship are left to the status panel. */
 function introTable(facts: Facts<"intro">): TableRow[] {
   return [
-    { label: "住まい", value: `${region(facts.metro)}で一人暮らし` },
     { label: "自由な時間", value: `週 ${facts.weeklyHours} 時間` },
     ...(facts.weeklyGapYen
       ? [
           { label: "生活費の不足", value: `週 ${yen(facts.weeklyGapYen)}` },
-          { label: "埋めるのに要るバイト", value: `週 ${facts.neededWorkHours} 時間` },
+          { label: "要るバイト", value: `週 ${facts.neededWorkHours} 時間` },
         ]
       : [{ label: "生活費の不足", value: "なし" }]),
   ];

@@ -99,17 +99,17 @@ function intro(extra: { neededWorkHours?: number; weeklyGapYen?: number } = {}) 
 }
 
 describe("the opening notice", () => {
-  it("sets out the self's situation as a labeled table, leaving out what the status panel shows", () => {
+  it("says where the self lives in a line and sets the short figures out as a table", () => {
+    expect(intro().lines.at(-1)).toBe("地方で一人暮らし．");
     expect(intro().table).toEqual([
-      { label: "住まい", value: "地方で一人暮らし" },
       { label: "自由な時間", value: "週 40 時間" },
       { label: "生活費の不足", value: "週 2,308円" },
-      { label: "埋めるのに要るバイト", value: "週 3 時間" },
+      { label: "要るバイト", value: "週 3 時間" },
     ]);
   });
 
   it("says when living costs are covered without part-time work", () => {
-    expect(intro({ neededWorkHours: 0, weeklyGapYen: 0 }).table?.slice(2)).toEqual([
+    expect(intro({ neededWorkHours: 0, weeklyGapYen: 0 }).table?.slice(1)).toEqual([
       { label: "生活費の不足", value: "なし" },
     ]);
   });
@@ -117,7 +117,7 @@ describe("the opening notice", () => {
 
 describe("why the year ends on June 1st", () => {
   it("is said at the start in two short lines, with the share holding an offer by then", () => {
-    expect(intro().lines).toEqual([
+    expect(intro().lines.slice(0, 2)).toEqual([
       "就活の1年が始まる．",
       "6月1日（面接解禁）までに，同級生の8割が内定を持つ．",
     ]);
