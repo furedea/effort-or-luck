@@ -60,6 +60,7 @@ export function GameScreen() {
           paths={{ same: cohort.lives, most: yearEnd.most, least: yearEnd.least }}
           ranks={cohort.allowanceRanks}
           player={player}
+          blocked={cohort.everBlocked.size}
           wants={cohort.wants}
           subject="you"
           actions={

@@ -17,6 +17,8 @@ export type Path = "least" | "same" | "most";
 export const TITLE = "努力か，運か";
 export const NEXT = "次へ";
 export const YEAR_END = "4年 6月1日";
+export const EFFORT_DEFINITION =
+  "※ 努力 ＝ どれを選ぼうとしたか．お金や時間が足りずにできなかったのは「運」．";
 export const LUCK_PART = "① 努力をそろえて，運だけ変えると";
 export const EFFORT_PART = "② 運をそろえて，努力だけ変えると";
 export const ALLOWANCE_HEADER = "仕送り";
@@ -88,6 +90,12 @@ export function shareText(offers: number): string {
 
 export function luckLead(subject: Subject, size: number): string {
   return `全員が${SUBJECT[subject]}と同じ選択をした ${size} 人`;
+}
+
+export function blockedCount(count: number): string {
+  return count
+    ? `お金か時間が足りず，選んだことができなかった人：${count} 人`
+    : "全員が，選んだとおりにできた．";
 }
 
 export function effortLead(size: number): string {

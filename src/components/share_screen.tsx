@@ -43,6 +43,7 @@ export function ShareScreen() {
           }}
           ranks={shared.cohort.allowanceRanks}
           player={shared.player}
+          blocked={shared.cohort.everBlocked.size}
           wants={shared.cohort.wants}
           subject="them"
           actions={playLink}
