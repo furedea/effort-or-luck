@@ -102,13 +102,13 @@ describe("the opening notice", () => {
     expect(intro().table).toEqual([
       { label: "住まい", value: "地方で一人暮らし" },
       { label: "自由な時間", value: "週 40 時間" },
-      { label: "生活費に足りない分", value: "バイト週 3 時間ぶん" },
+      { label: "必要なバイト", value: "週 3 時間（しないと貯金が減る）" },
     ]);
   });
 
   it("says when living costs are covered without part-time work", () => {
     expect(intro({ neededWorkHours: 0 }).table?.[2]).toEqual({
-      label: "生活費に足りない分",
+      label: "必要なバイト",
       value: "なし",
     });
   });
