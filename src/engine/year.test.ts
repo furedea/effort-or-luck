@@ -1,6 +1,6 @@
 import { eventAt } from "./events";
 import { makeLife } from "./life";
-import { autoLive, followDecisions, middlePolicy, type Decision } from "./year";
+import { autoLive, followDecisions, middlePolicy, mostPolicy, type Decision } from "./year";
 
 const decisions: Decision[] = [
   { week: 0, kind: "timetable", timetable: ["friends"] },
@@ -34,4 +34,14 @@ test("the same seed and policy always give the same year", () => {
   const { rng: _b, ...second } = autoLive(42, middlePolicy);
 
   expect(second).toEqual(first);
+});
+
+test("putting everything into job hunting adds part-time work only while savings run low", () => {
+  const life = makeLife(1);
+
+  life.money = 19_999;
+  expect(mostPolicy.timetable(life, 0)).toContain("extraWork");
+
+  life.money = 20_000;
+  expect(mostPolicy.timetable(life, 0)).not.toContain("extraWork");
 });

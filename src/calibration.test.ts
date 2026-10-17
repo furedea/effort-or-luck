@@ -4,6 +4,7 @@ import { autoLive, middlePolicy, mostPolicy, type Policy } from "./engine/year";
 const LIVES = 20_000;
 const TOLERANCE = 0.02;
 const MIDDLE_ENDED_EARLY_LIMIT = 0.05;
+const MOST_ENDED_EARLY_LIMIT = 0.8;
 
 function year(policy: Policy) {
   const tally = { all: [0, 0], metro: [0, 0], regional: [0, 0] };
@@ -46,6 +47,9 @@ test("few selves who take the middle way end the year early", () => {
   expect(middle.endedEarly).toBeLessThanOrEqual(MIDDLE_ENDED_EARLY_LIMIT);
 });
 
-test("putting everything into job hunting ends the year early for more selves", () => {
-  expect(year(mostPolicy).endedEarly).toBeGreaterThan(middle.endedEarly);
+test("putting everything into job hunting ends the year early for more selves, but not all", () => {
+  const most = year(mostPolicy);
+
+  expect(most.endedEarly).toBeGreaterThan(middle.endedEarly);
+  expect(most.endedEarly).toBeLessThan(MOST_ENDED_EARLY_LIMIT);
 });
