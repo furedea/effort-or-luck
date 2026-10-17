@@ -34,8 +34,10 @@ interface Game {
 export function GameScreen() {
   const [game, setGame] = useState<Game | null>(null);
 
-  // The base seed is random, so the selves are created only in the browser.
+  // The base seed is random, so the selves are created only in the browser, after hydration;
+  // creating them during render would make the server and browser output differ.
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setGame(newGame());
   }, []);
   const step = game?.cohort.step;
