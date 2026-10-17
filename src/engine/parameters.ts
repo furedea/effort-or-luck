@@ -38,9 +38,11 @@ export const PASS = {
   entryEsPerPrep: 0.02,
   toFinal: 0.5,
   toFinalPerPrep: 0.03,
-  final: 0.55,
+  final: 0.61,
   finalPerPrep: 0.03,
   onlineFinalFactor: 0.7,
+  /** Sized so the metro/regional gap matches the surveyed 関東 vs other-regions offer rates. */
+  regionalFinalFactor: 0.86,
 } as const;
 
 export const AUTUMN_EVENT = { allowanceCut: 0.08, sick: 0.1 } as const;

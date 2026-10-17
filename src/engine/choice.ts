@@ -1,4 +1,4 @@
-import type { Effort, Outcome, ResultFact, SceneFacts, Shortfall } from "./facts";
+import type { Effort, ResultFact, SceneFacts, Shortfall } from "./facts";
 import { freeHours, makeLife, type Life } from "./life";
 import { WAGE_YEN_PER_HOUR } from "./parameters";
 import { buildScene, SCENE_COUNT, type OptionSpec } from "./scenes";
@@ -77,9 +77,4 @@ export function autoLive(seed: number, policy: Policy): Life {
     choose(life, scene, option, want);
   }
   return life;
-}
-
-export function outcome(life: Life): Outcome {
-  if (life.offers.includes("december")) return "early";
-  return life.offers.length ? "offer" : "none";
 }

@@ -3,7 +3,6 @@
 /** How hard an option pushes: 2 is the most effortful, -1 means stepping out. */
 export type Effort = -1 | 0 | 1 | 2;
 export type OfferMonth = "december" | "may";
-export type Outcome = "early" | "offer" | "none";
 export type Shortfall = "time" | "money";
 
 export type SceneFacts =

@@ -1,4 +1,4 @@
-import { JUNE_OFFER_RATE } from "../data/statistics";
+import { JUNE_OFFER_RATE, JUNE_OFFER_RATE_BY_REGION } from "../data/statistics";
 import type { LogFact } from "../engine/facts";
 import {
   METRO_SHARE,
@@ -92,10 +92,17 @@ export function profileText(log: readonly LogFact[]): string {
 
 export function assumptionsNote(): string {
   const rate = (JUNE_OFFER_RATE * 100).toFixed(1);
+  const { kanto, otherRegions } = JUNE_OFFER_RATE_BY_REGION;
   return (
     "仕送りの分布，奨学金，インターン参加率，各時点の内定率は調査の数字です．合否の確率は仮定で，" +
     `中くらいの選択を続けた場合の 6月1日の内定率が実際の ${rate}% に近くなるよう合わせています．` +
+    `首都圏と地方の差も，同じ調査の地域別の内定率（関東 ${percent(kanto)}，関東・中部・近畿以外 ${percent(otherRegions)}）に` +
+    "近くなるよう，地方の最終面接の通過率を少し下げています．差が生まれる理由は調査からはわからないため，この形は仮定です．" +
     `時給は ${WAGE_YEN_PER_HOUR.toLocaleString("ja-JP")} 円，授業とバイト以外の時間は月 ${MONTHLY_HOURS} 時間，` +
     `最初の貯金は ${yen(STARTING_MONEY_YEN)}，首都圏に住む人は ${METRO_SHARE * 10} 割と置きました．`
   );
+}
+
+function percent(rate: number): string {
+  return `${(rate * 100).toFixed(1)}%`;
 }
