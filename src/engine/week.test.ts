@@ -1,6 +1,5 @@
 import { EVENT_WEEKS } from "./calendar";
 import { makeLife, weekBudget, weeklyIncomeYen, type Life } from "./life";
-import { WAGE_YEN_PER_HOUR } from "./parameters";
 import { routineOf } from "./routine";
 import { liveWeek, planWeek } from "./week";
 
@@ -64,7 +63,7 @@ describe("living a week", () => {
 
     const outcome = liveWeek(life, 0, ["extraWork"]);
 
-    expect(outcome?.earned).toBe(routineOf("extraWork").weeklyHours * WAGE_YEN_PER_HOUR);
+    expect(outcome?.earned).toBe(routineOf("extraWork").weeklyPay);
     expect(life.money).toBeCloseTo(
       before + weeklyIncomeYen(life) + (outcome?.earned ?? 0) - (outcome?.paid ?? 0),
     );
@@ -89,9 +88,7 @@ test("savings move by allowance and scholarship after living costs, plus part-ti
   expect(life.money).toBeCloseTo(before + income);
 
   liveWeek(life, 1, ["extraWork"]);
-  expect(life.money).toBeCloseTo(
-    before + 2 * income + routineOf("extraWork").weeklyHours * WAGE_YEN_PER_HOUR,
-  );
+  expect(life.money).toBeCloseTo(before + 2 * income + routineOf("extraWork").weeklyPay);
 });
 
 test("without part-time work, a self whose allowance falls short loses savings each week", () => {
@@ -114,12 +111,12 @@ test("a limited routine is open only in the weeks before its event", () => {
   expect(planWeek(richLife(), spec.until, ["summerEsPrep"]).taken).toEqual([]);
 });
 
-test("savings stay whole yen week after week", () => {
+test("savings stay in round thousands of yen week after week", () => {
   const life = makeLife(1);
   life.allowance = 30_000;
 
-  for (let week = 0; week < 10; week++) liveWeek(life, week, ["extraWork"]);
+  for (let week = 0; week < 10; week++) liveWeek(life, week, ["extraWork", "certification"]);
 
-  expect(Number.isInteger(weeklyIncomeYen(life))).toBe(true);
-  expect(Number.isInteger(life.money)).toBe(true);
+  expect(Number.isInteger(weeklyIncomeYen(life) / 1_000)).toBe(true);
+  expect(Number.isInteger(life.money / 1_000)).toBe(true);
 });

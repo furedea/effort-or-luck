@@ -308,7 +308,9 @@ main {
   font-size: 14px;
   color: var(--ink);
 }
+/* The opening's short figures sit side by side in one row, like the status panel. */
 .event-table {
+  grid-template-columns: repeat(3, 1fr);
   margin: 0;
 }
 .event-table .status-item dd {
