@@ -398,12 +398,10 @@ main {
   background: var(--suit);
   border-color: var(--suit);
 }
+/* The tile turns dark when chosen, so its hours switch to the light text color. */
 .activity.chosen .activity-cost {
-  grid-area: cost;
-  align-self: center;
-  font-size: 13px;
-  color: var(--sub);
-  font-variant-numeric: tabular-nums;
+  color: var(--paper);
+  opacity: 0.85;
 }
 .activity-name {
   font-size: 14px;
