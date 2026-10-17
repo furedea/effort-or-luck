@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import "../styles/game.css";
-import { PLAY_AGAIN, shareText, TITLE } from "../copy/screen";
+import { periodSummary, PLAY_AGAIN, previousPeriod, shareText, TITLE } from "../copy/screen";
 import {
   advanceFor,
   chooseAndAdvance,
@@ -12,9 +12,10 @@ import {
   type Cohort,
   type YearEnd,
 } from "../engine/cohort";
-import type { Effort } from "../engine/facts";
+import type { Stat } from "../engine/facts";
+import type { Plan } from "../engine/plan";
 import { encode } from "../share/result_link";
-import { PlayView, type Carried } from "./play_view";
+import { PlayView } from "./play_view";
 import { RevealView } from "./reveal_view";
 import { ShareButton } from "./share_button";
 
@@ -24,10 +25,10 @@ interface Game {
   /** The self the player lives as; the other selves silently make the same choices. */
   readonly player: number;
   readonly yearEnd: YearEnd | null;
-  /** What the last choice led to, shown on the next month. */
-  readonly carried: Carried | null;
-  /** Every choice the player made, in order, so the year can be shared and replayed. */
-  readonly choices: readonly Effort[];
+  /** What the last period did, shown on the next scene. */
+  readonly carried: string | null;
+  /** The plan the player chose for each period, in order, so the year can be shared and replayed. */
+  readonly plans: readonly Plan[];
 }
 
 export function GameScreen() {
@@ -61,7 +62,7 @@ export function GameScreen() {
           ranks={cohort.allowanceRanks}
           player={player}
           blocked={cohort.everBlocked.size}
-          wants={cohort.wants}
+          plans={cohort.plans}
           subject="you"
           actions={
             <>
@@ -78,7 +79,7 @@ export function GameScreen() {
           scene={scene}
           step={cohort.step}
           carried={carried}
-          onChoose={(effort: Effort) => setGame(choose(game, effort))}
+          onConfirm={(plan: Plan) => setGame(choose(game, plan))}
           onNext={() => setGame(moveOn(game, advanceFor(cohort, player), null))}
         />
       ) : null}
@@ -94,23 +95,33 @@ function newGame(): Game {
     player: Math.floor(Math.random() * COHORT_SIZE),
     yearEnd: null,
     carried: null,
-    choices: [],
+    plans: [],
   };
 }
 
-function choose(game: Game, effort: Effort): Game {
-  const option = game.cohort.scenes[game.player]?.options.find((o) => o.effort === effort);
-  const { cohort, result } = chooseAndAdvance(game.cohort, game.player, effort);
-  const carried = { result, shortHours: option?.shortHours ?? 0, total: option?.total ?? 0 };
-  return moveOn({ ...game, choices: [...game.choices, effort] }, cohort, carried);
+function choose(game: Game, plan: Plan): Game {
+  const life = game.cohort.lives[game.player];
+  const before = life ? { money: life.money, stats: { ...life.stats } } : null;
+  const { cohort } = chooseAndAdvance(game.cohort, game.player, plan);
+  const carried = life && before ? previousPeriod(changeSince(before, life)) : null;
+  return moveOn({ ...game, plans: [...game.plans, plan] }, cohort, carried);
 }
 
-function moveOn(game: Game, cohort: Cohort, carried: Carried | null): Game {
+function changeSince(
+  before: { money: number; stats: Record<Stat, number> },
+  after: { money: number; stats: Record<Stat, number> },
+): string {
+  const stats = { ...after.stats };
+  for (const stat of Object.keys(stats) as Stat[]) stats[stat] -= before.stats[stat];
+  return periodSummary(after.money - before.money, stats);
+}
+
+function moveOn(game: Game, cohort: Cohort, carried: string | null): Game {
   return { ...game, cohort, carried, yearEnd: isOver(cohort) ? replayYear(cohort) : null };
 }
 
-function shareUrl({ seed, player, choices }: Game): string {
-  return `${window.location.origin}/share${encode({ seed, player, choices })}`;
+function shareUrl({ seed, player, plans }: Game): string {
+  return `${window.location.origin}/share${encode({ seed, player, plans })}`;
 }
 
 function randomSeed(): number {

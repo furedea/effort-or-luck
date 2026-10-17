@@ -191,18 +191,119 @@ main {
     transform: none;
   }
 }
-.actions {
-  align-self: end;
+.status-block {
   display: grid;
   row-gap: 8px;
-  animation: rise 0.45s ease 0.3s both;
 }
-.opt {
+.stat-bars {
   display: grid;
-  row-gap: 2px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 14px;
+  margin: 0;
+}
+.stat-bar {
+  display: grid;
+  grid-template-columns: 5.5em 1fr;
+  align-items: center;
+  column-gap: 8px;
+  font-size: 12px;
+}
+.stat-bar dt {
+  color: var(--sub);
+}
+.stat-bar dd {
+  display: grid;
+  grid-template-columns: 1fr 2.2em;
+  align-items: center;
+  column-gap: 6px;
+  margin: 0;
+}
+.meter {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--rule);
+  overflow: hidden;
+}
+.meter > span {
+  display: block;
+  height: 100%;
+  background: var(--suit);
+  transition: width 0.4s ease;
+}
+.stat-bar.low .meter > span {
+  background: var(--shu);
+}
+.meter-value {
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.stat-bar.low .meter-value {
+  color: var(--shu);
+}
+.time-bar {
+  display: grid;
+  row-gap: 4px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 8px 0;
+  background: var(--paper);
+}
+.time-total {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.bar {
+  display: flex;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--rule);
+  overflow: hidden;
+}
+.bar > span {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+.bar-job {
+  background: var(--suit);
+}
+.bar-life {
+  background: var(--suit-soft);
+}
+.bar-over {
+  background: var(--shu);
+}
+.time-over,
+.time-left {
+  margin: 0;
+  font-size: 12px;
+}
+.time-over {
+  color: var(--shu);
+}
+.time-left {
+  color: var(--sub);
+}
+.activity-group {
+  display: grid;
+  row-gap: 6px;
+}
+.activity-section {
+  margin: 6px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--sub);
+}
+.activity {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "name cost" "effect cost";
+  column-gap: 12px;
   width: 100%;
-  min-height: 52px;
-  padding: 12px 16px;
+  padding: 10px 14px;
   text-align: left;
   font: inherit;
   color: var(--ink);
@@ -211,27 +312,50 @@ main {
   border-radius: 4px;
   cursor: pointer;
 }
-.opt:hover:not(:disabled),
-.opt:focus-visible {
+.activity:hover,
+.activity:focus-visible {
   outline: 2px solid var(--suit);
   outline-offset: -1px;
 }
-.opt .label {
+.activity.chosen {
+  border-color: var(--suit);
+  box-shadow: inset 4px 0 0 var(--suit);
+}
+.activity-name {
+  grid-area: name;
   font-weight: 700;
 }
-.opt .cost {
-  display: grid;
+.one-of {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--sub);
+}
+.activity-effect {
+  grid-area: effect;
+  font-size: 12px;
+  color: var(--sub);
+}
+.activity-cost {
+  grid-area: cost;
+  align-self: center;
   font-size: 13px;
   color: var(--sub);
   font-variant-numeric: tabular-nums;
 }
-.opt:disabled {
-  cursor: default;
-  background: transparent;
-  color: var(--sub);
-}
-.opt:disabled .cost {
+.activity.dropped .activity-cost {
   color: var(--shu);
+}
+.ended-count {
+  margin: 0;
+  font-size: 13px;
+  color: var(--shu);
+}
+.actions {
+  align-self: end;
+  display: grid;
+  row-gap: 8px;
+  animation: rise 0.45s ease 0.3s both;
 }
 .next {
   box-sizing: border-box;

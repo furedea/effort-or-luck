@@ -1,17 +1,27 @@
-// The 100 selves living one year together: every choice is attempted by all of them.
+// The 100 selves living one year together: every plan is attempted by all of them.
 // Lives still advance in place, so each transition returns a new Cohort and the previous
 // one must not be used again.
-import { alwaysChoose, autoLive, choose, pickNear, sceneAt, type Scene } from "./choice";
-import type { Effort, ResultFact, SceneId } from "./facts";
+import type { PeriodId } from "./facts";
 import { makeLife, type Life } from "./life";
 import { ALLOWANCE_DISTRIBUTION } from "./parameters";
+import {
+  autoLive,
+  carryOut,
+  leastPolicy,
+  middlePolicy,
+  mostPolicy,
+  sceneAt,
+  type Allocation,
+  type Plan,
+  type Scene,
+} from "./plan";
 import { SCENE_COUNT } from "./scenes";
 
 export const COHORT_SIZE = 100;
 const SEED_STRIDE = 7919;
 
 export interface Cohort {
-  /** Seeds aligned with `lives`, so the same selves can be replayed with other choices. */
+  /** Seeds aligned with `lives`, so the same selves can be replayed with other plans. */
   readonly seeds: readonly number[];
   readonly lives: readonly Life[];
   /** Each self's starting allowance as an index into the allowance distribution. */
@@ -20,18 +30,17 @@ export interface Cohort {
   readonly step: number;
   /** The current scene for each self, or null for a self who skips it. */
   readonly scenes: readonly (Scene | null)[];
-  /** What happened when the shared choice was made this month; null before choosing. */
+  /** What happened when the shared plan was carried out this period; null before that. */
   readonly turn: Turn | null;
-  /** The effort everyone attempted in each month so far. */
-  readonly wants: Readonly<Partial<Record<SceneId, Effort>>>;
-  /** Selves who, in some month, could not afford the effort everyone attempted. */
+  /** The plan everyone attempted in each period so far. */
+  readonly plans: Readonly<Partial<Record<PeriodId, Plan>>>;
+  /** Selves who, in some period, could not pay for part of the plan everyone attempted. */
   readonly everBlocked: ReadonlySet<number>;
 }
 
 interface Turn {
-  readonly want: Effort;
-  readonly taken: readonly (Effort | null)[];
-  readonly results: readonly (ResultFact | undefined)[];
+  readonly plan: Plan;
+  readonly allocations: readonly (Allocation | null)[];
   readonly blocked: ReadonlySet<number>;
 }
 
@@ -46,7 +55,7 @@ export function startCohort(baseSeed: number): Cohort {
       seeds: lives.map((life) => life.seed),
       lives,
       allowanceRanks: lives.map((life) => amounts.indexOf(life.allowance)),
-      wants: {},
+      plans: {},
       everBlocked: new Set(),
     },
     0,
@@ -61,26 +70,44 @@ export function advance(cohort: Cohort): Cohort {
   return load(cohort, cohort.step + 1);
 }
 
-/** Every self with options attempts `want`; those who cannot afford it take the nearest below. */
-export function chooseForAll(cohort: Cohort, want: Effort): Cohort {
-  const taken: (Effort | null)[] = cohort.lives.map(() => null);
-  const results: (ResultFact | undefined)[] = cohort.lives.map(() => undefined);
-  const blocked = new Set<number>();
-  cohort.scenes.forEach((scene, i) => {
-    const life = cohort.lives[i];
-    if (!life || !scene?.options.length) return;
-    const option = pickNear(scene.options, want);
-    results[i] = choose(life, scene, option, want);
-    taken[i] = option.effort;
-    const wantedMore = scene.options.some(
-      (o) => o.effort > option.effort && o.effort <= want && o.shortfall !== null,
-    );
-    if (wantedMore) blocked.add(i);
+/** Every self in a period attempts `plan`; whatever a self cannot pay for is dropped. */
+export function chooseForAll(cohort: Cohort, plan: Plan): Cohort {
+  const allocations = cohort.lives.map((life, i) => {
+    const scene = cohort.scenes[i];
+    return scene?.period ? carryOut(life, scene, plan) : null;
   });
-  const month = cohort.scenes.find((scene) => scene?.options.length)?.facts.id;
-  const wants = month ? { ...cohort.wants, [month]: want } : cohort.wants;
+  const blocked = new Set(
+    allocations.flatMap((allocation, i) => (allocation?.dropped.length ? [i] : [])),
+  );
+  const period = cohort.scenes.find((scene) => scene?.period)?.period?.id;
+  const plans = period ? { ...cohort.plans, [period]: plan } : cohort.plans;
   const everBlocked = new Set([...cohort.everBlocked, ...blocked]);
-  return { ...cohort, wants, everBlocked, turn: { want, taken, results, blocked } };
+  return { ...cohort, plans, everBlocked, turn: { plan, allocations, blocked } };
+}
+
+/**
+ * Moves to the next scene the self at `player` takes part in. Periods the self sits out are
+ * still lived by the others, who divide their time the middle way.
+ */
+export function advanceFor(cohort: Cohort, player: number): Cohort {
+  let next = cohort;
+  do {
+    next = advance(settleOthers(next));
+  } while (!isOver(next) && !next.scenes[player]);
+  return next;
+}
+
+/** Everyone attempts `plan`, then the year moves to the self's next scene. */
+export function chooseAndAdvance(
+  cohort: Cohort,
+  player: number,
+  plan: Plan,
+): { cohort: Cohort; allocation: Allocation | null } {
+  const chosen = chooseForAll(cohort, plan);
+  return {
+    cohort: advanceFor(chosen, player),
+    allocation: chosen.turn?.allocations[player] ?? null,
+  };
 }
 
 export interface YearEnd {
@@ -88,61 +115,12 @@ export interface YearEnd {
   readonly least: readonly Life[];
 }
 
-/** The same selves, with the same luck, always choosing the most or the least effort. */
+/** The same selves, with the same luck, always putting the most or the least into job hunting. */
 export function replayYear(cohort: Cohort): YearEnd {
   return {
-    most: cohort.seeds.map((seed) => autoLive(seed, alwaysChoose(2))),
-    least: cohort.seeds.map((seed) => autoLive(seed, alwaysChoose(0))),
+    most: cohort.seeds.map((seed) => autoLive(seed, mostPolicy)),
+    least: cohort.seeds.map((seed) => autoLive(seed, leastPolicy)),
   };
-}
-
-function load(
-  base: Pick<Cohort, "seeds" | "lives" | "allowanceRanks" | "wants" | "everBlocked">,
-  from: number,
-): Cohort {
-  for (let step = from; step < SCENE_COUNT; step++) {
-    const scenes = base.lives.map((life) => sceneAt(life, step));
-    if (scenes.some((scene) => scene !== null)) return { ...base, step, scenes, turn: null };
-  }
-  return { ...base, step: SCENE_COUNT, scenes: base.lives.map(() => null), turn: null };
-}
-
-/** The effort a self usually chose: the rounded average of its choices so far, else the middle. */
-export function usualEffort(life: Life): Effort {
-  const efforts = Object.values(life.efforts);
-  if (!efforts.length) return 1;
-  const average = Math.round(
-    efforts.reduce<number>((sum, effort) => sum + effort, 0) / efforts.length,
-  );
-  return Math.max(-1, Math.min(2, average)) as Effort;
-}
-
-/**
- * Moves to the next month the self at `player` takes part in. Whenever others still have a
- * choice the self did not make, they choose the self's usual effort.
- */
-export function advanceFor(cohort: Cohort, player: number): Cohort {
-  let next = cohort;
-  do {
-    next = advance(settleOthers(next, player));
-  } while (!isOver(next) && !next.scenes[player]);
-  return next;
-}
-
-/** Everyone attempts `want`, then the year moves to the self's next month. */
-export function chooseAndAdvance(
-  cohort: Cohort,
-  player: number,
-  want: Effort,
-): { cohort: Cohort; result: ResultFact | undefined } {
-  const chosen = chooseForAll(cohort, want);
-  return { cohort: advanceFor(chosen, player), result: chosen.turn?.results[player] };
-}
-
-function settleOthers(cohort: Cohort, player: number): Cohort {
-  const self = cohort.lives[player];
-  const undecided = !cohort.turn && cohort.scenes.some((scene) => scene?.options.length);
-  return self && undecided ? chooseForAll(cohort, usualEffort(self)) : cohort;
 }
 
 interface AllowanceRow {
@@ -162,4 +140,24 @@ export function revealByAllowance(
     const offered = members.filter((i) => (lives[i]?.offers.length ?? 0) > 0).length;
     return { amount, members, offered };
   });
+}
+
+function settleOthers(cohort: Cohort): Cohort {
+  if (cohort.turn) return cohort;
+  cohort.scenes.forEach((scene, i) => {
+    const life = cohort.lives[i];
+    if (life && scene?.period) carryOut(life, scene, middlePolicy(life, scene));
+  });
+  return cohort;
+}
+
+function load(
+  base: Pick<Cohort, "seeds" | "lives" | "allowanceRanks" | "plans" | "everBlocked">,
+  from: number,
+): Cohort {
+  for (let step = from; step < SCENE_COUNT; step++) {
+    const scenes = base.lives.map((life) => sceneAt(life, step));
+    if (scenes.some((scene) => scene !== null)) return { ...base, step, scenes, turn: null };
+  }
+  return { ...base, step: SCENE_COUNT, scenes: base.lives.map(() => null), turn: null };
 }

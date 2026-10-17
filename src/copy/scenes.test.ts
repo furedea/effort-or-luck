@@ -1,41 +1,36 @@
-import { optionCostLines, paymentLine } from "./scenes";
+import type { ActivitySpec } from "../engine/activities";
+import { activityCost, activityLabel, describeLog } from "./scenes";
 
-describe("what an option costs", () => {
-  it("shows hours bought back from part-time work and the savings they take", () => {
-    expect(optionCostLines({ hours: 30, money: 0, shortHours: 23, total: 25_300 })).toEqual([
-      "30時間：バイトを23時間減らす",
-      "貯金 −2万5,300円",
-    ]);
-  });
+function spec(extra: Partial<ActivitySpec>): ActivitySpec {
+  return { key: "jobCourse", kind: "job", hours: 0, money: 0, pays: 0, ...extra };
+}
 
-  it("shows only the hours when free time covers them", () => {
-    expect(optionCostLines({ hours: 12, money: 0, shortHours: 0, total: 0 })).toEqual(["12時間"]);
-  });
-
-  it("shows money spent alongside the hours", () => {
-    expect(optionCostLines({ hours: 40, money: 30_000, shortHours: 0, total: 30_000 })).toEqual([
-      "40時間",
-      "貯金 −3万円",
-    ]);
-  });
-
-  it("shows nothing for a free option", () => {
-    expect(optionCostLines({ hours: 0, money: 0, shortHours: 0, total: 0 })).toEqual([]);
+describe("what an activity takes and gives", () => {
+  it("lists hours, cost, and pay that are not zero", () => {
+    expect(activityCost(spec({ hours: 24, money: 30_000 }))).toEqual(["24時間", "3万円"]);
+    expect(activityCost(spec({ hours: 128, pays: 140_800 }))).toEqual(["128時間", "+14万800円"]);
+    expect(activityCost(spec({}))).toEqual([]);
   });
 });
 
-describe("what a choice took", () => {
-  it("names the part-time hours given up and the savings spent", () => {
-    expect(paymentLine({ shortHours: 23, total: 25_300 })).toBe(
-      "バイトを23時間減らし，貯金が2万5,300円減った．",
-    );
-  });
+describe("final interview labels", () => {
+  it("name how many finals are taken in person when there are several", () => {
+    const facts = {
+      id: "finals",
+      entries: 20,
+      firstRound: 6,
+      finals: 3,
+      reimbursed: 0,
+      metro: true,
+    } as const;
 
-  it("names savings spent without giving up part-time work", () => {
-    expect(paymentLine({ shortHours: 0, total: 30_000 })).toBe("貯金が3万円減った．");
+    expect(activityLabel(spec({ key: "finalsAllFace" }), facts)).toBe("3 社とも対面で受ける");
+    expect(activityLabel(spec({ key: "finalsAllOnline" }), facts)).toBe("全部オンラインで受ける");
   });
+});
 
-  it("says nothing when the choice cost nothing", () => {
-    expect(paymentLine({ shortHours: 0, total: 0 })).toBeNull();
-  });
+test("a dropped activity is logged with its period and name", () => {
+  expect(describeLog({ kind: "dropped", period: "winter", activity: "obVisits" })).toBe(
+    "1〜2月，お金が足りず「東京で OB 訪問（5人）」をあきらめた",
+  );
 });
