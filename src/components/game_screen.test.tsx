@@ -93,3 +93,26 @@ test("shows, next to this game's counts, the long-run rate for the same choices"
   for (const average of averages) expect(average).toMatch(/^平均 \d+%$/);
   expect(host.querySelector(".long-run-note")?.textContent).toBeTruthy();
 });
+
+test("the reveal sets luck against effort in two labeled parts", () => {
+  const host = mount();
+  for (let guard = 0; guard < 20 && !host.querySelector(".reveal"); guard++)
+    click(nextAction(host)!);
+
+  const parts = [...host.querySelectorAll(".reveal h3")].map((node) => node.textContent);
+  expect(parts).toEqual(["① 努力をそろえて，運だけ変えると", "② 運をそろえて，努力だけ変えると"]);
+
+  const header = [...host.querySelectorAll(".effort-table thead th")].map(
+    (node) => node.textContent,
+  );
+  expect(header).toEqual(["仕送り", "いつも楽をする", "あなた", "いつも頑張る"]);
+
+  const rows = [...host.querySelectorAll(".effort-table tbody tr")];
+  expect(rows).toHaveLength(4);
+  const yours = rows.map((row) => row.querySelectorAll("td")[1]?.textContent?.replace(/\s/g, ""));
+  const bands = [...host.querySelectorAll(".band .band-count")].map((node) =>
+    node.firstChild?.textContent?.replace(/\s|人/g, ""),
+  );
+  expect(yours).toEqual(bands);
+  expect(host.querySelector(".toggle[aria-pressed]")).toBeNull();
+});
