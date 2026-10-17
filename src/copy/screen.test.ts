@@ -41,7 +41,7 @@ test("the stat bars flag stats close to zero", () => {
 });
 
 test("hours beyond the budget are said to come from sleep", () => {
-  expect(overflowLine(5)).toBe("はみ出た週5時間は睡眠を削り，健康 −1／週");
+  expect(overflowLine(5)).toBe("はみ出た週5時間は睡眠を削る（健康 −1／週）");
 });
 
 test("selves who ended early are counted by reason", () => {
@@ -50,8 +50,8 @@ test("selves who ended early are counted by reason", () => {
 });
 
 test("the week's hours are shown against the budget", () => {
-  expect(budgetLine(26, 38)).toBe("週26／38時間・あと12時間");
-  expect(budgetLine(41, 38)).toBe("週41／38時間・3時間オーバー");
+  expect(budgetLine(26, 38)).toBe("週26／38時間（あと12時間）");
+  expect(budgetLine(41, 38)).toBe("週41／38時間（3時間オーバー）");
 });
 
 test("a falling stat is warned about with its value", () => {
@@ -67,7 +67,7 @@ describe("what choosing an option leaves", () => {
 
   it("says how many weeks the hours last and when they run over", () => {
     expect(optionAfterLine({ hoursLeft: -4, weeks: 3, moneyAfter: 0 })).toBe(
-      "選ぶと：3週間，毎週4時間オーバーで睡眠を削る・貯金 0円",
+      "選ぶと：3週間，毎週4時間オーバー（睡眠を削る）・貯金 0円",
     );
   });
 });

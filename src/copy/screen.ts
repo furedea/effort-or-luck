@@ -65,21 +65,21 @@ export function weeksLeftLine(weeks: number): string {
   return `あと${weeks}週`;
 }
 
-/** A limited-time tile that has just appeared, e.g. "★ 今だけ：夏インターンのES対策 あと4週". */
+/** A limited-time tile that has just appeared, e.g. "★ 今だけ：夏インターンのES対策（あと4週）". */
 export function limitedLine(tile: string, weeks: number): string {
-  return `${LIMITED_TITLE}：${tile} ${weeksLeftLine(weeks)}`;
+  return `${LIMITED_TITLE}：${tile}（${weeksLeftLine(weeks)}）`;
 }
 export const CANNOT_PAY = "お金が足りない";
 
-/** The week's hours against the budget, with what is left or over, e.g. "週26／38時間・あと12時間". */
+/** The week's hours against the budget, with what is left or over, e.g. "週26／38時間（あと12時間）". */
 export function budgetLine(used: number, budget: number): string {
   const hours = (value: number) => Number(value.toFixed(1));
   const rest =
     used <= budget ? `あと${hours(budget - used)}時間` : `${hours(used - budget)}時間オーバー`;
-  return `週${hours(used)}／${budget}時間・${rest}`;
+  return `週${hours(used)}／${budget}時間（${rest}）`;
 }
 
-/** This week's hours and savings, shown at an event, e.g. "週26／40時間・あと14時間・貯金 5万円". */
+/** This week's hours and savings, shown at an event, e.g. "週26／40時間（あと14時間）・貯金 5万円". */
 export function weekStatusLine(used: number, budget: number, money: number): string {
   return `${budgetLine(used, budget)}・貯金 ${yen(Math.round(money))}`;
 }
@@ -97,15 +97,15 @@ export function optionAfterLine({ hoursLeft, weeks, moneyAfter }: OptionAfter): 
   const hours = Number(Math.abs(hoursLeft).toFixed(1));
   const span = weeks > 1 ? `${weeks}週間，毎週` : "今週";
   const time =
-    hoursLeft >= 0 ? `${span}あと${hours}時間` : `${span}${hours}時間オーバーで睡眠を削る`;
+    hoursLeft >= 0 ? `${span}あと${hours}時間` : `${span}${hours}時間オーバー（睡眠を削る）`;
   return `選ぶと：${time}・貯金 ${yen(Math.max(0, Math.round(moneyAfter)))}`;
 }
 
-/** Hours beyond the free hours, taken from sleep, e.g. "はみ出た週5時間は睡眠を削り，健康 −1／週". */
+/** Hours beyond the free hours, taken from sleep, e.g. "はみ出た週5時間は睡眠を削る（健康 −1／週）". */
 export function overflowLine(shortHours: number): string {
   const hours = Number(shortHours.toFixed(1));
   const health = Number((shortHours * HEALTH_PER_SLEEP_HOUR).toFixed(1));
-  return `はみ出た週${hours}時間は睡眠を削り，健康 −${health}／週`;
+  return `はみ出た週${hours}時間は睡眠を削る（健康 −${health}／週）`;
 }
 
 export function oneOffLine(hours: number): string {
@@ -125,7 +125,7 @@ interface StatusItem {
 }
 
 /** Read out after a figure flagged as low, since the flag is otherwise only a color. */
-export const LOW_NOTE = "・少ない";
+export const LOW_NOTE = "（少ない）";
 
 const LOW_SAVINGS_YEN = 10_000;
 
