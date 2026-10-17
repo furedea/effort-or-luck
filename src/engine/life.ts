@@ -23,7 +23,8 @@ export interface Life {
   allowance: number;
   money: number;
   prep: number;
-  sickHours: number;
+  /** Hours this month lost to illness, a trip home, or deadlines. */
+  lostHours: number;
   internApplications: number;
   intern: InternKind;
   invited: boolean;
@@ -47,7 +48,7 @@ export function makeLife(seed: number): Life {
     allowance,
     money: STARTING_MONEY_YEN,
     prep: 0,
-    sickHours: 0,
+    lostHours: 0,
     internApplications: 0,
     intern: "none",
     invited: false,
@@ -66,7 +67,7 @@ export function partTimeHours(life: Life): number {
 }
 
 export function freeHours(life: Life): number {
-  return Math.max(0, MONTHLY_HOURS - partTimeHours(life) - life.sickHours);
+  return Math.max(0, MONTHLY_HOURS - partTimeHours(life) - life.lostHours);
 }
 
 export function tripYen(life: Life): number {

@@ -23,4 +23,5 @@ test("sources page credits every source and states that pass rates are assumptio
   for (const source of Object.values(SOURCES)) expect(html).toContain(source);
   expect(html).toContain("合否の確率は仮定");
   expect(html).toContain("地域別の内定率");
+  expect(html).toContain("交通費や宿泊費の支給");
 });

@@ -28,13 +28,16 @@ export type SceneFacts =
   | { readonly id: "autumn"; readonly event: AutumnEvent; readonly invited: boolean }
   | { readonly id: "early"; readonly result: "notInvited"; readonly hadIntern: boolean }
   | { readonly id: "early"; readonly result: "passed" | "failed" }
+  | { readonly id: "jan"; readonly metro: boolean }
   | { readonly id: "feb"; readonly hasOffer: boolean }
-  | { readonly id: "march" }
+  | { readonly id: "march"; readonly busy: boolean }
   | {
       readonly id: "finals";
       readonly entries: number;
       readonly firstRound: number;
       readonly finals: number;
+      /** Finals whose travel the company pays. */
+      readonly reimbursed: number;
       readonly metro: boolean;
     }
   | {
@@ -52,6 +55,8 @@ export type AutumnEvent =
   | { readonly kind: "allowanceCut"; readonly freeHours: number }
   | { readonly kind: "shopClosed" }
   | { readonly kind: "sick" }
+  | { readonly kind: "familyIllness" }
+  | { readonly kind: "laptopBroken" }
   | { readonly kind: "calm" };
 
 export type OptionKey =
@@ -73,7 +78,10 @@ export type OptionKey =
   | "allFace"
   | "oneFace"
   | "allOnline"
-  | "decline";
+  | "decline"
+  | "meetSenior"
+  | "askOnline"
+  | "pass";
 
 export type ResultFact =
   | { readonly kind: "saved"; readonly amount: number }
@@ -88,5 +96,9 @@ export type LogFact =
   | { readonly kind: "shopClosed" }
   | { readonly kind: "sick" }
   | { readonly kind: "earlyOffer" }
+  | { readonly kind: "familyIllness" }
+  | { readonly kind: "laptopBroken" }
+  | { readonly kind: "seniorTalk" }
+  | { readonly kind: "thesisCrunch" }
   | { readonly kind: "missed"; readonly scene: SceneFacts; readonly option: OptionKey }
   | { readonly kind: "june"; readonly offers: number };

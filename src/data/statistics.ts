@@ -12,6 +12,7 @@ export const SOURCES = {
   nikkei: "日経HR 内定者調査2025年版",
   mirai: "就職みらい研究所 就職プロセス調査（2026年卒）",
   indeed: "インディードリクルートパートナーズ 就職プロセス調査（2026年卒）",
+  mynaviMonitor: "マイナビ 2025年卒 学生就職モニター調査（6月の活動状況）",
 } as const;
 
 /** Share of 2026 graduates holding an offer on June 1st; the target of the calibration test. */
