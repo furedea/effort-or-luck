@@ -17,6 +17,12 @@ export const SOURCES = {
 /** Share of 2026 graduates holding an offer on June 1st; the target of the calibration test. */
 export const JUNE_OFFER_RATE = 0.816;
 
+/**
+ * June 1st offer rates of 2026 graduates in 関東 and in regions other than 関東・中部・近畿,
+ * from the same survey; their gap is the target for the metro/regional gap.
+ */
+export const JUNE_OFFER_RATE_BY_REGION = { kanto: 0.837, otherRegions: 0.788 } as const;
+
 export const STATISTICS = {
   allowance: {
     text: "一人暮らしの大学生の仕送りは平均で月 7万2350円．0円の人は 6.9%．",

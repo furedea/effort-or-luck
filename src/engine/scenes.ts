@@ -287,7 +287,8 @@ function finals(life: Life): SceneDraft | null {
 }
 
 function june(life: Life): SceneDraft {
-  const chance = passChance(PASS.final, PASS.finalPerPrep, life);
+  const chance =
+    passChance(PASS.final, PASS.finalPerPrep, life) * (life.metro ? 1 : PASS.regionalFinalFactor);
   const won =
     countSuccesses(life.rng, life.finals.face, chance) +
     countSuccesses(life.rng, life.finals.online, chance * PASS.onlineFinalFactor);
