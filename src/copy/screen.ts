@@ -89,11 +89,21 @@ export function sourceCredit(source: string): string {
 /** One allowance row read out in words, since the dots carry no text. */
 export function bandSummary(
   amount: number,
-  counts: { total: number; offered: number },
+  counts: { total: number; offered: number; average: number | null },
   member: Subject | null,
 ): string {
   const among = member ? `${SUBJECT[member]}もこの中にいる．` : "";
-  return `仕送り${yen(amount)}の ${counts.total} 人のうち，内定は ${counts.offered} 人．${among}`;
+  const average =
+    counts.average === null ? "" : `同じ選び方での平均は ${Math.round(counts.average * 100)}%．`;
+  return `仕送り${yen(amount)}の ${counts.total} 人のうち，内定は ${counts.offered} 人．${average}${among}`;
+}
+
+export const LONG_RUN_NOTE =
+  "平均は，同じ選び方で別の運を 4,000 人分試したときの内定率．1回だけだと，運で数字がぶれる．";
+export const LONG_RUN_PENDING = "平均を計算中…";
+
+export function longRunRate(rate: number): string {
+  return `平均 ${Math.round(rate * 100)}%`;
 }
 
 export function offeredCount(offered: number, total: number): string {

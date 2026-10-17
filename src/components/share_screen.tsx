@@ -44,6 +44,7 @@ export function ShareScreen() {
           player={shared.player}
           view={view}
           onView={setView}
+          wants={shared.cohort.wants}
           subject="them"
           actions={playLink}
         />

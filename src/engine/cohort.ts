@@ -2,7 +2,7 @@
 // Lives still advance in place, so each transition returns a new Cohort and the previous
 // one must not be used again.
 import { alwaysChoose, autoLive, choose, pickNear, sceneAt, type Scene } from "./choice";
-import type { Effort, ResultFact } from "./facts";
+import type { Effort, ResultFact, SceneId } from "./facts";
 import { makeLife, type Life } from "./life";
 import { ALLOWANCE_DISTRIBUTION } from "./parameters";
 import { SCENE_COUNT } from "./scenes";
@@ -22,6 +22,8 @@ export interface Cohort {
   readonly scenes: readonly (Scene | null)[];
   /** What happened when the shared choice was made this month; null before choosing. */
   readonly turn: Turn | null;
+  /** The effort everyone attempted in each month so far. */
+  readonly wants: Readonly<Partial<Record<SceneId, Effort>>>;
 }
 
 interface Turn {
@@ -42,6 +44,7 @@ export function startCohort(baseSeed: number): Cohort {
       seeds: lives.map((life) => life.seed),
       lives,
       allowanceRanks: lives.map((life) => amounts.indexOf(life.allowance)),
+      wants: {},
     },
     0,
   );
@@ -71,7 +74,9 @@ export function chooseForAll(cohort: Cohort, want: Effort): Cohort {
     );
     if (wantedMore) blocked.add(i);
   });
-  return { ...cohort, turn: { want, taken, results, blocked } };
+  const month = cohort.scenes.find((scene) => scene?.options.length)?.facts.id;
+  const wants = month ? { ...cohort.wants, [month]: want } : cohort.wants;
+  return { ...cohort, wants, turn: { want, taken, results, blocked } };
 }
 
 export interface YearEnd {
@@ -87,7 +92,10 @@ export function replayYear(cohort: Cohort): YearEnd {
   };
 }
 
-function load(base: Pick<Cohort, "seeds" | "lives" | "allowanceRanks">, from: number): Cohort {
+function load(
+  base: Pick<Cohort, "seeds" | "lives" | "allowanceRanks" | "wants">,
+  from: number,
+): Cohort {
   for (let step = from; step < SCENE_COUNT; step++) {
     const scenes = base.lives.map((life) => sceneAt(life, step));
     if (scenes.some((scene) => scene !== null)) return { ...base, step, scenes, turn: null };

@@ -63,6 +63,7 @@ export function GameScreen() {
           player={player}
           view={view}
           onView={(next) => setGame({ ...game, view: next })}
+          wants={cohort.wants}
           subject="you"
           actions={
             <>
