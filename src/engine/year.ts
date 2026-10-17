@@ -2,6 +2,7 @@ import { WEEKS } from "./calendar";
 import { eventAt, OPTION_EFFORT, pickOption, resolve, type Event } from "./events";
 import type { Effort, OptionKey, RoutineKey } from "./facts";
 import { makeLife, type Life } from "./life";
+import type { Difficulty } from "./parameters";
 import { ROUTINES } from "./routine";
 import { liveWeek } from "./week";
 
@@ -84,8 +85,8 @@ export function meet(life: Life, event: Event, choice: Choice): void {
 }
 
 /** Lives a whole year from `seed` by `policy`. */
-export function autoLive(seed: number, policy: Policy): Life {
-  const life = makeLife(seed);
+export function autoLive(seed: number, policy: Policy, difficulty: Difficulty = "normal"): Life {
+  const life = makeLife(seed, difficulty);
   for (let week = 0; week < WEEKS; week++) {
     const event = eventAt(life, week);
     if (event?.options.length) meet(life, event, policy.choose(life, event, week));

@@ -2,6 +2,7 @@ import type { Stat } from "./facts";
 import { weeklyPartTimeHours, type Life } from "./life";
 import {
   BROKE_BELOW_YEN,
+  DIFFICULTY,
   FOURTH_YEAR_RESEARCH_DRIFT,
   HEALTH_PER_OVERLOAD_HOUR,
   HEALTHY_WORKLOAD_WEEKLY_HOURS,
@@ -30,7 +31,8 @@ export function liveThroughPeriod(life: Life, load: PeriodLoad): void {
   const { weeks, fourthYear, taken, jobHours, extraWorkHours } = load;
   const change: Record<Stat, number> = { ...WEEKLY_DRIFT };
   if (fourthYear) change.research = FOURTH_YEAR_RESEARCH_DRIFT;
-  for (const stat of STATS) change[stat] *= weeks;
+  const { driftFactor } = DIFFICULTY[life.difficulty];
+  for (const stat of STATS) change[stat] *= weeks * driftFactor;
   for (const activity of taken) {
     for (const stat of STATS) change[stat] += (activity.statsPerWeek?.[stat] ?? 0) * weeks;
   }

@@ -18,7 +18,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function mount() {
+function mountRaw() {
   const host = document.createElement("div");
   document.body.append(host);
   act(() => createRoot(host).render(<GameScreen />));
@@ -27,6 +27,18 @@ function mount() {
 
 function click(button: HTMLButtonElement) {
   act(() => button.click());
+}
+
+function chooseDifficulty(host: HTMLElement, name: string) {
+  const buttons = [...host.querySelectorAll<HTMLButtonElement>(".difficulty .opt")];
+  click(buttons.find((button) => button.querySelector(".label")?.textContent === name)!);
+}
+
+/** Mounts the game and starts it at normal difficulty. */
+function mount() {
+  const host = mountRaw();
+  chooseDifficulty(host, "ふつう");
+  return host;
 }
 
 function startYear(host: HTMLElement) {
@@ -47,6 +59,25 @@ const passMs = (ms: number) =>
   act(() => {
     vi.advanceTimersByTime(ms);
   });
+
+test("asks for a difficulty before the year starts", () => {
+  const host = mountRaw();
+
+  const labels = [...host.querySelectorAll(".difficulty .opt .label")].map((n) => n.textContent);
+  expect(labels).toEqual(["やさしい", "ふつう", "きびしい"]);
+  expect(host.querySelector(".difficulty .opt .cost")?.textContent).toBe(
+    "健康などの初期値 +15・毎週の減り方 ×0.7",
+  );
+});
+
+test("starts the stats from the chosen difficulty", () => {
+  const host = mountRaw();
+
+  chooseDifficulty(host, "きびしい");
+
+  const health = host.querySelector(".stat-bar .meter-value")?.textContent;
+  expect(health).toBe("55");
+});
 
 test("opens on the first week with the opening notice", () => {
   const host = mount();

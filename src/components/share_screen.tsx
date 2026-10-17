@@ -45,6 +45,7 @@ export function ShareScreen() {
           player={shared.player}
           blocked={shared.cohort.everBlocked.size}
           decisions={shared.cohort.decisions}
+          difficulty={shared.cohort.difficulty}
           subject="them"
           actions={playLink}
         />

@@ -1,6 +1,7 @@
 import type { LogFact, OfferMonth, Stat } from "./facts";
 import {
   ALLOWANCE_DISTRIBUTION,
+  DIFFICULTY,
   METRO_SHARE,
   MONTHLY_EXPENSE_YEN,
   SCHOLARSHIP_ALLOWANCE_LIMIT_YEN,
@@ -11,6 +12,7 @@ import {
   WAGE_YEN_PER_HOUR,
   WEEKLY_HOURS,
   WEEKS_PER_MONTH,
+  type Difficulty,
 } from "./parameters";
 import { createRng, pickWeighted, type Rng } from "./random";
 
@@ -20,6 +22,7 @@ type InternKind = "none" | "face" | "online";
 export interface Life {
   readonly seed: number;
   readonly rng: Rng;
+  readonly difficulty: Difficulty;
   readonly metro: boolean;
   readonly scholarship: number;
   allowance: number;
@@ -48,13 +51,14 @@ export interface Life {
   readonly log: LogFact[];
 }
 
-export function makeLife(seed: number): Life {
+export function makeLife(seed: number, difficulty: Difficulty = "normal"): Life {
   const rng = createRng(seed);
   const allowance = pickWeighted(rng, ALLOWANCE_DISTRIBUTION);
   const metro = rng() < METRO_SHARE;
   return {
     seed,
     rng,
+    difficulty,
     metro,
     scholarship: allowance < SCHOLARSHIP_ALLOWANCE_LIMIT_YEN ? SCHOLARSHIP_YEN : 0,
     allowance,
@@ -71,11 +75,18 @@ export function makeLife(seed: number): Life {
     entries: 0,
     finals: { face: 0, online: 0 },
     done: false,
-    stats: { ...STARTING_STATS },
+    stats: startingStats(difficulty),
     over: null,
     offers: [],
     log: [],
   };
+}
+
+function startingStats(difficulty: Difficulty): Record<Stat, number> {
+  const { statShift } = DIFFICULTY[difficulty];
+  const stats = { ...STARTING_STATS } as Record<Stat, number>;
+  for (const stat of Object.keys(stats) as Stat[]) stats[stat] += statShift;
+  return stats;
 }
 
 /** Part-time hours a month needed to cover living costs. */

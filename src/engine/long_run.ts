@@ -1,4 +1,4 @@
-import { ALLOWANCE_DISTRIBUTION } from "./parameters";
+import { ALLOWANCE_DISTRIBUTION, type Difficulty } from "./parameters";
 import { autoLive, type Policy } from "./year";
 
 // One game of 100 selves swings a lot by chance. Replaying the same decisions over many other
@@ -13,11 +13,11 @@ export const LONG_RUN_SEEDS: readonly number[] = Array.from(
 );
 
 /** Offer rate on June 1st per allowance (in distribution order) when living by `policy`. */
-export function longRunByAllowance(policy: Policy): number[] {
+export function longRunByAllowance(policy: Policy, difficulty: Difficulty = "normal"): number[] {
   const tally = ALLOWANCE_DISTRIBUTION.map(() => ({ lives: 0, offered: 0 }));
   const amounts: readonly number[] = ALLOWANCE_DISTRIBUTION.map(([amount]) => amount);
   for (const seed of LONG_RUN_SEEDS) {
-    const life = autoLive(seed, policy);
+    const life = autoLive(seed, policy, difficulty);
     const profile = life.log[0];
     const row = profile?.kind === "profile" ? tally[amounts.indexOf(profile.allowance)] : undefined;
     if (!row) continue;

@@ -11,7 +11,7 @@ import {
 } from "../engine/cohort";
 import { OPTION_EFFORT } from "../engine/events";
 import type { OptionKey, RoutineKey } from "../engine/facts";
-import { RULES_VERSION } from "../engine/parameters";
+import { DIFFICULTY, RULES_VERSION, type Difficulty } from "../engine/parameters";
 import { ROUTINES } from "../engine/routine";
 import type { Decision } from "../engine/year";
 
@@ -21,6 +21,7 @@ import type { Decision } from "../engine/year";
 export interface ShareParams {
   readonly seed: number;
   readonly player: number;
+  readonly difficulty: Difficulty;
   readonly decisions: readonly Decision[];
 }
 
@@ -37,12 +38,13 @@ const CHOICE_MARK = "o";
 const ROUTINE_KEYS: readonly RoutineKey[] = ROUTINES.map((spec) => spec.key);
 const OPTION_KEYS = Object.keys(OPTION_EFFORT) as OptionKey[];
 
-export function encode({ seed, player, decisions }: ShareParams): string {
+export function encode({ seed, player, difficulty, decisions }: ShareParams): string {
   const query = new URLSearchParams({
     r: String(RULES_VERSION),
     s: seed.toString(36),
     p: String(player),
     c: decisions.map(encodeDecision).join(DECISION_SEPARATOR),
+    d: difficulty,
   });
   return `?${query.toString()}`;
 }
@@ -53,6 +55,8 @@ export function parse(search: string): Result<ShareParams> {
   const seed = query.get("s");
   const player = query.get("p");
   const choices = query.get("c");
+  // Links made before difficulty existed were all normal.
+  const difficulty = query.get("d") ?? "normal";
   if (rules === null || seed === null || player === null || choices === null) {
     return failure("unreadable");
   }
@@ -62,6 +66,7 @@ export function parse(search: string): Result<ShareParams> {
   if (!/^[0-9a-z]{1,7}$/.test(seed) || !/^\d{1,2}$/.test(player) || !/^[0-9a-z.]*$/.test(choices)) {
     return failure("unreadable");
   }
+  if (!isDifficulty(difficulty)) return failure("unreadable");
   const parsedSeed = Number.parseInt(seed, 36);
   const parsedPlayer = Number(player);
   if (parsedSeed > 0xffffffff || parsedPlayer >= COHORT_SIZE) return failure("unreadable");
@@ -72,6 +77,7 @@ export function parse(search: string): Result<ShareParams> {
     value: {
       seed: parsedSeed,
       player: parsedPlayer,
+      difficulty,
       decisions: decisions.filter((decision) => decision !== null),
     },
   };
@@ -84,9 +90,10 @@ export function parse(search: string): Result<ShareParams> {
 export function replay({
   seed,
   player,
+  difficulty,
   decisions,
 }: ShareParams): Result<{ cohort: Cohort; yearEnd: YearEnd }> {
-  let cohort = startCohort(seed);
+  let cohort = startCohort(seed, difficulty);
   for (const decision of decisions) {
     while (cohort.week < decision.week) {
       if (awaitsChoice(cohort, player)) return failure("unreadable");
@@ -106,6 +113,10 @@ export function replay({
     cohort = step(cohort);
   }
   return { ok: true, value: { cohort, yearEnd: replayYear(cohort) } };
+}
+
+function isDifficulty(text: string): text is Difficulty {
+  return Object.hasOwn(DIFFICULTY, text);
 }
 
 function awaitsChoice(cohort: Cohort, player: number): boolean {
