@@ -103,7 +103,9 @@ type Facts<Id extends SceneFacts["id"]> = Extract<SceneFacts, { id: Id }>;
 
 function introLines(facts: Facts<"intro">): string[] {
   return [
-    `${region(facts.metro)}で一人暮らし．仕送りは月 ${yen(facts.allowance)}．`,
+    facts.allowance
+      ? `${region(facts.metro)}で一人暮らし．仕送りは月 ${yen(facts.allowance)}．`
+      : `${region(facts.metro)}で一人暮らし．仕送りはない．`,
     ...(facts.scholarship ? [`奨学金を月 ${yen(facts.scholarship)}借りている．`] : []),
     facts.partTimeHours ? `バイトは月 ${facts.partTimeHours} 時間．` : "バイトはしていない．",
   ];

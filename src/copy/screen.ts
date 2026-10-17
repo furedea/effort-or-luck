@@ -54,7 +54,7 @@ export function statusParts(status: {
     `仕送り ${yen(status.allowance)}`,
     ...(status.scholarship ? [`奨学金 ${yen(status.scholarship)}`] : []),
     `貯金 ${yen(status.money)}`,
-    `時間 月${status.freeHours}時間`,
+    `就活に使える時間 月${status.freeHours}時間`,
     `内定 ${status.offers ? `${status.offers} 社` : "なし"}`,
   ];
 }
