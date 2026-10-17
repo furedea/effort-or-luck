@@ -11,7 +11,7 @@ import {
   THESIS_CRUNCH_HOURS,
 } from "./parameters";
 import { liveWeek } from "./week";
-import { leastPolicy, meet, middlePolicy, mostPolicy, type Policy } from "./year";
+import { autoLive, leastPolicy, meet, middlePolicy, mostPolicy, type Policy } from "./year";
 
 /** One self's state at an event: just before it and once it is drawn. */
 interface Moment {
@@ -158,4 +158,17 @@ describe("choosing at an event", () => {
     expect(life.log).toContainEqual({ kind: "missed", event: "internEs", option: "esFive" });
     expect(life.oneOff).toEqual({ hours: 6, weeks: 3 });
   });
+});
+
+test("preparing for the summer internship ES while it is open raises the pass rate", () => {
+  const prepared: Policy = {
+    timetable: (life, week) => [...middlePolicy.timetable(life, week), "summerEsPrep"],
+    choose: (life, event, week) => middlePolicy.choose(life, event, week),
+  };
+  const allFailed = (policy: Policy) =>
+    Array.from({ length: 3000 }, (_, i) => autoLive(1 + i, policy)).filter((life) =>
+      life.log.some((fact) => fact.kind === "internAllFailed"),
+    ).length;
+
+  expect(allFailed(prepared)).toBeLessThan(allFailed(middlePolicy) * 0.9);
 });

@@ -31,5 +31,13 @@ export function weekOfMonthStart(monthsSinceStart: number): number {
   return Math.ceil(monthsSinceStart * WEEKS_PER_MONTH);
 }
 
+/** Weeks of the events that limited-time preparation leads up to. */
+export const EVENT_WEEKS = {
+  internEs: weekOfMonthStart(2),
+  early: weekOfMonthStart(8) + 1,
+  entries: weekOfMonthStart(11),
+  finals: weekOfMonthStart(12) + 2,
+} as const;
+
 /** From January on, the final year's research load grows. */
 export const FINAL_STRETCH_FROM = weekOfMonthStart(9);

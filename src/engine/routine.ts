@@ -1,5 +1,5 @@
-import { weekOfMonthStart, WEEKS } from "./calendar";
-import type { RoutineKey, Stat } from "./facts";
+import { EVENT_WEEKS, weekOfMonthStart, WEEKS } from "./calendar";
+import type { Boost, RoutineKey, Stat } from "./facts";
 import type { Life } from "./life";
 import { WAGE_YEN_PER_HOUR } from "./parameters";
 
@@ -20,15 +20,42 @@ export interface RoutineSpec {
   readonly prepPerWeek: number;
   readonly documentPrepPerWeek: number;
   readonly inviteBonusPerWeek: number;
+  readonly boostsPerWeek: Readonly<Partial<Record<Boost, number>>>;
 }
 
 const ALL_YEAR = { from: 0, until: WEEKS } as const;
-const NONE = { statsPerWeek: {}, prepPerWeek: 0, documentPrepPerWeek: 0, inviteBonusPerWeek: 0 };
+const NONE = {
+  statsPerWeek: {},
+  prepPerWeek: 0,
+  documentPrepPerWeek: 0,
+  inviteBonusPerWeek: 0,
+  boostsPerWeek: {},
+};
 
 function routine(
   spec: Partial<RoutineSpec> & Pick<RoutineSpec, "key" | "kind" | "weeklyHours">,
 ): RoutineSpec {
   return { weeklyMoney: 0, weeklyPay: 0, ...ALL_YEAR, ...NONE, ...spec };
+}
+
+/**
+ * Preparation for one event, open for `weeks` weeks up to it: 4 hours a week that raise that
+ * event's pass rate a little each week.
+ */
+function limited(
+  key: RoutineKey,
+  eventWeek: number,
+  weeks: number,
+  boostsPerWeek: Partial<Record<Boost, number>>,
+): RoutineSpec {
+  return routine({
+    key,
+    kind: "job",
+    weeklyHours: 4,
+    from: eventWeek - weeks,
+    until: eventWeek,
+    boostsPerWeek,
+  });
 }
 
 /** Every routine in a fixed order, used to encode timetables in shared links. */
@@ -87,7 +114,16 @@ export const ROUTINES: readonly RoutineSpec[] = [
   routine({ key: "research", kind: "life", weeklyHours: 4, statsPerWeek: { research: 1.8 } }),
   routine({ key: "rest", kind: "life", weeklyHours: 5, statsPerWeek: { health: 1.2, mind: 0.3 } }),
   routine({ key: "extraWork", kind: "work", weeklyHours: 5, weeklyPay: 5 * WAGE_YEN_PER_HOUR }),
+  limited("summerEsPrep", EVENT_WEEKS.internEs, 4, { internEs: 0.03 }),
+  limited("earlyPrep", EVENT_WEEKS.early, 4, { early: 0.03 }),
+  limited("entryPrep", EVENT_WEEKS.entries, 4, { entryEs: 0.02 }),
+  limited("finalPrep", EVENT_WEEKS.finals, 6, { final: 0.02 }),
 ];
+
+/** Whether the routine is preparation open only in the weeks leading up to one event. */
+export function isLimited(spec: RoutineSpec): boolean {
+  return Object.keys(spec.boostsPerWeek).length > 0;
+}
 
 export function routineOf(key: RoutineKey): RoutineSpec {
   const spec = ROUTINES.find((routine) => routine.key === key);
@@ -105,4 +141,7 @@ export function practise(life: Life, spec: RoutineSpec): void {
   life.prep += spec.prepPerWeek;
   life.documentPrep += spec.documentPrepPerWeek;
   life.inviteBonus += spec.inviteBonusPerWeek;
+  for (const [boost, amount] of Object.entries(spec.boostsPerWeek) as [Boost, number][]) {
+    life.boosts[boost] += amount;
+  }
 }

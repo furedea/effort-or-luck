@@ -1,7 +1,7 @@
 import { JUNE_OFFER_RATE } from "../data/statistics";
 import { dateOf, WEEKS } from "../engine/calendar";
 import type { Event, PricedOption } from "../engine/events";
-import type { EventFacts, LogFact, OptionKey, RoutineKey, Stat } from "../engine/facts";
+import type { Boost, EventFacts, LogFact, OptionKey, RoutineKey, Stat } from "../engine/facts";
 import {
   ALLOWANCE_CUT_YEN,
   FAMILY_TRIP_YEN,
@@ -113,6 +113,9 @@ export function routineDetail(spec: RoutineSpec): string {
       ? `書類の通過率 +${percent(2 * spec.documentPrepPerWeek * PASS.documentPerPrep)}`
       : "",
     spec.inviteBonusPerWeek ? `早期選考の案内 +${percent(spec.inviteBonusPerWeek)}` : "",
+    ...(Object.entries(spec.boostsPerWeek) as [Boost, number][]).map(
+      ([boost, amount]) => `${BOOST_LABELS[boost]} +${percent(amount)}`,
+    ),
     ...(Object.keys(STAT_LABELS) as Stat[])
       .filter((stat) => spec.statsPerWeek[stat])
       .map((stat) => `${STAT_LABELS[stat]} +${spec.statsPerWeek[stat]}`),
@@ -250,6 +253,13 @@ const ENDING_LOG = {
   research: "留年が決まった",
 } as const satisfies Record<Stat, string>;
 
+const BOOST_LABELS = {
+  internEs: "夏インターンの ES 通過率",
+  early: "早期選考の通過率",
+  entryEs: "本選考の ES 通過率",
+  final: "最終面接の通過率",
+} as const satisfies Record<Boost, string>;
+
 const OPTION_LABELS = {
   esFive: "5 社に出す",
   esTwo: "2 社に出す",
@@ -285,4 +295,8 @@ const ROUTINES = {
   research: { tile: "研究・ゼミ", label: "研究・ゼミ" },
   rest: { tile: "ゆっくり休む", label: "ゆっくり休む" },
   extraWork: { tile: "バイトを増やす", label: "バイトを増やす" },
+  summerEsPrep: { tile: "夏インターンのES対策", label: "夏インターンの ES 対策" },
+  earlyPrep: { tile: "早期選考の対策", label: "早期選考の対策" },
+  entryPrep: { tile: "本選考のES準備", label: "本選考の ES 準備" },
+  finalPrep: { tile: "最終面接の対策", label: "最終面接の対策" },
 } as const satisfies Record<RoutineKey, { tile: string; label: string }>;

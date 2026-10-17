@@ -1,6 +1,6 @@
 // Events that stop the weeks for a choice or a notice. Each may draw from the life's RNG, so the
 // order of draws here is part of what makes a seed reproducible.
-import { weekOfMonthStart, WEEKS } from "./calendar";
+import { EVENT_WEEKS, weekOfMonthStart, WEEKS } from "./calendar";
 import type { AutumnEvent, Effort, EventFacts, OptionKey, Shortfall } from "./facts";
 import {
   isActive,
@@ -83,15 +83,15 @@ type EventBuilder = (life: Life) => { facts: EventFacts; options: readonly Event
 /** The week each event comes in. The result comes after the last week. */
 const SCHEDULE: readonly (readonly [number, EventBuilder])[] = [
   [0, intro],
-  [weekOfMonthStart(2), internEs],
+  [EVENT_WEEKS.internEs, internEs],
   [weekOfMonthStart(4), summerIntern],
   [weekOfMonthStart(6), autumn],
   [weekOfMonthStart(7), winterIntern],
-  [weekOfMonthStart(8) + 1, earlySelection],
+  [EVENT_WEEKS.early, earlySelection],
   [weekOfMonthStart(9) + 1, seniorTalk],
   [weekOfMonthStart(10) + 1, keepGoing],
-  [weekOfMonthStart(11), entries],
-  [weekOfMonthStart(12) + 2, finals],
+  [EVENT_WEEKS.entries, entries],
+  [EVENT_WEEKS.finals, finals],
   [WEEKS, june],
 ];
 
@@ -187,7 +187,11 @@ function internEs(life: Life) {
 function summerIntern(life: Life) {
   if (!isActive(life)) return null;
   const applications = life.internApplications;
-  const passed = countSuccesses(life.rng, applications, documentChance(PASS.internEs, life));
+  const passed = countSuccesses(
+    life.rng,
+    applications,
+    documentChance(PASS.internEs + life.boosts.internEs, life),
+  );
   const intern = applications === 0 ? "none" : passed === 0 ? "failed" : "passed";
   if (intern === "failed") {
     life.log.push({ kind: "internAllFailed" });
@@ -278,7 +282,7 @@ function earlySelection(life: Life) {
         : 0;
   life.invited = life.rng() < Math.min(MAX_PASS_PROBABILITY, internChance + life.inviteBonus);
   if (!life.invited) return { facts: { id: "early", result: "notInvited" } as const, options: [] };
-  const passed = life.rng() < passChance(PASS.early, PASS.earlyPerPrep, life);
+  const passed = life.rng() < passChance(PASS.early + life.boosts.early, PASS.earlyPerPrep, life);
   if (passed) {
     life.offers.push("december");
     life.log.push({ kind: "earlyOffer" });
@@ -346,7 +350,11 @@ function entries(life: Life) {
 
 function finals(life: Life) {
   if (!isActive(life)) return null;
-  const firstRound = countSuccesses(life.rng, life.entries, documentChance(PASS.entryEs, life));
+  const firstRound = countSuccesses(
+    life.rng,
+    life.entries,
+    documentChance(PASS.entryEs + life.boosts.entryEs, life),
+  );
   const count = countSuccesses(
     life.rng,
     firstRound,
@@ -393,7 +401,8 @@ function finals(life: Life) {
 function june(life: Life) {
   if (life.over) return { facts: { id: "over", stat: life.over } as const, options: [] };
   const chance =
-    passChance(PASS.final, PASS.finalPerPrep, life) * (life.metro ? 1 : PASS.regionalFinalFactor);
+    passChance(PASS.final + life.boosts.final, PASS.finalPerPrep, life) *
+    (life.metro ? 1 : PASS.regionalFinalFactor);
   const won =
     countSuccesses(life.rng, life.finals.face, chance) +
     countSuccesses(life.rng, life.finals.online, chance * PASS.onlineFinalFactor);

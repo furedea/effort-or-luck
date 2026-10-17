@@ -44,7 +44,8 @@ test("selves who ended early are counted by reason", () => {
 });
 
 test("the week's hours are shown against the budget", () => {
-  expect(budgetLine(32.5, 40)).toBe("週32.5／40時間");
+  expect(budgetLine(26, 38)).toBe("週26／38時間（あと12時間）");
+  expect(budgetLine(41, 38)).toBe("週41／38時間（3時間オーバー）");
 });
 
 test("a falling stat is warned about with its value", () => {

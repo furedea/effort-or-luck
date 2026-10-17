@@ -250,10 +250,22 @@ describe("the weekly timetable", () => {
     const before = total(host);
 
     click(tile(host, "説明会"));
-    expect(total(host)).toMatch(/^週2／\d+(\.\d)?時間$/);
+    expect(total(host)).toMatch(/^週2／\d+時間（あと\d+(\.\d)?時間）$/);
 
     click(tile(host, "説明会"));
     expect(total(host)).toBe(before);
+  });
+
+  it("offers limited-time preparation only in the weeks before its event, with weeks left", () => {
+    const host = firstWeek();
+    expect(host.querySelector(".limited")).toBeNull();
+
+    for (let i = 0; i < 4; i++) click(stepButton(host)!);
+
+    expect(when(host)).toBe("5月 第1週");
+    const tile = host.querySelector(".limited .activity");
+    expect(tile?.querySelector(".activity-name")?.textContent).toBe("夏インターンのES対策");
+    expect(tile?.querySelector(".activity-cost")?.textContent).toBe("週4時間・あと4週");
   });
 
   it("explains the last pressed tile with its numbers", () => {
