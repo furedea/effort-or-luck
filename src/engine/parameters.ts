@@ -71,6 +71,15 @@ export const SENIOR_TALK_CHANCE = { metro: 0.5, regional: 0.25 } as const;
 
 // Wellbeing: each stat runs 0–100 and the year ends when one reaches zero. All assumptions.
 export const STARTING_STATS = { health: 70, mind: 70, social: 60, research: 50 } as const;
+/**
+ * Difficulty shifts every starting stat and scales the weekly drift; the calibration uses normal.
+ */
+export const DIFFICULTY = {
+  easy: { statShift: 15, driftFactor: 0.7 },
+  normal: { statShift: 0, driftFactor: 1 },
+  hard: { statShift: -15, driftFactor: 1.3 },
+} as const;
+export type Difficulty = keyof typeof DIFFICULTY;
 /** Weekly drift when nothing is done for a stat; research drifts faster in the fourth year. */
 export const WEEKLY_DRIFT = { health: -0.5, mind: -0.6, social: -0.8, research: -0.4 } as const;
 export const FOURTH_YEAR_RESEARCH_DRIFT = -1.2;

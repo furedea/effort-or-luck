@@ -18,7 +18,9 @@ import {
 import type { Event } from "../engine/events";
 import type { OptionKey, RoutineKey, Stat } from "../engine/facts";
 import { isActive, type Life } from "../engine/life";
+import type { Difficulty } from "../engine/parameters";
 import { encode } from "../share/result_link";
+import { DifficultyPicker } from "./difficulty_picker";
 import { PlayView, type FeedEntry, type Speed } from "./play_view";
 import { RevealView } from "./reveal_view";
 import { ShareButton } from "./share_button";
@@ -48,14 +50,9 @@ interface Game {
 }
 
 export function GameScreen() {
+  // Null until a difficulty is picked. The base seed is random, so the selves are created on that
+  // click, in the browser; creating them during render would make server and browser output differ.
   const [game, setGame] = useState<Game | null>(null);
-
-  // The base seed is random, so the selves are created only in the browser, after hydration;
-  // creating them during render would make the server and browser output differ.
-  useEffect(() => {
-    // oxlint-disable-next-line react/set-state-in-effect
-    setGame(newGame());
-  }, []);
 
   const weekMs = game && !game.yearEnd && !stopAt(game) ? WEEK_MS[game.speed] : null;
   useEffect(() => {
@@ -64,10 +61,17 @@ export function GameScreen() {
     return () => clearTimeout(timer);
   }, [game, weekMs]);
 
-  if (!game) return <main />;
+  if (!game) {
+    return (
+      <main>
+        <h1 className="title">{TITLE}</h1>
+        <DifficultyPicker onPick={(difficulty) => setGame(newGame(difficulty))} />
+      </main>
+    );
+  }
   const { cohort, player, yearEnd } = game;
   const life = cohort.lives[player];
-  const restart = () => setGame(newGame());
+  const restart = () => setGame(null);
 
   return (
     <main>
@@ -79,6 +83,7 @@ export function GameScreen() {
           player={player}
           blocked={cohort.everBlocked.size}
           decisions={cohort.decisions}
+          difficulty={cohort.difficulty}
           subject="you"
           actions={
             <>
@@ -108,9 +113,9 @@ export function GameScreen() {
   );
 }
 
-function newGame(): Game {
+function newGame(difficulty: Difficulty): Game {
   const seed = randomSeed();
-  const cohort = startCohort(seed);
+  const cohort = startCohort(seed, difficulty);
   const player = Math.floor(Math.random() * COHORT_SIZE);
   return {
     seed,
@@ -185,7 +190,8 @@ function warningFor(life: Life, warned: readonly Stat[]): Stat | null {
 }
 
 function shareUrl({ seed, player, cohort }: Game): string {
-  return `${window.location.origin}/share${encode({ seed, player, decisions: cohort.decisions })}`;
+  const { difficulty, decisions } = cohort;
+  return `${window.location.origin}/share${encode({ seed, player, difficulty, decisions })}`;
 }
 
 function randomSeed(): number {

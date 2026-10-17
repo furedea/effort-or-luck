@@ -21,7 +21,15 @@ function play(seed: number, player: number, policies: readonly Policy[]) {
     cohort = setTimetable(cohort, policy.timetable(life, cohort.week));
     cohort = step(cohort);
   }
-  return { cohort, params: { seed, player, decisions: cohort.decisions } satisfies ShareParams };
+  return {
+    cohort,
+    params: {
+      seed,
+      player,
+      difficulty: "normal",
+      decisions: cohort.decisions,
+    } satisfies ShareParams,
+  };
 }
 
 function nearest<T extends { effort: number }>(options: readonly T[], want: number): T {
@@ -33,6 +41,17 @@ describe("a share link", () => {
     const { params } = play(123_456, 42, [mostPolicy, leastPolicy, middlePolicy]);
 
     expect(parse(encode(params))).toEqual({ ok: true, value: params });
+  });
+
+  it("carries the difficulty, reading a link without one as normal", () => {
+    const params = { seed: 1, player: 0, difficulty: "hard", decisions: [] } as const;
+
+    expect(parse(encode(params))).toEqual({ ok: true, value: params });
+    expect(parse(`?r=${RULES_VERSION}&s=1&p=0&c=`)).toMatchObject({
+      ok: true,
+      value: { difficulty: "normal" },
+    });
+    expect(parse(`?r=${RULES_VERSION}&s=1&p=0&c=&d=x`)).toEqual({ ok: false, error: "unreadable" });
   });
 
   it("replays to the same year the player lived", () => {

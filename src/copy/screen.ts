@@ -1,10 +1,12 @@
 import { JUNE_OFFER_RATE, JUNE_OFFER_RATE_BY_REGION } from "../data/statistics";
 import type { LogFact, Stat } from "../engine/facts";
 import {
+  DIFFICULTY,
   METRO_SHARE,
   STARTING_MONEY_YEN,
   WAGE_YEN_PER_HOUR,
   WEEKLY_HOURS,
+  type Difficulty,
 } from "../engine/parameters";
 import { yen } from "./format";
 import { describeLog, STAT_LABELS } from "./scenes";
@@ -26,6 +28,19 @@ export const SOURCES_LINK = "数字の出典と仮定について";
 export const SOURCES_TITLE = "数字の出典と仮定";
 export const BACK_TO_GAME = "ゲームに戻る";
 export const PLAY_AGAIN = "もう一度";
+export const DIFFICULTY_TITLE = "難しさを選ぶ";
+export const DIFFICULTY_LABELS = {
+  easy: "やさしい",
+  normal: "ふつう",
+  hard: "きびしい",
+} as const satisfies Record<Difficulty, string>;
+
+/** What a difficulty changes, e.g. "健康などの初期値 +15・毎週の減り方 ×0.7". */
+export function difficultyDetail(difficulty: Difficulty): string {
+  const { statShift, driftFactor } = DIFFICULTY[difficulty];
+  const shift = statShift > 0 ? `+${statShift}` : statShift < 0 ? `−${-statShift}` : "そのまま";
+  return `健康などの初期値 ${shift}・毎週の減り方 ×${driftFactor}`;
+}
 export const SHARE = "結果を共有する";
 export const COPIED = "リンクをコピーした";
 export const PLAY_YOURSELF = "自分も遊ぶ";

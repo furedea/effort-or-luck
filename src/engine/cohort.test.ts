@@ -137,3 +137,14 @@ describe("the end of the year", () => {
     }
   });
 });
+
+test("every self, and every replayed path, lives at the chosen difficulty", () => {
+  let cohort = startCohort(5, "hard");
+  while (!isOver(cohort)) cohort = step(cohort);
+
+  const { most, least } = replayYear(cohort);
+
+  expect(new Set([...cohort.lives, ...most, ...least].map((life) => life.difficulty))).toEqual(
+    new Set(["hard"]),
+  );
+});

@@ -5,7 +5,7 @@ import { WEEKS } from "./calendar";
 import { eventAt, OPTION_EFFORT, type Event } from "./events";
 import type { OptionKey, RoutineKey } from "./facts";
 import { makeLife, type Life } from "./life";
-import { ALLOWANCE_DISTRIBUTION } from "./parameters";
+import { ALLOWANCE_DISTRIBUTION, type Difficulty } from "./parameters";
 import { liveWeek, type WeekOutcome } from "./week";
 import { autoLive, leastPolicy, meet, mostPolicy, type Choice, type Decision } from "./year";
 
@@ -16,6 +16,7 @@ const MIDDLE_CHOICE: Choice = { key: null, want: 1 };
 export interface Cohort {
   /** Seeds aligned with `lives`, so the same selves can be replayed with other decisions. */
   readonly seeds: readonly number[];
+  readonly difficulty: Difficulty;
   readonly lives: readonly Life[];
   /** Each self's starting allowance as an index into the allowance distribution. */
   readonly allowanceRanks: readonly number[];
@@ -31,14 +32,15 @@ export interface Cohort {
   readonly everBlocked: ReadonlySet<number>;
 }
 
-export function startCohort(baseSeed: number): Cohort {
+export function startCohort(baseSeed: number, difficulty: Difficulty = "normal"): Cohort {
   const lives = Array.from({ length: COHORT_SIZE }, (_, i) =>
-    makeLife((baseSeed + i * SEED_STRIDE) >>> 0),
+    makeLife((baseSeed + i * SEED_STRIDE) >>> 0, difficulty),
   );
   lives.sort((a, b) => a.allowance - b.allowance || Number(a.metro) - Number(b.metro));
   const amounts: readonly number[] = ALLOWANCE_DISTRIBUTION.map(([amount]) => amount);
   return {
     seeds: lives.map((life) => life.seed),
+    difficulty,
     lives,
     allowanceRanks: lives.map((life) => amounts.indexOf(life.allowance)),
     week: 0,
@@ -100,8 +102,8 @@ export interface YearEnd {
 /** The same selves, with the same luck, always putting the most or the least into job hunting. */
 export function replayYear(cohort: Cohort): YearEnd {
   return {
-    most: cohort.seeds.map((seed) => autoLive(seed, mostPolicy)),
-    least: cohort.seeds.map((seed) => autoLive(seed, leastPolicy)),
+    most: cohort.seeds.map((seed) => autoLive(seed, mostPolicy, cohort.difficulty)),
+    least: cohort.seeds.map((seed) => autoLive(seed, leastPolicy, cohort.difficulty)),
   };
 }
 

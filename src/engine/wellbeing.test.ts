@@ -1,5 +1,6 @@
 import { makeLife, weeklyPartTimeHours } from "./life";
 import {
+  DIFFICULTY,
   FOURTH_YEAR_RESEARCH_DRIFT,
   HEALTH_PER_OVERLOAD_HOUR,
   HEALTHY_WORKLOAD_WEEKLY_HOURS,
@@ -133,5 +134,38 @@ describe("the end of the year", () => {
     });
 
     expect(life.stats.health).toBe(health);
+  });
+});
+
+describe("difficulty", () => {
+  it("starts every stat higher when easy and lower when hard", () => {
+    const [easy, normal, hard] = (["easy", "normal", "hard"] as const).map(
+      (difficulty) => makeLife(1, difficulty).stats,
+    );
+
+    expect(normal).toEqual(STARTING_STATS);
+    for (const stat of Object.keys(STARTING_STATS) as (keyof typeof STARTING_STATS)[]) {
+      expect(easy![stat]).toBeGreaterThan(normal![stat]);
+      expect(hard![stat]).toBeLessThan(normal![stat]);
+    }
+  });
+
+  it("scales the weekly drift", () => {
+    const drift = (difficulty: "easy" | "normal" | "hard") => {
+      const life = makeLife(1, difficulty);
+      const before = life.stats.social;
+      liveThroughPeriod(life, {
+        weeks: 1,
+        fourthYear: false,
+        taken: [],
+        jobHours: 0,
+        extraWorkHours: 0,
+      });
+      return life.stats.social - before;
+    };
+
+    expect(drift("normal")).toBeCloseTo(WEEKLY_DRIFT.social);
+    expect(drift("easy")).toBeCloseTo(WEEKLY_DRIFT.social * DIFFICULTY.easy.driftFactor);
+    expect(drift("hard")).toBeCloseTo(WEEKLY_DRIFT.social * DIFFICULTY.hard.driftFactor);
   });
 });

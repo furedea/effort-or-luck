@@ -53,6 +53,7 @@ function summary(host: HTMLElement) {
 
 test("a shared link shows the same reveal the player saw", async () => {
   const game = mount(<GameScreen />);
+  act(() => game.querySelector<HTMLButtonElement>(".difficulty .opt")!.click());
   playToReveal(game);
   const link = await shareLinkOf(game);
 

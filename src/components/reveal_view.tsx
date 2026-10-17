@@ -30,6 +30,7 @@ import { STATISTICS } from "../data/statistics";
 import { revealByAllowance } from "../engine/cohort";
 import type { Stat } from "../engine/facts";
 import type { Life } from "../engine/life";
+import type { Difficulty } from "../engine/parameters";
 import type { Decision } from "../engine/year";
 import { useLongRun } from "./use_long_run";
 
@@ -44,13 +45,15 @@ interface Props {
   readonly blocked: number;
   /** What the selves attempted, to estimate what those decisions usually lead to. */
   readonly decisions: readonly Decision[];
+  readonly difficulty: Difficulty;
   /** Whose year this is: the player's own, or someone else's opened from a shared link. */
   readonly subject: Subject;
   /** Buttons at the bottom, such as playing again or sharing. */
   readonly actions: ReactNode;
 }
 
-export function RevealView({ paths, ranks, player, blocked, decisions, subject, actions }: Props) {
+export function RevealView(props: Props) {
+  const { paths, ranks, player, blocked, decisions, difficulty, subject, actions } = props;
   const you = paths.same[player];
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
@@ -72,6 +75,7 @@ export function RevealView({ paths, ranks, player, blocked, decisions, subject, 
         player={player}
         blocked={blocked}
         decisions={decisions}
+        difficulty={difficulty}
         subject={subject}
       />
       <EffortPart paths={paths} ranks={ranks} subject={subject} />
@@ -96,11 +100,12 @@ function LuckPart(props: {
   player: number;
   blocked: number;
   decisions: readonly Decision[];
+  difficulty: Difficulty;
   subject: Subject;
 }) {
-  const { lives, ranks, player, blocked, decisions, subject } = props;
+  const { lives, ranks, player, blocked, decisions, difficulty, subject } = props;
   const rows = revealByAllowance(lives, ranks);
-  const longRun = useLongRun(decisions);
+  const longRun = useLongRun(decisions, difficulty);
   return (
     <div className="part">
       <h3 className="part-title">{LUCK_PART}</h3>
