@@ -1,129 +1,73 @@
 import { useEffect, useState } from "react";
 
 import "../styles/game.css";
-import { WHEN, describeScene } from "../copy/scenes";
+import { TITLE, type View } from "../copy/screen";
 import {
-  assumptionsNote,
-  AXIS,
-  LEDGER,
-  MONTHS,
-  monthIndex,
-  people,
-  sourcesNote,
-  TITLE,
-  YEAR_END_MONTH,
-  type View,
-} from "../copy/screen";
-import { outcome } from "../engine/choice";
-import {
-  advance,
-  chooseForAll,
+  advanceFor,
+  chooseAndAdvance,
   COHORT_SIZE,
-  currentFacts,
   isOver,
-  ledger,
   replayYear,
   startCohort,
   type Cohort,
   type YearEnd,
 } from "../engine/cohort";
-import type { Effort } from "../engine/facts";
-import type { Life } from "../engine/life";
-import { MonthView } from "./month_view";
-import { Legend, SelfGrid } from "./self_grid";
-import { YearEndView } from "./year_end_view";
+import type { Effort, ResultFact } from "../engine/facts";
+import { PlayView } from "./play_view";
+import { RevealView } from "./reveal_view";
 
 interface Game {
   readonly cohort: Cohort;
-  readonly focus: number;
+  /** The self the player lives as; the other selves silently make the same choices. */
+  readonly player: number;
   readonly yearEnd: YearEnd | null;
   readonly view: View;
+  /** What the last choice led to, shown on the next month. */
+  readonly carried: ResultFact | null;
 }
 
 export function GameScreen() {
   const [game, setGame] = useState<Game | null>(null);
 
-  // The base seed is random, so the 100 selves are created only in the browser.
-  useEffect(() => setGame(newGame()), []);
+  // The base seed is random, so the selves are created only in the browser.
+  useEffect(() => {
+    setGame(newGame());
+  }, []);
+  const step = game?.cohort.step;
+  // Effects must not return the call's value: scrollTo returns a promise in current browsers.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [step]);
 
   if (!game) return <main />;
-  const { cohort, focus, yearEnd, view } = game;
-  const facts = currentFacts(cohort);
-  const paths = yearEnd ? { same: cohort.lives, most: yearEnd.most, least: yearEnd.least } : null;
-  const shown = paths ? paths[view] : cohort.lives;
-  const month = facts ? monthIndex(facts.id) : YEAR_END_MONTH;
-  const counts = ledger(shown);
+  const { cohort, player, yearEnd, view, carried } = game;
+  const life = cohort.lives[player];
+  const scene = cohort.scenes[player];
 
-  const restart = () => {
-    setGame(newGame());
-    window.scrollTo(0, 0);
-  };
+  const restart = () => setGame(newGame());
 
   return (
     <main>
-      <div className="title">{TITLE}</div>
-      <div className="months" aria-hidden="true">
-        {MONTHS.map((label, i) => (
-          <span key={i} className={i < month ? "past" : i === month ? "now" : ""}>
-            {label}
-          </span>
-        ))}
-      </div>
-      <header className="head">
-        <div className="when">{facts && !yearEnd ? describeWhen(cohort) : WHEN.june}</div>
-        <dl className="ledger">
-          <div>
-            <dt>{LEDGER.offered}</dt>
-            <dd>{people(counts.offered)}</dd>
-          </div>
-          <div>
-            <dt>{LEDGER.broke}</dt>
-            <dd>{people(counts.broke)}</dd>
-          </div>
-          <div>
-            <dt>{LEDGER.busy}</dt>
-            <dd>{people(counts.busy)}</dd>
-          </div>
-        </dl>
-      </header>
-      <div className="board">
-        <aside className="side">
-          <SelfGrid
-            lives={shown}
-            ranks={cohort.allowanceRanks}
-            blocked={yearEnd ? new Set() : (cohort.turn?.blocked ?? new Set())}
-            focus={focus}
-            onFocus={(index) => setGame({ ...game, focus: index })}
-          />
-          <p className="axis">{AXIS}</p>
-          <Legend ranks={cohort.allowanceRanks} />
-        </aside>
-        <section className="story" aria-live="polite">
-          {paths ? (
-            <YearEndView
-              paths={paths}
-              view={view}
-              focus={focus}
-              onView={(next) => setGame({ ...game, view: next })}
-              onRestart={restart}
-            />
-          ) : facts ? (
-            <MonthView
-              cohort={cohort}
-              facts={facts}
-              focus={focus}
-              onChoose={(effort: Effort) =>
-                setGame({ ...game, cohort: chooseForAll(cohort, effort) })
-              }
-              onNext={() => setGame(next(game))}
-            />
-          ) : null}
-        </section>
-      </div>
-      <footer className="notes">
-        <p>{sourcesNote()}</p>
-        <p>{assumptionsNote()}</p>
-      </footer>
+      <h1 className="title">{TITLE}</h1>
+      {yearEnd ? (
+        <RevealView
+          paths={{ same: cohort.lives, most: yearEnd.most, least: yearEnd.least }}
+          ranks={cohort.allowanceRanks}
+          player={player}
+          view={view}
+          onView={(next) => setGame({ ...game, view: next })}
+          onRestart={restart}
+        />
+      ) : life && scene ? (
+        <PlayView
+          life={life}
+          scene={scene}
+          step={cohort.step}
+          carried={carried}
+          onChoose={(effort: Effort) => setGame(choose(game, effort))}
+          onNext={() => setGame(moveOn(game, advanceFor(cohort, player), null))}
+        />
+      ) : null}
     </main>
   );
 }
@@ -131,31 +75,20 @@ export function GameScreen() {
 function newGame(): Game {
   return {
     cohort: startCohort(randomSeed()),
-    focus: Math.floor(Math.random() * COHORT_SIZE),
+    player: Math.floor(Math.random() * COHORT_SIZE),
     yearEnd: null,
     view: "same",
+    carried: null,
   };
 }
 
-function next(game: Game): Game {
-  const cohort = advance(game.cohort);
-  if (!isOver(cohort)) return { ...game, cohort };
-  const yearEnd = replayYear(cohort);
-  return { ...game, cohort, yearEnd, focus: revealingSelf(yearEnd) ?? game.focus };
+function choose(game: Game, effort: Effort): Game {
+  const { cohort, result } = chooseAndAdvance(game.cohort, game.player, effort);
+  return moveOn(game, cohort, result ?? null);
 }
 
-/** A self who ends without an offer when always trying hardest, preferably one the easy way saves. */
-function revealingSelf({ most, least }: YearEnd): number | null {
-  const failed = (life: Life | undefined) => !life || outcome(life) === "none";
-  const contrast = most.findIndex((life, i) => failed(life) && !failed(least[i]));
-  if (contrast >= 0) return contrast;
-  const anyFailed = most.findIndex((life) => failed(life));
-  return anyFailed >= 0 ? anyFailed : null;
-}
-
-function describeWhen(cohort: Cohort): string {
-  const first = cohort.scenes.find((scene) => scene !== null);
-  return first ? describeScene(first).when : WHEN.june;
+function moveOn(game: Game, cohort: Cohort, carried: ResultFact | null): Game {
+  return { ...game, cohort, carried, yearEnd: isOver(cohort) ? replayYear(cohort) : null };
 }
 
 function randomSeed(): number {

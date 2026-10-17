@@ -1,13 +1,15 @@
 import { alwaysChoose, autoLive, pickNear } from "./choice";
 import {
   advance,
-  canChoose,
+  advanceFor,
+  chooseAndAdvance,
   chooseForAll,
   COHORT_SIZE,
   isOver,
   replayYear,
+  revealByAllowance,
   startCohort,
-  turnSummary,
+  usualEffort,
   type Cohort,
 } from "./cohort";
 import type { Effort } from "./facts";
@@ -73,17 +75,6 @@ describe("a shared choice", () => {
       expect(after.turn?.blocked.has(i)).toBe(wantedMore);
     });
   });
-
-  it("reports that everyone able to take the option did", () => {
-    let cohort = startCohort(46);
-    cohort = advance(cohort);
-    const able = canChoose(cohort, 2);
-
-    const summary = turnSummary(chooseForAll(cohort, 2));
-
-    expect(summary.did).toBe(able.count);
-    expect(summary.did + summary.blocked + summary.absent).toBe(able.active);
-  });
 });
 
 describe("the end of the year", () => {
@@ -98,5 +89,78 @@ describe("the end of the year", () => {
     expect(least.map(withoutRng)).toEqual(
       cohort.seeds.map((seed) => withoutRng(autoLive(seed, alwaysChoose(0)))),
     );
+  });
+});
+
+describe("playing as one self", () => {
+  function cohortWithEarlyOffer(): { cohort: Cohort; player: number } {
+    for (let base = 1; ; base++) {
+      let cohort = startCohort(base);
+      while (!cohort.scenes.some((scene) => scene?.facts.id === "feb"))
+        cohort = advance(chooseForAll(cohort, 2));
+      const player = cohort.lives.findIndex((life) => life.offers.includes("december"));
+      if (player >= 0) return { cohort, player };
+    }
+  }
+
+  it("skips months the self no longer takes part in, still living them for the others", () => {
+    const { cohort, player } = cohortWithEarlyOffer();
+    const stopped = chooseForAll(cohort, 0);
+
+    const next = advanceFor(stopped, player);
+
+    expect(next.scenes[player]?.facts.id).toBe("june");
+    const others = next.lives.filter((life, i) => i !== player && !life.done);
+    const usual = usualEffort(next.lives[player]!);
+    expect(
+      others.every((life) => life.efforts.march !== undefined && life.efforts.march <= usual),
+    ).toBe(true);
+  });
+
+  it("lets the others choose when only they have options this month", () => {
+    const { cohort } = cohortWithEarlyOffer();
+    const player = cohort.lives.findIndex((life) => !life.offers.length);
+
+    const next = advanceFor(cohort, player);
+
+    const holders = next.lives.filter((life) => life.offers.includes("december"));
+    expect(holders.length).toBeGreaterThan(0);
+    expect(holders.every((life) => life.efforts.feb !== undefined)).toBe(true);
+  });
+
+  it("moves straight to the self's next month after a choice, carrying its result", () => {
+    let cohort = startCohort(3);
+    const player = 0;
+    while (cohort.scenes[player]?.facts.id !== "autumn")
+      cohort = advanceFor(chooseForAll(cohort, 1), player);
+
+    const { cohort: next, result } = chooseAndAdvance(cohort, player, 0);
+
+    expect(result).toEqual({ kind: "saved", amount: expect.any(Number) });
+    expect(next.scenes[player]?.facts.id).toBe("early");
+    expect(next.lives[player]?.efforts.autumn).toBe(0);
+  });
+
+  it("takes the rounded average of the self's choices as its usual effort", () => {
+    const life = startCohort(1).lives[0]!;
+    Object.assign(life.efforts, { summerEs: 2, summerIntern: 1, autumn: 2 });
+
+    expect(usualEffort(life)).toBe(2);
+  });
+});
+
+describe("the reveal", () => {
+  it("counts, for each allowance, how many selves had an offer", () => {
+    const cohort = playYear(1);
+
+    const rows = revealByAllowance(cohort.lives, cohort.allowanceRanks);
+
+    expect(rows.map((row) => row.amount)).toEqual([0, 30_000, 70_000, 120_000]);
+    expect(rows.reduce((sum, row) => sum + row.members.length, 0)).toBe(COHORT_SIZE);
+    for (const row of rows) {
+      const offered = row.members.filter((i) => cohort.lives[i]!.offers.length > 0).length;
+      expect(row.offered).toBe(offered);
+      expect(row.members.every((i) => cohort.lives[i]!.allowance <= row.amount)).toBe(true);
+    }
   });
 });

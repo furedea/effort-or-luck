@@ -1,7 +1,17 @@
 ---
+import { assumptionsNote, BACK_TO_GAME, SOURCES_TITLE } from "../copy/screen";
+import { SOURCES } from "../data/statistics";
 import BaseLayout from "../layouts/base_layout.astro";
+import "../styles/game.css";
 ---
 
-<BaseLayout title="数字の出典">
-  <main>数字の出典</main>
+<BaseLayout title={SOURCES_TITLE}>
+  <main class="sources">
+    <h1 class="when">{SOURCES_TITLE}</h1>
+    <ul>
+      {Object.values(SOURCES).map((source) => <li>{source}</li>)}
+    </ul>
+    <p>{assumptionsNote()}</p>
+    <a href="/">{BACK_TO_GAME}</a>
+  </main>
 </BaseLayout>

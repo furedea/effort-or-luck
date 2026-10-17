@@ -2,15 +2,13 @@
 // Lives still advance in place, so each transition returns a new Cohort and the previous
 // one must not be used again.
 import { alwaysChoose, autoLive, choose, pickNear, sceneAt, type Scene } from "./choice";
-import type { Effort, ResultFact, SceneFacts } from "./facts";
-import { freeHours, makeLife, type Life } from "./life";
+import type { Effort, ResultFact } from "./facts";
+import { makeLife, type Life } from "./life";
 import { ALLOWANCE_DISTRIBUTION } from "./parameters";
 import { SCENE_COUNT } from "./scenes";
 
 export const COHORT_SIZE = 100;
 const SEED_STRIDE = 7919;
-const BROKE_BELOW_YEN = 10_000;
-const BUSY_BELOW_HOURS = 20;
 
 export interface Cohort {
   /** Seeds aligned with `lives`, so the same selves can be replayed with other choices. */
@@ -32,20 +30,6 @@ export interface Turn {
   readonly results: readonly (ResultFact | undefined)[];
   readonly blocked: ReadonlySet<number>;
 }
-
-export type SceneTag =
-  | "passed"
-  | "failed"
-  | "none"
-  | "calm"
-  | "allowanceCut"
-  | "shopClosed"
-  | "sick"
-  | "invite"
-  | "notInvited"
-  | "offer"
-  | "final"
-  | "noFinal";
 
 export function startCohort(baseSeed: number): Cohort {
   const lives = Array.from({ length: COHORT_SIZE }, (_, i) =>
@@ -90,60 +74,6 @@ export function chooseForAll(cohort: Cohort, want: Effort): Cohort {
   return { ...cohort, turn: { want, taken, results, blocked } };
 }
 
-/** The scene whose options are offered: the focused self's, else the first self's that has any. */
-export function optionScene(cohort: Cohort, focus: number): Scene | null {
-  const own = cohort.scenes[focus];
-  if (own?.options.length) return own;
-  return cohort.scenes.find((scene) => scene?.options.length) ?? null;
-}
-
-export function currentFacts(cohort: Cohort): SceneFacts | null {
-  return cohort.scenes.find((scene) => scene !== null)?.facts ?? null;
-}
-
-/** How many selves with options would actually take `effort` if it were chosen. */
-export function canChoose(cohort: Cohort, effort: Effort): { count: number; active: number } {
-  const active = cohort.scenes.filter((scene) => scene?.options.length);
-  const count = active.filter(
-    (scene) => scene && pickNear(scene.options, effort).effort === effort,
-  ).length;
-  return { count, active: active.length };
-}
-
-export function turnSummary(cohort: Cohort): { did: number; blocked: number; absent: number } {
-  const active = cohort.scenes.filter((scene) => scene?.options.length).length;
-  const turn = cohort.turn;
-  if (!turn) return { did: 0, blocked: 0, absent: active };
-  const did = turn.taken.filter((effort) => effort === turn.want).length;
-  return { did, blocked: turn.blocked.size, absent: active - did - turn.blocked.size };
-}
-
-export function ledger(lives: readonly Life[]): { offered: number; broke: number; busy: number } {
-  return {
-    offered: lives.filter((life) => life.offers.length > 0).length,
-    broke: lives.filter((life) => life.money < BROKE_BELOW_YEN).length,
-    busy: lives.filter((life) => freeHours(life) < BUSY_BELOW_HOURS).length,
-  };
-}
-
-/** Categories of what happened this month, for summarizing the 100 selves. */
-export function sceneTags(facts: SceneFacts): readonly SceneTag[] {
-  switch (facts.id) {
-    case "summerIntern":
-      return [facts.result];
-    case "autumn":
-      return facts.invited ? [facts.event.kind, "invite"] : [facts.event.kind];
-    case "early":
-      return [facts.result];
-    case "feb":
-      return [facts.hasOffer ? "offer" : "none"];
-    case "finals":
-      return [facts.finals ? "final" : "noFinal"];
-    default:
-      return [];
-  }
-}
-
 export interface YearEnd {
   readonly most: readonly Life[];
   readonly least: readonly Life[];
@@ -163,4 +93,61 @@ function load(base: Pick<Cohort, "seeds" | "lives" | "allowanceRanks">, from: nu
     if (scenes.some((scene) => scene !== null)) return { ...base, step, scenes, turn: null };
   }
   return { ...base, step: SCENE_COUNT, scenes: base.lives.map(() => null), turn: null };
+}
+
+/** The effort a self usually chose: the rounded average of its choices so far, else the middle. */
+export function usualEffort(life: Life): Effort {
+  const efforts = Object.values(life.efforts);
+  if (!efforts.length) return 1;
+  const average = Math.round(
+    efforts.reduce<number>((sum, effort) => sum + effort, 0) / efforts.length,
+  );
+  return Math.max(-1, Math.min(2, average)) as Effort;
+}
+
+/**
+ * Moves to the next month the self at `player` takes part in. Whenever others still have a
+ * choice the self did not make, they choose the self's usual effort.
+ */
+export function advanceFor(cohort: Cohort, player: number): Cohort {
+  let next = cohort;
+  do {
+    next = advance(settleOthers(next, player));
+  } while (!isOver(next) && !next.scenes[player]);
+  return next;
+}
+
+/** Everyone attempts `want`, then the year moves to the self's next month. */
+export function chooseAndAdvance(
+  cohort: Cohort,
+  player: number,
+  want: Effort,
+): { cohort: Cohort; result: ResultFact | undefined } {
+  const chosen = chooseForAll(cohort, want);
+  return { cohort: advanceFor(chosen, player), result: chosen.turn?.results[player] };
+}
+
+function settleOthers(cohort: Cohort, player: number): Cohort {
+  const self = cohort.lives[player];
+  const undecided = !cohort.turn && cohort.scenes.some((scene) => scene?.options.length);
+  return self && undecided ? chooseForAll(cohort, usualEffort(self)) : cohort;
+}
+
+interface AllowanceRow {
+  readonly amount: number;
+  /** Indices of the selves who started with this allowance. */
+  readonly members: readonly number[];
+  readonly offered: number;
+}
+
+/** The selves grouped by starting allowance, with how many held an offer. */
+export function revealByAllowance(
+  lives: readonly Life[],
+  ranks: readonly number[],
+): AllowanceRow[] {
+  return ALLOWANCE_DISTRIBUTION.map(([amount], rank) => {
+    const members = ranks.flatMap((r, i) => (r === rank ? [i] : []));
+    const offered = members.filter((i) => (lives[i]?.offers.length ?? 0) > 0).length;
+    return { amount, members, offered };
+  });
 }
