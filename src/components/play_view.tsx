@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { activityCost, activityEffect, activityLabel, describeScene } from "../copy/scenes";
+import { activityCost, activityDetail, activityTileLabel, describeScene } from "../copy/scenes";
 import {
   budgetLine,
   CANNOT_PAY,
@@ -8,7 +8,6 @@ import {
   leftoverLine,
   LOW_NOTE,
   NEXT,
-  ONE_OF,
   overflowLine,
   SECTION,
   statBars,
@@ -120,10 +119,12 @@ function Allocation({
   onConfirm: (plan: Plan) => void;
 }) {
   const [selected, setSelected] = useState<ActivityKey[]>([]);
+  const [pressed, setPressed] = useState<ActivitySpec | null>(null);
   const period = scene.period;
   if (!period) return null;
   const preview = allocate(life, scene, selected);
   const toggle = (activity: ActivitySpec) => {
+    setPressed(activity);
     setSelected((current) => {
       if (current.includes(activity.key)) return current.filter((key) => key !== activity.key);
       const rivals = period.activities
@@ -135,35 +136,39 @@ function Allocation({
   return (
     <>
       <TimeBar budget={period.budget} preview={preview} />
+      <p className="activity-detail" aria-live="polite">
+        {pressed ? activityDetail(pressed, scene.facts) : ""}
+      </p>
       {(["job", "life"] as const).map((kind) => (
         <div className="activity-group" key={kind}>
           <h3 className="activity-section">{SECTION[kind]}</h3>
-          {period.activities
-            .filter((activity) => activity.kind === kind)
-            .map((activity) => {
-              const chosen = selected.includes(activity.key);
-              const dropped = preview.dropped.includes(activity.key);
-              return (
-                <button
-                  key={activity.key}
-                  type="button"
-                  className={["activity", chosen ? "chosen" : "", dropped ? "dropped" : ""]
-                    .filter(Boolean)
-                    .join(" ")}
-                  aria-pressed={chosen}
-                  onClick={() => toggle(activity)}
-                >
-                  <span className="activity-name">
-                    {activityLabel(activity, scene.facts)}
-                    {activity.group ? <span className="one-of">{ONE_OF}</span> : null}
-                  </span>
-                  <span className="activity-effect">{activityEffect(activity.key)}</span>
-                  <span className="activity-cost">
-                    {dropped ? CANNOT_PAY : activityCost(activity).join("・")}
-                  </span>
-                </button>
-              );
-            })}
+          <div className="tiles">
+            {period.activities
+              .filter((activity) => activity.kind === kind)
+              .map((activity) => {
+                const chosen = selected.includes(activity.key);
+                const dropped = preview.dropped.includes(activity.key);
+                return (
+                  <button
+                    key={activity.key}
+                    type="button"
+                    className={["activity", chosen ? "chosen" : "", dropped ? "dropped" : ""]
+                      .filter(Boolean)
+                      .join(" ")}
+                    aria-pressed={chosen}
+                    aria-label={activityDetail(activity, scene.facts)}
+                    onClick={() => toggle(activity)}
+                  >
+                    <span className="activity-name">
+                      {activityTileLabel(activity, scene.facts)}
+                    </span>
+                    <span className="activity-cost">
+                      {dropped ? CANNOT_PAY : activityCost(activity).join("・")}
+                    </span>
+                  </button>
+                );
+              })}
+          </div>
         </div>
       ))}
       <button type="button" className="next confirm" onClick={() => onConfirm(selected)}>

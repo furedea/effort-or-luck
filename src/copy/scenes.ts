@@ -94,8 +94,18 @@ export function activityLabel(activity: ActivitySpec, facts: SceneFacts): string
   return ACTIVITIES[activity.key].label;
 }
 
-export function activityEffect(key: ActivityKey): string {
-  return ACTIVITIES[key].effect;
+/** The short name written on an activity's tile. */
+export function activityTileLabel(activity: ActivitySpec, facts: SceneFacts): string {
+  if (facts.id === "finals" && facts.finals > 1 && activity.key === "finalsAllFace") {
+    return `${facts.finals}社とも対面`;
+  }
+  return TILE_LABELS[activity.key];
+}
+
+/** One line explaining an activity, e.g. "自己分析・業界研究：準備がよく進む". */
+export function activityDetail(activity: ActivitySpec, facts: SceneFacts): string {
+  const oneOf = activity.group ? "（どれか一つ）" : "";
+  return `${activityLabel(activity, facts)}：${ACTIVITIES[activity.key].effect}${oneOf}`;
 }
 
 /** What an activity takes and gives, e.g. "15時間" "3万円" "+14万800円". */
@@ -264,3 +274,37 @@ const ACTIVITIES = {
   research: { label: "研究・ゼミ", effect: "研究が進む" },
   rest: { label: "ゆっくり休む", effect: "健康が回復" },
 } as const satisfies Record<ActivityKey, { label: string; effect: string }>;
+
+const TILE_LABELS = {
+  internEsFive: "ES 5社",
+  internEsTwo: "ES 2社",
+  infoSessions: "説明会6回",
+  selfAnalysis: "自己分析",
+  jobCourse: "就活講座",
+  jobFair: "合同説明会",
+  faceIntern: "対面インターン",
+  onlineIntern: "オンライン版",
+  oneDayJobs: "仕事体験3回",
+  longIntern: "長期インターン",
+  languageCourse: "語学研修",
+  winterIntern: "冬インターン",
+  interviewPractice: "面接練習",
+  aptitudePrep: "適性検査対策",
+  seniorTalk: "先輩の話",
+  obVisits: "OB訪問5人",
+  paidMockInterviews: "模擬面接3回",
+  stopHunting: "就活を終える",
+  entryTwenty: "20社エントリー",
+  entryEight: "8社エントリー",
+  entryThree: "3社エントリー",
+  companyTalks: "座談会8回",
+  finalsAllFace: "対面で受ける",
+  finalsOneFace: "1社だけ対面",
+  finalsAllOnline: "オンラインで",
+  interviewService: "面接対策",
+  friends: "友達と遊ぶ",
+  sns: "SNS・動画",
+  certification: "資格の勉強",
+  research: "研究・ゼミ",
+  rest: "ゆっくり休む",
+} as const satisfies Record<ActivityKey, string>;

@@ -40,7 +40,6 @@ export const LINK_ERRORS = {
 
 export const CONFIRM = "これで進む";
 export const SECTION = { job: "就活", life: "自分のこと" } as const;
-export const ONE_OF = "どれか一つ";
 export const CANNOT_PAY = "お金が足りない";
 
 export function budgetLine(used: number, budget: number): string {

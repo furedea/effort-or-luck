@@ -146,24 +146,39 @@ describe("dividing a period's time", () => {
     const host = firstPeriod();
     const before = total(host);
 
-    click(activity(host, "説明会に6回出る"));
+    click(activity(host, "説明会6回"));
     expect(total(host)).toMatch(/^使う時間 12／\d+時間$/);
 
-    click(activity(host, "説明会に6回出る"));
+    click(activity(host, "説明会6回"));
     expect(total(host)).toBe(before);
   });
 
   it("keeps only one of a group's alternatives", () => {
     const host = firstPeriod();
 
-    click(activity(host, "夏インターンに ES を出す（5社）"));
-    click(activity(host, "夏インターンに ES を出す（2社）"));
+    click(activity(host, "ES 5社"));
+    click(activity(host, "ES 2社"));
 
     const chosen = [...host.querySelectorAll(".activity[aria-pressed='true'] .activity-name")].map(
       (node) => node.textContent,
     );
-    expect(chosen.filter((name) => name?.startsWith("夏インターン"))).toHaveLength(1);
-    expect(chosen[0]).toContain("（2社）");
+    expect(chosen.filter((name) => name?.startsWith("ES"))).toEqual(["ES 2社"]);
+  });
+
+  it("explains the last pressed tile in one line", () => {
+    const host = firstPeriod();
+
+    click(activity(host, "自己分析"));
+
+    expect(host.querySelector(".activity-detail")?.textContent).toBe(
+      "自己分析・業界研究：準備がよく進む",
+    );
+  });
+
+  it("lays the tiles out in two columns", () => {
+    const host = firstPeriod();
+
+    expect(host.querySelector(".tiles")).not.toBeNull();
   });
 
   it("shows the four stats", () => {
