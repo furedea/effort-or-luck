@@ -50,6 +50,12 @@ export function shock(life: Life, kind: keyof typeof STAT_SHOCK): void {
   shift(life, STAT_SHOCK[kind]);
 }
 
+/** Moves stats by the given amounts, as a small choice does. */
+export function nudge(life: Life, change: Readonly<Partial<Record<Stat, number>>>): void {
+  if (life.over) return;
+  shift(life, change);
+}
+
 /** Directly lowers research, as a thesis crunch does. */
 export function setBack(life: Life, stat: Stat, amount: number): void {
   if (life.over) return;

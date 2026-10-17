@@ -1,7 +1,15 @@
 import { JUNE_OFFER_RATE } from "../data/statistics";
 import { dateOf, WEEKS } from "../engine/calendar";
 import type { Event, PricedOption } from "../engine/events";
-import type { Boost, EventFacts, LogFact, OptionKey, RoutineKey, Stat } from "../engine/facts";
+import type {
+  Boost,
+  EventFacts,
+  LogFact,
+  OptionKey,
+  RoutineKey,
+  SmallEventId,
+  Stat,
+} from "../engine/facts";
 import {
   ALLOWANCE_CUT_YEN,
   FAMILY_TRIP_YEN,
@@ -79,6 +87,8 @@ export function describeEvent({ facts }: Event): EventText {
       return { lines: juneLines(facts), next: "結果を見る" };
     case "over":
       return { lines: [ENDINGS[facts.stat]], next: "結果を見る" };
+    default:
+      return { lines: [SMALL_EVENT_LINES[facts.id]] };
   }
 }
 
@@ -90,10 +100,19 @@ export function optionLabel(option: PricedOption, facts: EventFacts): string {
   return OPTION_LABELS[option.key];
 }
 
-/** What an option takes, e.g. "15時間（3週）・3万円". */
-export function optionCost({ hours, weeks, money }: PricedOption): string {
+/** What an option takes and brings, e.g. "15時間（3週）・3万円・心の余裕 +5". */
+export function optionCost({ hours, weeks, money, pay, stats, prep }: PricedOption): string {
   const time = hours ? `${hours}時間${weeks > 1 ? `（${weeks}週）` : ""}` : "";
-  return [time, money ? yen(money) : ""].filter(Boolean).join("・");
+  const signed = (value: number) => (value < 0 ? `−${-value}` : `+${value}`);
+  const statChanges = (Object.keys(STAT_LABELS) as Stat[])
+    .filter((stat) => stats?.[stat])
+    .map((stat) => `${STAT_LABELS[stat]} ${signed(stats?.[stat] ?? 0)}`);
+  const prepChange = prep
+    ? `面接・書類の通過率 +${Number((prep * PASS.finalPerPrep * 100).toFixed(2))}%`
+    : "";
+  return [time, money ? yen(money) : "", pay ? `+${yen(pay)}` : "", ...statChanges, prepChange]
+    .filter(Boolean)
+    .join("・");
 }
 
 export function shortfallReason(shortfall: "time" | "money"): string {
@@ -260,6 +279,17 @@ const BOOST_LABELS = {
   final: "最終面接の通過率",
 } as const satisfies Record<Boost, string>;
 
+const SMALL_EVENT_LINES = {
+  gwTrip: "ゴールデンウィーク，友達に旅行に誘われた．",
+  seminarTalk: "ゼミの発表を頼まれた．",
+  summerCamp: "サークルの合宿に誘われた．",
+  extraShift: "バイト先から，シフトを増やしてほしいと頼まれた．",
+  obChance: "OB に話を聞ける機会がある．",
+  yearEnd: "年末，実家に帰る？",
+  midterm: "卒論の中間発表が近い．",
+  studyGroup: "就活仲間に，面接の練習会に誘われた．",
+} as const satisfies Record<SmallEventId, string>;
+
 const OPTION_LABELS = {
   esFive: "5 社に出す",
   esTwo: "2 社に出す",
@@ -281,6 +311,22 @@ const OPTION_LABELS = {
   finalsOneFace: "1 社だけ対面，残りはオンライン",
   finalsAllOnline: "オンラインで受ける",
   finalsDecline: "辞退する",
+  tripGo: "行く",
+  tripSkip: "断る",
+  seminarTake: "引き受ける",
+  seminarDecline: "断る",
+  campJoin: "参加する",
+  campSkip: "参加しない",
+  shiftYes: "増やす",
+  shiftNo: "断る",
+  obVisit: "話を聞きに行く",
+  obSkip: "行かない",
+  homeGo: "帰る",
+  homeStay: "帰らない",
+  midtermPrep: "しっかり準備する",
+  midtermMinimal: "最低限で済ませる",
+  studyJoin: "参加する",
+  studySkip: "参加しない",
 } as const satisfies Record<OptionKey, string>;
 
 const ROUTINES = {

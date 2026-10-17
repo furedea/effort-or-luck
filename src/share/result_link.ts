@@ -34,6 +34,8 @@ type Result<T> =
 const DECISION_SEPARATOR = ".";
 const TIMETABLE_MARK = "t";
 const CHOICE_MARK = "o";
+/** Options outnumber one base-36 digit, so each takes two. */
+const OPTION_DIGITS = 2;
 // Links name routines and options by position, so reordering them needs a RULES_VERSION bump.
 const ROUTINE_KEYS: readonly RoutineKey[] = ROUTINES.map((spec) => spec.key);
 const OPTION_KEYS = Object.keys(OPTION_EFFORT) as OptionKey[];
@@ -123,10 +125,11 @@ function awaitsChoice(cohort: Cohort, player: number): boolean {
   return Boolean(cohort.events[player]?.options.length);
 }
 
-/** A decision as its week, a mark, and base-36 indices, e.g. "12t0156" or "9o2". */
+/** A decision as its week, a mark, and base-36 indices, e.g. "12t0156" or "9o02". */
 function encodeDecision(decision: Decision): string {
   if (decision.kind === "choice") {
-    return `${decision.week}${CHOICE_MARK}${OPTION_KEYS.indexOf(decision.option).toString(36)}`;
+    const index = OPTION_KEYS.indexOf(decision.option).toString(36).padStart(OPTION_DIGITS, "0");
+    return `${decision.week}${CHOICE_MARK}${index}`;
   }
   const routines = decision.timetable.map((key) => ROUTINE_KEYS.indexOf(key).toString(36));
   return `${decision.week}${TIMETABLE_MARK}${routines.join("")}`;
@@ -139,7 +142,8 @@ function decodeDecision(text: string): Decision | null {
   const week = Number(weekText);
   const digits = indices.split("").map((digit) => Number.parseInt(digit, 36));
   if (mark === CHOICE_MARK) {
-    const option = digits.length === 1 ? OPTION_KEYS[digits[0] ?? -1] : undefined;
+    const option =
+      indices.length === OPTION_DIGITS ? OPTION_KEYS[Number.parseInt(indices, 36)] : undefined;
     return option ? { week, kind: "choice", option } : null;
   }
   const timetable = digits.map((digit) => ROUTINE_KEYS[digit]);

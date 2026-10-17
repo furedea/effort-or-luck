@@ -1,6 +1,8 @@
 import { weekOfMonthStart } from "../engine/calendar";
-import type { PricedOption } from "../engine/events";
+import { eventAt, type PricedOption } from "../engine/events";
+import { makeLife } from "../engine/life";
 import { routineOf } from "../engine/routine";
+import { SMALL_EVENTS } from "../engine/small_events";
 import {
   describeEvent,
   describeLog,
@@ -41,6 +43,13 @@ describe("what an option takes", () => {
     expect(optionCost(option({ hours: 15, weeks: 3, money: 30_000 }))).toBe("15時間（3週）・3万円");
     expect(optionCost(option({ hours: 8 }))).toBe("8時間");
     expect(optionCost(option({}))).toBe("");
+  });
+
+  it("adds the stats and preparation it changes", () => {
+    expect(optionCost(option({ hours: 10, money: 20_000, stats: { mind: 5, social: -3 } }))).toBe(
+      "10時間・2万円・心の余裕 +5・人間関係 −3",
+    );
+    expect(optionCost(option({ hours: 6, prep: 1 }))).toBe("6時間・面接・書類の通過率 +0.6%");
   });
 });
 
@@ -118,4 +127,13 @@ describe("why the year ends on June 1st", () => {
 
     expect(june.lines.at(-1)).toBe("就活はこの後も続く．ここでは6月1日の時点で比べている．");
   });
+});
+
+test("every small choice has its own lines and option labels", () => {
+  const life = makeLife(1);
+  for (const { week } of SMALL_EVENTS) {
+    const event = eventAt(life, week)!;
+    expect(describeEvent(event).lines.length).toBeGreaterThan(0);
+    for (const option of event.options) expect(optionLabel(option, event.facts)).toBeTruthy();
+  }
 });

@@ -1,6 +1,6 @@
 import { WEEKS } from "./calendar";
 import { eventAt, pickOption, resolve, type Event } from "./events";
-import type { EventFacts, EventId } from "./facts";
+import type { EventFacts, EventId, Stat } from "./facts";
 import { makeLife, tripYen, weekBudget, type Life } from "./life";
 import {
   FAMILY_TRIP_HOURS,
@@ -10,6 +10,7 @@ import {
   SICK_HOURS,
   THESIS_CRUNCH_HOURS,
 } from "./parameters";
+import { SMALL_EVENTS } from "./small_events";
 import { liveWeek } from "./week";
 import { autoLive, leastPolicy, meet, middlePolicy, mostPolicy, type Policy } from "./year";
 
@@ -171,4 +172,31 @@ test("preparing for the summer internship ES while it is open raises the pass ra
     ).length;
 
   expect(allFailed(prepared)).toBeLessThan(allFailed(middlePolicy) * 0.9);
+});
+
+describe("small choices", () => {
+  it("come every few weeks to every self still living the year", () => {
+    const life = makeLife(1);
+    const weeks = SMALL_EVENTS.map((event) => event.week);
+
+    for (const week of weeks) expect(eventAt(life, week)?.options.length).toBe(2);
+    expect(weeks.every((week, i) => i === 0 || week - weeks[i - 1]! >= 3)).toBe(true);
+  });
+
+  it("apply the stats, money, and preparation each option shows", () => {
+    const life = makeLife(1);
+    const [first] = SMALL_EVENTS;
+    const event = eventAt(life, first!.week)!;
+    const option = event.options[0]!;
+    const before = { ...life.stats, money: life.money, prep: life.prep };
+
+    resolve(life, event, option, option.key);
+
+    for (const [stat, amount] of Object.entries(option.stats ?? {}) as [Stat, number][]) {
+      expect(life.stats[stat]).toBeCloseTo(before[stat] + amount);
+    }
+    expect(life.money).toBe(before.money - option.money);
+    expect(life.prep).toBeCloseTo(before.prep + (option.prep ?? 0));
+    expect(life.oneOff).toEqual({ hours: option.hours, weeks: option.weeks });
+  });
 });

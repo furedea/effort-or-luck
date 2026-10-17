@@ -1,7 +1,7 @@
 // Events that stop the weeks for a choice or a notice. Each may draw from the life's RNG, so the
 // order of draws here is part of what makes a seed reproducible.
 import { EVENT_WEEKS, weekOfMonthStart, WEEKS } from "./calendar";
-import type { AutumnEvent, Effort, EventFacts, OptionKey, Shortfall } from "./facts";
+import type { AutumnEvent, Effort, EventFacts, OptionKey, Shortfall, Stat } from "./facts";
 import {
   isActive,
   loseHours,
@@ -30,7 +30,8 @@ import {
   WAGE_YEN_PER_HOUR,
 } from "./parameters";
 import { countSuccesses } from "./random";
-import { setBack, shock } from "./wellbeing";
+import { SMALL_EVENTS, type SmallOption } from "./small_events";
+import { nudge, setBack, shock } from "./wellbeing";
 
 interface EventOption {
   readonly key: OptionKey;
@@ -39,6 +40,11 @@ interface EventOption {
   readonly hours: number;
   readonly weeks: number;
   readonly money: number;
+  /** Stat changes and preparation the option brings, shown before choosing. */
+  readonly stats?: Readonly<Partial<Record<Stat, number>>>;
+  readonly prep?: number;
+  /** Money earned, such as from an extra shift. */
+  readonly pay?: number;
   readonly apply?: (life: Life) => void;
 }
 
@@ -76,6 +82,24 @@ export const OPTION_EFFORT = {
   finalsOneFace: 1,
   finalsAllOnline: 0,
   finalsDecline: -1,
+  // Small choices: the middle way takes time for oneself and declines extra work; the all-in
+  // path declines anything that takes time from job hunting.
+  tripGo: 1,
+  tripSkip: 2,
+  seminarTake: 1,
+  seminarDecline: 2,
+  campJoin: 1,
+  campSkip: 2,
+  shiftYes: 0,
+  shiftNo: 1,
+  obVisit: 1,
+  obSkip: 0,
+  homeGo: 1,
+  homeStay: 2,
+  midtermPrep: 1,
+  midtermMinimal: 2,
+  studyJoin: 1,
+  studySkip: 0,
 } as const satisfies Record<OptionKey, Effort>;
 
 type EventBuilder = (life: Life) => { facts: EventFacts; options: readonly EventOption[] } | null;
@@ -93,6 +117,7 @@ const SCHEDULE: readonly (readonly [number, EventBuilder])[] = [
   [EVENT_WEEKS.entries, entries],
   [EVENT_WEEKS.finals, finals],
   [WEEKS, june],
+  ...SMALL_EVENTS.map(({ week, ...event }) => [week, smallEvent(event)] as const),
 ];
 
 /** The event this life meets in `week`, with options priced for it, or null. */
@@ -136,6 +161,29 @@ export function resolve(
   if (wanted && wanted !== option.key && event.options.some((o) => o.key === wanted)) {
     life.log.push({ kind: "missed", event: event.facts.id, option: wanted });
   }
+}
+
+/** A small choice for a self still living the year; its options carry their effects as data. */
+function smallEvent({ id, options }: Omit<(typeof SMALL_EVENTS)[number], "week">): EventBuilder {
+  return (life) => {
+    if (!isActive(life)) return null;
+    const toOption = (o: SmallOption): EventOption => ({
+      key: o.key,
+      effort: OPTION_EFFORT[o.key],
+      hours: o.hours ?? 0,
+      weeks: o.weeks ?? 1,
+      money: o.money ?? 0,
+      ...(o.stats ? { stats: o.stats } : {}),
+      ...(o.prep ? { prep: o.prep } : {}),
+      ...(o.pay ? { pay: o.pay } : {}),
+      apply: (x) => {
+        x.money += o.pay ?? 0;
+        x.prep += o.prep ?? 0;
+        nudge(x, o.stats ?? {});
+      },
+    });
+    return { facts: { id }, options: options(life).map(toOption) };
+  };
 }
 
 function option(
