@@ -20,6 +20,7 @@ import type { OptionKey, RoutineKey, Stat } from "../engine/facts";
 import { isActive, type Life } from "../engine/life";
 import type { Difficulty } from "../engine/parameters";
 import { isLimited, ROUTINES } from "../engine/routine";
+import { planWeek } from "../engine/week";
 import { encode } from "../share/result_link";
 import { DifficultyPicker } from "./difficulty_picker";
 import { PlayView, type FeedEntry, type Speed } from "./play_view";
@@ -163,9 +164,15 @@ function limitedEntries(week: number): FeedEntry[] {
   }));
 }
 
+/**
+ * Takes an option. When it runs the week over the free hours, time waits on the timetable so the
+ * player can drop something or accept losing sleep.
+ */
 function decide(game: Game, option: OptionKey): Game {
   const cohort = choose(withTimetable(game.cohort, game.timetable), option);
-  return { ...game, cohort };
+  const life = cohort.lives[game.player];
+  const over = life ? planWeek(life, cohort.week, game.timetable).shortHours > 0 : false;
+  return { ...game, cohort, speed: over ? "step" : game.speed };
 }
 
 /** Moves on from a stopping notice; after the results, the year is over. */

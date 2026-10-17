@@ -183,6 +183,55 @@ test("shows this week's hours and what each option leaves at an event", () => {
   for (const after of afters) expect(after).toMatch(/^選ぶと：/);
 });
 
+/** Plays at double speed until the first event with options, after `setUp` on the first week. */
+function toFirstChoice(setUp: (host: HTMLElement) => void = () => undefined) {
+  const host = mount();
+  startYear(host);
+  setUp(host);
+  click(speedButton(host, "▶▶ 2倍"));
+  for (let guard = 0; guard < 100 && !host.querySelector(".event .opt"); guard++) {
+    keepFlowing(host);
+  }
+  return host;
+}
+
+test("shows the hour bar at an event", () => {
+  const host = toFirstChoice();
+
+  expect(host.querySelector(".event .bar")).not.toBeNull();
+});
+
+test("stops on the timetable after a choice that runs the week over", () => {
+  const host = toFirstChoice((h) => {
+    // Over 40 hours in all, so the week runs over whichever option is taken.
+    for (const name of [
+      "研究・ゼミ",
+      "友達と遊ぶ",
+      "ゆっくり休む",
+      "SNS・動画",
+      "自己分析",
+      "説明会",
+    ]) {
+      click(tileNamed(h, name));
+    }
+  });
+
+  click(host.querySelector<HTMLButtonElement>(".event .opt:not([disabled])")!);
+
+  expect(host.querySelector(".event")).toBeNull();
+  expect(stepButton(host)).not.toBeNull();
+  expect(host.querySelector(".time-over")).not.toBeNull();
+});
+
+test("keeps the chosen speed after a choice that fits the week", () => {
+  const host = toFirstChoice();
+  const options = [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")];
+
+  click(options.at(-1)!);
+
+  expect(stepButton(host)).toBeNull();
+});
+
 test("moves focus to an event when time stops for it", () => {
   const host = mount();
   startYear(host);

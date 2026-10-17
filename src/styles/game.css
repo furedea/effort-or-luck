@@ -346,6 +346,10 @@ main {
   color: var(--suit);
   font-variant-numeric: tabular-nums;
 }
+.week-status-block {
+  display: grid;
+  row-gap: 4px;
+}
 .week-status {
   margin: 0;
   font-size: 13px;
