@@ -26,6 +26,10 @@ export const VIEWS = [
   ["least", "いつも一番楽をする"],
 ] as const satisfies readonly (readonly [View, string])[];
 
+export function previousChoice(result: string): string {
+  return `前の選択で，${result}`;
+}
+
 export function savings(money: number): string {
   return `貯金 ${yen(money)}`;
 }

@@ -1,5 +1,5 @@
-/* One column: during play only the month, the situation, and the choices; the 100 selves
-   appear only in the year-end reveal. */
+/* One column: during play only the month, the situation, and the choices, fitted to the
+   viewport with the choices at the bottom; the 100 selves appear only in the reveal. */
 :root {
   --paper: #f6f7f5;
   --ink: #1c2130;
@@ -50,11 +50,13 @@ body {
 }
 main {
   box-sizing: border-box;
+  min-height: 100dvh;
   max-width: 34rem;
   margin: 0 auto;
-  padding: 24px 16px 56px;
+  padding: 20px 16px 24px;
   display: grid;
-  row-gap: 24px;
+  grid-template-rows: auto 1fr;
+  row-gap: 16px;
 }
 .title {
   margin: 0;
@@ -74,7 +76,11 @@ main {
 }
 
 /* ---------- play ---------- */
-.play,
+.play {
+  display: grid;
+  grid-template-rows: auto auto auto 1fr;
+  row-gap: 20px;
+}
 .reveal {
   display: grid;
   row-gap: 20px;
@@ -100,6 +106,11 @@ main {
 .play-head {
   display: grid;
   row-gap: 6px;
+}
+.carried {
+  margin: 0;
+  font-size: 13px;
+  color: var(--suit);
 }
 .status {
   display: flex;
@@ -131,9 +142,11 @@ main {
     transform: none;
   }
 }
-.options {
+.actions {
+  align-self: end;
   display: grid;
   row-gap: 8px;
+  animation: rise 0.45s ease 0.3s both;
 }
 .opt {
   display: flex;
@@ -173,24 +186,9 @@ main {
 .opt:disabled .cost {
   color: var(--shu);
 }
-.opt.chosen {
-  outline: 2px solid var(--suit);
-  outline-offset: -1px;
-  color: var(--ink);
-}
-.opt.chosen .cost {
-  color: var(--sub);
-}
-.opt.faded {
-  opacity: 0.4;
-}
-.result {
-  margin: 0;
-  font-family: var(--display);
-  color: var(--suit);
-}
 .next {
-  justify-self: start;
+  justify-self: stretch;
+  min-height: 52px;
   padding: 12px 28px;
   font: inherit;
   font-family: var(--display);
@@ -315,7 +313,8 @@ main {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lines p {
+  .lines p,
+  .actions {
     animation: none;
   }
   .dots i {

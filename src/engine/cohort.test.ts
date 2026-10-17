@@ -2,6 +2,7 @@ import { alwaysChoose, autoLive, pickNear } from "./choice";
 import {
   advance,
   advanceFor,
+  chooseAndAdvance,
   chooseForAll,
   COHORT_SIZE,
   isOver,
@@ -125,6 +126,19 @@ describe("playing as one self", () => {
     const holders = next.lives.filter((life) => life.offers.includes("december"));
     expect(holders.length).toBeGreaterThan(0);
     expect(holders.every((life) => life.efforts.feb !== undefined)).toBe(true);
+  });
+
+  it("moves straight to the self's next month after a choice, carrying its result", () => {
+    let cohort = startCohort(3);
+    const player = 0;
+    while (cohort.scenes[player]?.facts.id !== "autumn")
+      cohort = advanceFor(chooseForAll(cohort, 1), player);
+
+    const { cohort: next, result } = chooseAndAdvance(cohort, player, 0);
+
+    expect(result).toEqual({ kind: "saved", amount: expect.any(Number) });
+    expect(next.scenes[player]?.facts.id).toBe("early");
+    expect(next.lives[player]?.efforts.autumn).toBe(0);
   });
 
   it("takes the rounded average of the self's choices as its usual effort", () => {

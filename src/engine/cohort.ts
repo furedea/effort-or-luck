@@ -117,6 +117,16 @@ export function advanceFor(cohort: Cohort, player: number): Cohort {
   return next;
 }
 
+/** Everyone attempts `want`, then the year moves to the self's next month. */
+export function chooseAndAdvance(
+  cohort: Cohort,
+  player: number,
+  want: Effort,
+): { cohort: Cohort; result: ResultFact | undefined } {
+  const chosen = chooseForAll(cohort, want);
+  return { cohort: advanceFor(chosen, player), result: chosen.turn?.results[player] };
+}
+
 function settleOthers(cohort: Cohort, player: number): Cohort {
   const self = cohort.lives[player];
   const undecided = !cohort.turn && cohort.scenes.some((scene) => scene?.options.length);

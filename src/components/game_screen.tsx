@@ -4,7 +4,7 @@ import "../styles/game.css";
 import { assumptionsNote, sourcesNote, TITLE, type View } from "../copy/screen";
 import {
   advanceFor,
-  chooseForAll,
+  chooseAndAdvance,
   COHORT_SIZE,
   isOver,
   replayYear,
@@ -12,7 +12,7 @@ import {
   type Cohort,
   type YearEnd,
 } from "../engine/cohort";
-import type { Effort } from "../engine/facts";
+import type { Effort, ResultFact } from "../engine/facts";
 import { PlayView } from "./play_view";
 import { RevealView } from "./reveal_view";
 
@@ -22,6 +22,8 @@ interface Game {
   readonly player: number;
   readonly yearEnd: YearEnd | null;
   readonly view: View;
+  /** What the last choice led to, shown on the next month. */
+  readonly carried: ResultFact | null;
 }
 
 export function GameScreen() {
@@ -29,17 +31,15 @@ export function GameScreen() {
 
   // The base seed is random, so the selves are created only in the browser.
   useEffect(() => setGame(newGame()), []);
+  const step = game?.cohort.step;
+  useEffect(() => window.scrollTo(0, 0), [step]);
 
   if (!game) return <main />;
-  const { cohort, player, yearEnd, view } = game;
+  const { cohort, player, yearEnd, view, carried } = game;
   const life = cohort.lives[player];
   const scene = cohort.scenes[player];
-  const turn = cohort.turn;
 
-  const restart = () => {
-    setGame(newGame());
-    window.scrollTo(0, 0);
-  };
+  const restart = () => setGame(newGame());
 
   return (
     <main>
@@ -58,9 +58,9 @@ export function GameScreen() {
           life={life}
           scene={scene}
           step={cohort.step}
-          chosen={turn ? { effort: turn.want, result: turn.results[player] } : null}
-          onChoose={(effort: Effort) => setGame({ ...game, cohort: chooseForAll(cohort, effort) })}
-          onNext={() => setGame(next(game))}
+          carried={carried}
+          onChoose={(effort: Effort) => setGame(choose(game, effort))}
+          onNext={() => setGame(moveOn(game, advanceFor(cohort, player), null))}
         />
       ) : null}
       {yearEnd ? (
@@ -79,12 +79,17 @@ function newGame(): Game {
     player: Math.floor(Math.random() * COHORT_SIZE),
     yearEnd: null,
     view: "same",
+    carried: null,
   };
 }
 
-function next(game: Game): Game {
-  const cohort = advanceFor(game.cohort, game.player);
-  return { ...game, cohort, yearEnd: isOver(cohort) ? replayYear(cohort) : null };
+function choose(game: Game, effort: Effort): Game {
+  const { cohort, result } = chooseAndAdvance(game.cohort, game.player, effort);
+  return moveOn(game, cohort, result ?? null);
+}
+
+function moveOn(game: Game, cohort: Cohort, carried: ResultFact | null): Game {
+  return { ...game, cohort, carried, yearEnd: isOver(cohort) ? replayYear(cohort) : null };
 }
 
 function randomSeed(): number {
