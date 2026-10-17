@@ -16,7 +16,7 @@ import { createRng, pickWeighted, type Rng } from "./random";
 
 type InternKind = "none" | "face" | "online";
 
-/** One self's state through the year. Scenes and allocations advance it in place. */
+/** One self's state through the year. Events and weeks advance it in place. */
 export interface Life {
   readonly seed: number;
   readonly rng: Rng;
@@ -30,8 +30,11 @@ export interface Life {
   documentPrep: number;
   /** Extra chance of being invited to early selection. */
   inviteBonus: number;
-  /** Hours lost in the current period to illness, a trip home, or deadlines. */
-  lostHours: number;
+  /** Hours lost each week to illness, a trip home, or deadlines, for `lostWeeks` more weeks. */
+  lostWeekly: number;
+  lostWeeks: number;
+  /** Hours of a one-off choice, such as an internship, spread over its remaining weeks. */
+  oneOff: { hours: number; weeks: number };
   internApplications: number;
   intern: InternKind;
   invited: boolean;
@@ -59,7 +62,9 @@ export function makeLife(seed: number): Life {
     prep: 0,
     documentPrep: 0,
     inviteBonus: 0,
-    lostHours: 0,
+    lostWeekly: 0,
+    lostWeeks: 0,
+    oneOff: { hours: 0, weeks: 0 },
     internApplications: 0,
     intern: "none",
     invited: false,
@@ -88,9 +93,16 @@ export function weeklyFreeHours(life: Life): number {
   return Math.max(0, WEEKLY_HOURS - weeklyPartTimeHours(life));
 }
 
-/** Hours the self can divide among activities over `weeks`. */
-export function periodBudget(life: Life, weeks: number): number {
-  return Math.max(0, weeklyFreeHours(life) * weeks - life.lostHours);
+/** Hours the self can divide this week, after any hours lost. */
+export function weekBudget(life: Life): number {
+  const lost = life.lostWeeks > 0 ? life.lostWeekly : 0;
+  return Math.max(0, weeklyFreeHours(life) - lost);
+}
+
+/** Loses `weekly` hours each week for the next `weeks` weeks. */
+export function loseHours(life: Life, weekly: number, weeks: number): void {
+  life.lostWeekly = weekly;
+  life.lostWeeks = weeks;
 }
 
 export function tripYen(life: Life): number {

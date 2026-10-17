@@ -1,4 +1,3 @@
-import type { ActivitySpec } from "./activities";
 import { makeLife, weeklyPartTimeHours } from "./life";
 import {
   FOURTH_YEAR_RESEARCH_DRIFT,
@@ -10,14 +9,7 @@ import {
 } from "./parameters";
 import { liveThroughPeriod, shock } from "./wellbeing";
 
-const friends: ActivitySpec = {
-  key: "friends",
-  kind: "life",
-  hours: 32,
-  money: 0,
-  pays: 0,
-  statsPerWeek: { social: 1.4 },
-};
+const friends = { statsPerWeek: { social: 1.4 } };
 
 function richLife() {
   const life = makeLife(1);

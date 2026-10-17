@@ -1,24 +1,31 @@
-import { advanceFor, chooseAndAdvance, isOver, startCohort } from "../engine/cohort";
+import { choose, isOver, setTimetable, startCohort, step, type Cohort } from "../engine/cohort";
 import { RULES_VERSION } from "../engine/parameters";
-import { leastPolicy, middlePolicy, mostPolicy, type Plan, type Policy } from "../engine/plan";
+import { leastPolicy, middlePolicy, mostPolicy, type Policy } from "../engine/year";
 import { encode, parse, replay, type ShareParams } from "./result_link";
 
-/** Plays a year as `player`, cycling through `policies` period by period. */
+/** Plays a year as `player`, switching to the next of `policies` at every event. */
 function play(seed: number, player: number, policies: readonly Policy[]) {
-  let cohort = startCohort(seed);
-  const plans: Plan[] = [];
+  let cohort: Cohort = startCohort(seed);
+  let turn = 0;
   while (!isOver(cohort)) {
-    const scene = cohort.scenes[player];
-    const life = cohort.lives[player];
-    if (!scene?.period || !life) {
-      cohort = advanceFor(cohort, player);
-      continue;
+    const life = cohort.lives[player]!;
+    const policy = policies[turn % policies.length]!;
+    const event = cohort.events[player];
+    if (event?.options.length) {
+      turn++;
+      const { key, want } = policy.choose(life, event, cohort.week);
+      const affordable = event.options.filter((o) => !o.shortfall);
+      const option = affordable.find((o) => o.key === key) ?? nearest(affordable, want);
+      cohort = choose(cohort, option.key);
     }
-    const plan = policies[plans.length % policies.length]!(life, scene);
-    plans.push(plan);
-    cohort = chooseAndAdvance(cohort, player, plan).cohort;
+    cohort = setTimetable(cohort, policy.timetable(life, cohort.week));
+    cohort = step(cohort);
   }
-  return { cohort, params: { seed, player, plans } satisfies ShareParams };
+  return { cohort, params: { seed, player, decisions: cohort.decisions } satisfies ShareParams };
+}
+
+function nearest<T extends { effort: number }>(options: readonly T[], want: number): T {
+  return [...options].sort((a, b) => Math.abs(a.effort - want) - Math.abs(b.effort - want))[0]!;
 }
 
 describe("a share link", () => {
@@ -42,22 +49,37 @@ describe("a share link", () => {
   });
 
   it.each([
-    ["missing fields", "?r=3&s=abc"],
-    ["a player outside the 100", `?r=${RULES_VERSION}&s=1&p=100&c=0`],
-    ["a character that names no activity", `?r=${RULES_VERSION}&s=1&p=0&c=0z`],
-    ["a seed that is not a number", `?r=${RULES_VERSION}&s=zz!&p=0&c=0`],
+    ["missing fields", "?r=4&s=abc"],
+    ["a player outside the 100", `?r=${RULES_VERSION}&s=1&p=100&c=0t0`],
+    ["a character that names no routine", `?r=${RULES_VERSION}&s=1&p=0&c=0tz`],
+    ["a character that names no option", `?r=${RULES_VERSION}&s=1&p=0&c=9oz`],
+    ["a decision without a week", `?r=${RULES_VERSION}&s=1&p=0&c=t0`],
+    ["a seed that is not a number", `?r=${RULES_VERSION}&s=zz!&p=0&c=0t0`],
   ])("is unreadable with %s", (_, search) => {
     expect(parse(search)).toEqual({ ok: false, error: "unreadable" });
   });
 
   it("is rejected when made under other rules", () => {
-    expect(parse(`?r=${RULES_VERSION + 1}&s=1&p=0&c=0`)).toEqual({ ok: false, error: "oldRules" });
+    expect(parse(`?r=${RULES_VERSION + 1}&s=1&p=0&c=0t0`)).toEqual({
+      ok: false,
+      error: "oldRules",
+    });
   });
 
-  it("fails to replay when the recorded plans do not fit the year", () => {
+  it("fails to replay when an event the player met has no recorded choice", () => {
+    const { params } = play(55, 3, [middlePolicy]);
+    const withoutChoices = params.decisions.filter((d) => d.kind === "timetable");
+
+    expect(replay({ ...params, decisions: withoutChoices })).toEqual({
+      ok: false,
+      error: "unreadable",
+    });
+  });
+
+  it("fails to replay when decisions go back in time", () => {
     const { params } = play(55, 3, [middlePolicy]);
 
-    expect(replay({ ...params, plans: params.plans.slice(0, 1) })).toEqual({
+    expect(replay({ ...params, decisions: [...params.decisions].reverse() })).toEqual({
       ok: false,
       error: "unreadable",
     });
@@ -75,6 +97,6 @@ test("a recorded link still replays to the recorded result under the current rul
   if (!replayed.ok) return;
   const offersPerSelf = replayed.value.cohort.lives.map((life) => life.offers.length).join("");
   expect(offersPerSelf).toBe(
-    "0000110010001001110111110011000000111000000000011000000000110010100100000100011000111110110000101000",
+    "1032131113111321212112311351010112021211111102112122132411210110113211011242401202113211111111211131",
   );
 });

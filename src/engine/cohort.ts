@@ -1,47 +1,34 @@
-// The 100 selves living one year together: every plan is attempted by all of them.
-// Lives still advance in place, so each transition returns a new Cohort and the previous
-// one must not be used again.
-import type { PeriodId } from "./facts";
+// The 100 selves living one year together, week by week: every timetable and every choice the
+// player makes is attempted by all of them. Lives advance in place, so each transition returns a
+// new Cohort and the previous one must not be used again.
+import { WEEKS } from "./calendar";
+import { eventAt, OPTION_EFFORT, type Event } from "./events";
+import type { OptionKey, RoutineKey } from "./facts";
 import { makeLife, type Life } from "./life";
 import { ALLOWANCE_DISTRIBUTION } from "./parameters";
-import {
-  autoLive,
-  carryOut,
-  leastPolicy,
-  middlePolicy,
-  mostPolicy,
-  sceneAt,
-  type Allocation,
-  type Plan,
-  type Scene,
-} from "./plan";
-import { SCENE_COUNT } from "./scenes";
+import { liveWeek, type WeekOutcome } from "./week";
+import { autoLive, leastPolicy, meet, mostPolicy, type Choice, type Decision } from "./year";
 
 export const COHORT_SIZE = 100;
 const SEED_STRIDE = 7919;
+const MIDDLE_CHOICE: Choice = { key: null, want: 1 };
 
 export interface Cohort {
-  /** Seeds aligned with `lives`, so the same selves can be replayed with other plans. */
+  /** Seeds aligned with `lives`, so the same selves can be replayed with other decisions. */
   readonly seeds: readonly number[];
   readonly lives: readonly Life[];
   /** Each self's starting allowance as an index into the allowance distribution. */
   readonly allowanceRanks: readonly number[];
-  /** Index of the current scene; SCENE_COUNT once the year is over. */
-  readonly step: number;
-  /** The current scene for each self, or null for a self who skips it. */
-  readonly scenes: readonly (Scene | null)[];
-  /** What happened when the shared plan was carried out this period; null before that. */
-  readonly turn: Turn | null;
-  /** The plan everyone attempted in each period so far. */
-  readonly plans: Readonly<Partial<Record<PeriodId, Plan>>>;
-  /** Selves who, in some period, could not pay for part of the plan everyone attempted. */
+  /** The current week; WEEKS while the results are shown, beyond it once the year is over. */
+  readonly week: number;
+  /** Each self's event this week, or null when there is none or it has been met. */
+  readonly events: readonly (Event | null)[];
+  readonly timetable: readonly RoutineKey[];
+  readonly decisions: readonly Decision[];
+  /** What the last week took and gave each self; null for selves not living the year. */
+  readonly lastWeek: readonly (WeekOutcome | null)[];
+  /** Selves who, in some week, could not pay for part of what everyone attempted. */
   readonly everBlocked: ReadonlySet<number>;
-}
-
-interface Turn {
-  readonly plan: Plan;
-  readonly allocations: readonly (Allocation | null)[];
-  readonly blocked: ReadonlySet<number>;
 }
 
 export function startCohort(baseSeed: number): Cohort {
@@ -50,63 +37,58 @@ export function startCohort(baseSeed: number): Cohort {
   );
   lives.sort((a, b) => a.allowance - b.allowance || Number(a.metro) - Number(b.metro));
   const amounts: readonly number[] = ALLOWANCE_DISTRIBUTION.map(([amount]) => amount);
-  return load(
-    {
-      seeds: lives.map((life) => life.seed),
-      lives,
-      allowanceRanks: lives.map((life) => amounts.indexOf(life.allowance)),
-      plans: {},
-      everBlocked: new Set(),
-    },
-    0,
-  );
+  return {
+    seeds: lives.map((life) => life.seed),
+    lives,
+    allowanceRanks: lives.map((life) => amounts.indexOf(life.allowance)),
+    week: 0,
+    events: lives.map((life) => eventAt(life, 0)),
+    timetable: [],
+    decisions: [],
+    lastWeek: lives.map(() => null),
+    everBlocked: new Set(),
+  };
 }
 
 export function isOver(cohort: Cohort): boolean {
-  return cohort.step >= SCENE_COUNT;
+  return cohort.week > WEEKS;
 }
 
-export function advance(cohort: Cohort): Cohort {
-  return load(cohort, cohort.step + 1);
-}
-
-/** Every self in a period attempts `plan`; whatever a self cannot pay for is dropped. */
-export function chooseForAll(cohort: Cohort, plan: Plan): Cohort {
-  const allocations = cohort.lives.map((life, i) => {
-    const scene = cohort.scenes[i];
-    return scene?.period ? carryOut(life, scene, plan) : null;
-  });
-  const blocked = new Set(
-    allocations.flatMap((allocation, i) => (allocation?.dropped.length ? [i] : [])),
-  );
-  const period = cohort.scenes.find((scene) => scene?.period)?.period?.id;
-  const plans = period ? { ...cohort.plans, [period]: plan } : cohort.plans;
-  const everBlocked = new Set([...cohort.everBlocked, ...blocked]);
-  return { ...cohort, plans, everBlocked, turn: { plan, allocations, blocked } };
-}
-
-/**
- * Moves to the next scene the self at `player` takes part in. Periods the self sits out are
- * still lived by the others, who divide their time the middle way.
- */
-export function advanceFor(cohort: Cohort, player: number): Cohort {
-  let next = cohort;
-  do {
-    next = advance(settleOthers(next));
-  } while (!isOver(next) && !next.scenes[player]);
-  return next;
-}
-
-/** Everyone attempts `plan`, then the year moves to the self's next scene. */
-export function chooseAndAdvance(
-  cohort: Cohort,
-  player: number,
-  plan: Plan,
-): { cohort: Cohort; allocation: Allocation | null } {
-  const chosen = chooseForAll(cohort, plan);
+/** Sets the timetable everyone follows from this week on. */
+export function setTimetable(cohort: Cohort, timetable: readonly RoutineKey[]): Cohort {
   return {
-    cohort: advanceFor(chosen, player),
-    allocation: chosen.turn?.allocations[player] ?? null,
+    ...cohort,
+    timetable,
+    decisions: [...cohort.decisions, { week: cohort.week, kind: "timetable", timetable }],
+  };
+}
+
+/** The player takes `option` at this week's event; everyone else with an event attempts it too. */
+export function choose(cohort: Cohort, option: OptionKey): Cohort {
+  const others: Choice = { key: option, want: OPTION_EFFORT[option] };
+  meetAll(cohort, others);
+  return {
+    ...cohort,
+    events: cohort.events.map(() => null),
+    decisions: [...cohort.decisions, { week: cohort.week, kind: "choice", option }],
+  };
+}
+
+/** Lives this week for everyone, meeting any event still open the middle way, then moves on. */
+export function step(cohort: Cohort): Cohort {
+  if (isOver(cohort)) return cohort;
+  meetAll(cohort, MIDDLE_CHOICE);
+  if (cohort.week >= WEEKS)
+    return { ...cohort, week: WEEKS + 1, events: cohort.lives.map(() => null) };
+  const lastWeek = cohort.lives.map((life) => liveWeek(life, cohort.week, cohort.timetable));
+  const blocked = lastWeek.flatMap((outcome, i) => (outcome?.dropped.length ? [i] : []));
+  const week = cohort.week + 1;
+  return {
+    ...cohort,
+    week,
+    events: cohort.lives.map((life) => eventAt(life, week)),
+    lastWeek,
+    everBlocked: new Set([...cohort.everBlocked, ...blocked]),
   };
 }
 
@@ -142,22 +124,10 @@ export function revealByAllowance(
   });
 }
 
-function settleOthers(cohort: Cohort): Cohort {
-  if (cohort.turn) return cohort;
-  cohort.scenes.forEach((scene, i) => {
+/** Meets every open event that offers options by `choice`. Events are cleared by the caller. */
+function meetAll(cohort: Cohort, choice: Choice): void {
+  cohort.events.forEach((event, i) => {
     const life = cohort.lives[i];
-    if (life && scene?.period) carryOut(life, scene, middlePolicy(life, scene));
+    if (life && event?.options.length) meet(life, event, choice);
   });
-  return cohort;
-}
-
-function load(
-  base: Pick<Cohort, "seeds" | "lives" | "allowanceRanks" | "plans" | "everBlocked">,
-  from: number,
-): Cohort {
-  for (let step = from; step < SCENE_COUNT; step++) {
-    const scenes = base.lives.map((life) => sceneAt(life, step));
-    if (scenes.some((scene) => scene !== null)) return { ...base, step, scenes, turn: null };
-  }
-  return { ...base, step: SCENE_COUNT, scenes: base.lives.map(() => null), turn: null };
 }

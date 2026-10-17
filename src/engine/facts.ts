@@ -5,8 +5,9 @@ export type OfferMonth = "december" | "may";
 /** The four things a self must keep above zero; reaching zero ends the year. */
 export type Stat = "health" | "mind" | "social" | "research";
 
-/** Periods in which the self divides its time among activities. */
-export type PeriodId = "earlySummer" | "summer" | "autumn" | "winter" | "march" | "finals";
+/** How hard an event option pushes: 2 is the most effortful, -1 means stepping out. */
+export type Effort = -1 | 0 | 1 | 2;
+export type Shortfall = "time" | "money";
 
 export type AutumnEvent =
   | { readonly kind: "allowanceCut" }
@@ -18,7 +19,21 @@ export type AutumnEvent =
 
 type InternResult = "none" | "failed" | "passed";
 
-export type SceneFacts =
+/** Things a self can do every week, each for a fixed number of hours. */
+export type RoutineKey =
+  | "selfAnalysis"
+  | "infoSessions"
+  | "interviewPractice"
+  | "jobCourse"
+  | "longIntern"
+  | "certification"
+  | "friends"
+  | "sns"
+  | "research"
+  | "rest"
+  | "extraWork";
+
+export type EventFacts =
   | {
       readonly id: "intro";
       readonly allowance: number;
@@ -28,18 +43,20 @@ export type SceneFacts =
       readonly weeklyFreeHours: number;
       readonly money: number;
     }
-  | { readonly id: "earlySummer" }
+  | { readonly id: "internEs" }
   | {
-      readonly id: "summer";
+      readonly id: "summerIntern";
       readonly intern: InternResult;
       readonly applications: number;
       readonly passed: number;
       readonly metro: boolean;
     }
   | { readonly id: "autumn"; readonly event: AutumnEvent }
+  | { readonly id: "winterIntern"; readonly metro: boolean }
   | { readonly id: "early"; readonly result: "notInvited" | "passed" | "failed" }
-  | { readonly id: "winter"; readonly seniorTalk: boolean; readonly hasOffer: boolean }
-  | { readonly id: "march"; readonly busy: boolean }
+  | { readonly id: "seniorTalk" }
+  | { readonly id: "keepGoing" }
+  | { readonly id: "entries"; readonly busy: boolean }
   | {
       readonly id: "finals";
       readonly entries: number;
@@ -59,40 +76,30 @@ export type SceneFacts =
     }
   | { readonly id: "over"; readonly stat: Stat };
 
-export type SceneId = SceneFacts["id"];
+export type EventId = EventFacts["id"];
 
-export type ActivityKey =
-  | "internEsFive"
-  | "internEsTwo"
-  | "infoSessions"
-  | "selfAnalysis"
-  | "jobCourse"
-  | "jobFair"
+/** Choices offered at an event. */
+export type OptionKey =
+  | "esFive"
+  | "esTwo"
+  | "esNone"
   | "faceIntern"
   | "onlineIntern"
-  | "oneDayJobs"
-  | "longIntern"
-  | "languageCourse"
-  | "winterIntern"
-  | "interviewPractice"
-  | "aptitudePrep"
-  | "seniorTalk"
-  | "obVisits"
-  | "paidMockInterviews"
-  | "stopHunting"
+  | "declineIntern"
+  | "goWinter"
+  | "skipWinter"
+  | "meetSenior"
+  | "passSenior"
+  | "continue"
+  | "stop"
   | "entryTwenty"
   | "entryEight"
   | "entryThree"
-  | "companyTalks"
+  | "entryNone"
   | "finalsAllFace"
   | "finalsOneFace"
   | "finalsAllOnline"
-  | "interviewService"
-  | "friends"
-  | "sns"
-  | "certification"
-  | "research"
-  | "rest";
+  | "finalsDecline";
 
 export type LogFact =
   | { readonly kind: "profile"; readonly allowance: number; readonly metro: boolean }
@@ -107,6 +114,6 @@ export type LogFact =
   | { readonly kind: "earlyOffer" }
   | { readonly kind: "seniorTalk" }
   | { readonly kind: "thesisCrunch" }
-  | { readonly kind: "dropped"; readonly period: PeriodId; readonly activity: ActivityKey }
+  | { readonly kind: "missed"; readonly event: EventId; readonly option: OptionKey }
   | { readonly kind: "over"; readonly stat: Stat }
   | { readonly kind: "june"; readonly offers: number };

@@ -3,13 +3,19 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 
 import { GameScreen } from "./game_screen";
+import { playToReveal } from "./play_to_reveal";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 // Current browsers resolve scroll methods with a promise, unlike happy-dom.
 beforeEach(() => {
+  vi.useFakeTimers();
   vi.spyOn(window, "scrollTo").mockImplementation((() =>
     Promise.resolve()) as typeof window.scrollTo);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 function mount() {
@@ -23,44 +29,113 @@ function click(button: HTMLButtonElement) {
   act(() => button.click());
 }
 
-/** The button that moves the year on: confirming a period's plan, or a notice's next button. */
-function nextAction(host: HTMLElement): HTMLButtonElement | undefined {
-  return host.querySelector<HTMLButtonElement>(".actions .confirm, .actions .next") ?? undefined;
+function startYear(host: HTMLElement) {
+  click(host.querySelector<HTMLButtonElement>(".event .next")!);
 }
 
-test("shows the first month once mounted in the browser", () => {
+const when = (host: HTMLElement) => host.querySelector(".when")?.textContent;
+const tileNamed = (host: HTMLElement, name: string) =>
+  [...host.querySelectorAll<HTMLButtonElement>(".activity")].find(
+    (button) => button.querySelector(".activity-name")?.textContent === name,
+  )!;
+const stepButton = (host: HTMLElement) => host.querySelector<HTMLButtonElement>(".actions .step");
+const speedButton = (host: HTMLElement, label: string) =>
+  [...host.querySelectorAll<HTMLButtonElement>(".speeds button")].find(
+    (button) => button.textContent === label,
+  )!;
+const passMs = (ms: number) =>
+  act(() => {
+    vi.advanceTimersByTime(ms);
+  });
+
+test("opens on the first week with the opening notice", () => {
   const host = mount();
 
-  expect(host.querySelector(".when")?.textContent).toBe("3年 4月");
-  expect(host.querySelector(".actions button")).not.toBeNull();
+  expect(when(host)).toBe("4月 第1週");
+  expect(host.querySelector(".event .next")?.textContent).toBe("始める");
 });
 
-test("can be played from the first month to the reveal", () => {
+test("moves one week per press by default, and not on its own", () => {
+  const host = mount();
+  startYear(host);
+
+  passMs(3000);
+  expect(when(host)).toBe("4月 第2週");
+
+  click(stepButton(host)!);
+  expect(when(host)).toBe("4月 第3週");
+});
+
+test("flows on its own at normal or double speed until set back to one week per press", () => {
+  const host = mount();
+  startYear(host);
+
+  click(speedButton(host, "▶ 自動"));
+  passMs(600);
+  expect(when(host)).toBe("4月 第3週");
+  expect(stepButton(host)).toBeNull();
+
+  click(speedButton(host, "▶▶ 2倍"));
+  passMs(300);
+  passMs(300);
+  expect(when(host)).toBe("4月 第5週");
+
+  click(speedButton(host, "1週ずつ"));
+  passMs(3000);
+  expect(when(host)).toBe("4月 第5週");
+});
+
+test("stops only for choices, listing other happenings while time flows", () => {
+  const host = mount();
+  startYear(host);
+  // Living only for oneself never ends the year early, so the year reaches June.
+  for (const name of ["友達と遊ぶ", "SNS・動画", "研究・ゼミ", "ゆっくり休む"]) {
+    click(tileNamed(host, name));
+  }
+  click(speedButton(host, "▶▶ 2倍"));
+
+  const stopsWithoutChoice: string[] = [];
+  for (let guard = 0; guard < 400 && !host.querySelector(".event .next"); guard++) {
+    const event = host.querySelector(".event");
+    const option = event?.querySelector<HTMLButtonElement>(".opt:not([disabled])");
+    if (event && !event.querySelector(".opt")) stopsWithoutChoice.push(when(host) ?? "");
+    if (option) {
+      click(option);
+    } else {
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+    }
+  }
+
+  expect(stopsWithoutChoice).toEqual([]);
+  expect(when(host)).toBe("6月1日");
+  expect(host.querySelectorAll(".feed li").length).toBeGreaterThan(0);
+});
+
+test("can be played from the first week to the reveal", () => {
   const host = mount();
 
-  for (let guard = 0; guard < 20 && !host.querySelector(".reveal"); guard++) {
-    const button = nextAction(host);
-    if (!button) throw new Error(`no action on ${host.querySelector(".when")?.textContent}`);
-    click(button);
-  }
+  playToReveal(host);
 
   expect(host.querySelector(".reveal")).not.toBeNull();
   expect(host.querySelectorAll(".dots i")).toHaveLength(100);
 });
 
-test("moves focus to the new month after a choice", () => {
+test("moves focus to an event when time stops for it", () => {
   const host = mount();
-  click(nextAction(host)!);
+  startYear(host);
+  click(speedButton(host, "▶▶ 2倍"));
 
-  click(nextAction(host)!);
+  for (let guard = 0; guard < 100 && !host.querySelector(".event"); guard++) passMs(300);
 
+  expect(host.querySelector(".event")).not.toBeNull();
   expect(document.activeElement).toBe(host.querySelector(".when"));
 });
 
 test("describes each allowance row in words for screen readers", () => {
   const host = mount();
-  for (let guard = 0; guard < 20 && !host.querySelector(".reveal"); guard++)
-    click(nextAction(host)!);
+  playToReveal(host);
 
   const rows = [...host.querySelectorAll(".band")];
 
@@ -79,11 +154,10 @@ test("describes each allowance row in words for screen readers", () => {
 
 test("shows, next to this game's counts, the long-run rate for the same choices", async () => {
   const host = mount();
-  for (let guard = 0; guard < 20 && !host.querySelector(".reveal"); guard++)
-    click(nextAction(host)!);
+  playToReveal(host);
 
   await act(async () => {
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await vi.runAllTimersAsync();
   });
 
   const averages = [...host.querySelectorAll(".band .band-average")].map(
@@ -96,8 +170,7 @@ test("shows, next to this game's counts, the long-run rate for the same choices"
 
 test("the reveal sets luck against effort in two labeled parts", () => {
   const host = mount();
-  for (let guard = 0; guard < 20 && !host.querySelector(".reveal"); guard++)
-    click(nextAction(host)!);
+  playToReveal(host);
 
   const parts = [...host.querySelectorAll(".reveal h3")].map((node) => node.textContent);
   expect(parts).toEqual(["① 努力をそろえて，運だけ変えると", "② 運をそろえて，努力だけ変えると"]);
@@ -119,8 +192,7 @@ test("the reveal sets luck against effort in two labeled parts", () => {
 
 test("the reveal says what counts as effort and how many could not follow the choices", () => {
   const host = mount();
-  for (let guard = 0; guard < 20 && !host.querySelector(".reveal"); guard++)
-    click(nextAction(host)!);
+  playToReveal(host);
 
   expect(host.querySelector(".effort-definition")?.textContent).toContain(
     "努力 ＝ どれを選ぼうとしたか",
@@ -130,59 +202,41 @@ test("the reveal says what counts as effort and how many could not follow the ch
   );
 });
 
-describe("dividing a period's time", () => {
-  function firstPeriod() {
+describe("the weekly timetable", () => {
+  function firstWeek() {
     const host = mount();
-    click(nextAction(host)!);
+    startYear(host);
     return host;
   }
   const total = (host: HTMLElement) => host.querySelector(".time-total")?.textContent;
-  const activity = (host: HTMLElement, name: string) =>
-    [...host.querySelectorAll<HTMLButtonElement>(".activity")].find((button) =>
-      button.querySelector(".activity-name")?.textContent?.startsWith(name),
+  const tile = (host: HTMLElement, name: string) =>
+    [...host.querySelectorAll<HTMLButtonElement>(".activity")].find(
+      (button) => button.querySelector(".activity-name")?.textContent === name,
     )!;
 
-  it("adds a chosen activity's hours to the bar and removes them when chosen again", () => {
-    const host = firstPeriod();
+  it("adds a chosen routine's weekly hours to the bar and removes them when chosen again", () => {
+    const host = firstWeek();
     const before = total(host);
 
-    click(activity(host, "説明会6回"));
-    expect(total(host)).toMatch(/^使う時間 12／\d+時間$/);
+    click(tile(host, "説明会"));
+    expect(total(host)).toMatch(/^週2／\d+(\.\d)?時間$/);
 
-    click(activity(host, "説明会6回"));
+    click(tile(host, "説明会"));
     expect(total(host)).toBe(before);
   });
 
-  it("keeps only one of a group's alternatives", () => {
-    const host = firstPeriod();
+  it("explains the last pressed tile with its numbers", () => {
+    const host = firstWeek();
 
-    click(activity(host, "ES 5社"));
-    click(activity(host, "ES 2社"));
-
-    const chosen = [...host.querySelectorAll(".activity[aria-pressed='true'] .activity-name")].map(
-      (node) => node.textContent,
-    );
-    expect(chosen.filter((name) => name?.startsWith("ES"))).toEqual(["ES 2社"]);
-  });
-
-  it("explains the last pressed tile in one line", () => {
-    const host = firstPeriod();
-
-    click(activity(host, "自己分析"));
+    click(tile(host, "ゆっくり休む"));
 
     expect(host.querySelector(".activity-detail")?.textContent).toBe(
-      "自己分析・業界研究：準備がよく進む",
+      "ゆっくり休む（週5時間）：健康 +1.2・心の余裕 +0.3／週",
     );
-  });
-
-  it("lays the tiles out in two columns", () => {
-    const host = firstPeriod();
-
-    expect(host.querySelector(".tiles")).not.toBeNull();
   });
 
   it("shows the four stats", () => {
-    const host = firstPeriod();
+    const host = firstWeek();
 
     const labels = [...host.querySelectorAll(".stat-bar dt")].map((node) => node.textContent);
     expect(labels).toEqual(["健康", "心の余裕", "人間関係", "研究"]);

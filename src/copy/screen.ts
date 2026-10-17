@@ -1,7 +1,6 @@
 import { JUNE_OFFER_RATE, JUNE_OFFER_RATE_BY_REGION } from "../data/statistics";
 import type { LogFact, Stat } from "../engine/facts";
 import {
-  EXTRA_WORK_WEEKLY_HOURS,
   METRO_SHARE,
   STARTING_MONEY_YEN,
   WAGE_YEN_PER_HOUR,
@@ -17,7 +16,7 @@ export type Path = "least" | "same" | "most";
 
 export const TITLE = "努力か，運か";
 export const NEXT = "次へ";
-export const YEAR_END = "4年 6月1日";
+export const YEAR_END = "6月1日";
 export const EFFORT_DEFINITION =
   "※ 努力 ＝ どれを選ぼうとしたか．お金や時間が足りずにできなかったのは「運」．";
 export const LUCK_PART = "① 努力をそろえて，運だけ変えると";
@@ -38,39 +37,28 @@ export const LINK_ERRORS = {
   oldRules: "このリンクは今とは違うルールで遊んだ結果なので，再現できない．",
 } as const;
 
-export const CONFIRM = "これで進む";
-export const SECTION = { job: "就活", life: "自分のこと" } as const;
+export const SECTION = { job: "就活", life: "自分のこと", work: "お金" } as const;
+export const STEP = "次の週へ";
+export const SPEED_LABELS = { step: "1週ずつ", normal: "▶ 自動", double: "▶▶ 2倍" } as const;
+export const FEED_TITLE = "これまで";
+export const TIMETABLE_TITLE = "毎週の過ごし方";
 export const CANNOT_PAY = "お金が足りない";
 
 export function budgetLine(used: number, budget: number): string {
-  return `使う時間 ${used}／${budget}時間`;
+  return `週${Number(used.toFixed(1))}／${budget}時間`;
 }
 
 export function overflowLine(shortHours: number, paid: number): string {
-  return `足りない ${shortHours} 時間は，バイトを減らして貯金から（−${yen(paid)}）`;
+  return `足りない週${Number(shortHours.toFixed(1))}時間は，バイトを減らして貯金から（−${yen(Math.round(paid))}／週）`;
 }
 
-export function leftoverLine(extraWorkHours: number, earned: number): string {
-  return extraWorkHours ? `残りの時間から ${extraWorkHours} 時間をバイトに（+${yen(earned)}）` : "";
+export function oneOffLine(hours: number): string {
+  return `この週は，決めたことに ${Number(hours.toFixed(1))} 時間使う`;
 }
 
-/** What the last period did to savings and the four stats, e.g. "貯金 +3万円・健康 −6". */
-export function periodSummary(
-  moneyChange: number,
-  statChanges: Readonly<Record<Stat, number>>,
-): string {
-  const money = moneyChange
-    ? `貯金 ${moneyChange > 0 ? "+" : "−"}${yen(Math.abs(moneyChange))}`
-    : "";
-  const stats = (Object.keys(STAT_LABELS) as Stat[])
-    .map((stat) => [stat, Math.round(statChanges[stat])] as const)
-    .filter(([, change]) => change !== 0)
-    .map(([stat, change]) => `${STAT_LABELS[stat]} ${change > 0 ? "+" : "−"}${Math.abs(change)}`);
-  return [money, ...stats].filter(Boolean).join("・");
-}
-
-export function previousPeriod(summary: string): string {
-  return `前の期間で，${summary}`;
+/** A stat that has dropped close to zero, e.g. "健康が 18 まで下がった．". */
+export function warningLine(stat: Stat, value: number): string {
+  return `${STAT_LABELS[stat]}が ${Math.round(value)} まで下がった．このままだと危ない．`;
 }
 
 interface StatusItem {
@@ -208,15 +196,14 @@ export function assumptionsNote(): string {
   const rate = (JUNE_OFFER_RATE * 100).toFixed(1);
   const { kanto, otherRegions } = JUNE_OFFER_RATE_BY_REGION;
   return (
-    "仕送りの分布，奨学金，インターン参加率，各時点の内定率は調査の数字です．合否の確率は仮定で，" +
-    `使える時間のおよそ半分を就活に使い，高い講座などは選ばない場合の 6月1日の内定率が実際の ${rate}% に近くなるよう合わせています．` +
+    "仕送りの分布，奨学金，インターン参加率，各時点の内定率は調査の数字です．数字は学部生の調査に合わせています．合否の確率は仮定で，" +
+    `自己分析・説明会・面接練習と，友達・研究・休むことに週の時間を使い，出来事では真ん中の選択をした場合の 6月1日の内定率が実際の ${rate}% に近くなるよう合わせています．` +
     `首都圏と地方の差も，同じ調査の地域別の内定率（関東 ${percent(kanto)}，関東・中部・近畿以外 ${percent(otherRegions)}）に` +
     "近くなるよう，地方の最終面接の通過率を少し下げています．差が生まれる理由は調査からはわからないため，この形は仮定です．" +
     "地方の最終面接の交通費は，企業が一社ごとに半々の確率で出してくれるとしました．" +
     "交通費や宿泊費の支給を受けた学生が 67.9%（平均 2.7 社）という調査に合わせた仮定です．" +
     `授業・課題・睡眠・家事などを除いて自由に使える時間は週 ${WEEKLY_HOURS} 時間とし，そこから生活費のためのバイトの時間を引きました．` +
-    `使わなかった時間は週 ${EXTRA_WORK_WEEKLY_HOURS} 時間までバイトに回るとしました．` +
-    "やることごとの時間・費用・効果，健康・心の余裕・人間関係・研究の増え方と減り方，" +
+    "毎週やることの時間・費用・効果，出来事でかかる時間，健康・心の余裕・人間関係・研究の増え方と減り方，" +
     "10月の家族の入院やパソコンの故障，3月の卒論の締切，先輩の話を聞く機会（首都圏で起こりやすい）は，すべて仮定です．" +
     `時給は ${WAGE_YEN_PER_HOUR.toLocaleString("ja-JP")} 円，最初の貯金は ${yen(STARTING_MONEY_YEN)}，首都圏に住む人は ${METRO_SHARE * 10} 割と置きました．`
   );

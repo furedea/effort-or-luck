@@ -1,26 +1,16 @@
-import type { PeriodId } from "./facts";
 import { ALLOWANCE_DISTRIBUTION } from "./parameters";
-import { autoLive, middlePolicy, type Plan, type Policy } from "./plan";
+import { autoLive, type Policy } from "./year";
 
-// One game of 100 selves swings a lot by chance. Replaying the same plans over many other draws
-// of luck shows what those plans usually lead to.
+// One game of 100 selves swings a lot by chance. Replaying the same decisions over many other
+// draws of luck shows what those decisions usually lead to.
 
-const LONG_RUN_LIVES = 4000;
+const LONG_RUN_LIVES = 2000;
 
 /** Fixed seeds, so the long-run figures are the same on every screen and in shared links. */
 export const LONG_RUN_SEEDS: readonly number[] = Array.from(
   { length: LONG_RUN_LIVES },
   (_, k) => (90_001 + k * 7919) >>> 0,
 );
-
-/** Follows `plans` period by period; a period without a plan is divided the middle way. */
-export function followPlans(plans: Readonly<Partial<Record<PeriodId, Plan>>>): Policy {
-  return (life, scene) => {
-    const period = scene.period?.id;
-    const plan = period ? plans[period] : undefined;
-    return plan ?? middlePolicy(life, scene);
-  };
-}
 
 /** Offer rate on June 1st per allowance (in distribution order) when living by `policy`. */
 export function longRunByAllowance(policy: Policy): number[] {
