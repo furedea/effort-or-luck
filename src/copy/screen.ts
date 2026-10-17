@@ -70,6 +70,18 @@ export function limitedLine(tile: string, weeks: number): string {
   return `${LIMITED_TITLE}：${tile}（${weeksLeftLine(weeks)}）`;
 }
 export const CANNOT_PAY = "お金が足りない";
+/** Names of the hour bar's parts, in the order they are drawn. */
+export const BAR_LABELS = {
+  oneOff: "予定",
+  job: "就活",
+  life: "自分のこと",
+  work: "バイト",
+  over: "オーバー",
+} as const;
+
+export function barLegendItem(label: string, hours: number): string {
+  return `${label} ${Number(hours.toFixed(1))}時間`;
+}
 
 /** The week's hours against the budget, with what is left or over, e.g. "週26／38時間（あと12時間）". */
 export function budgetLine(used: number, budget: number): string {

@@ -10,6 +10,8 @@ import {
   weekLabel,
 } from "../copy/scenes";
 import {
+  BAR_LABELS,
+  barLegendItem,
   budgetLine,
   CANNOT_PAY,
   FEED_TITLE,
@@ -351,7 +353,12 @@ function WeekBar({
   );
 }
 
-/** The week's hours as one bar: one-offs, job hunting, oneself, then hours over the budget. */
+type BarPart = keyof typeof BAR_LABELS;
+
+/**
+ * The week's hours as one bar, with a legend naming each part present: one-offs, job hunting,
+ * oneself, part-time work, then hours over the budget.
+ */
 function HourBar({
   budget,
   preview,
@@ -365,18 +372,48 @@ function HourBar({
     preview.taken
       .filter((spec) => spec.kind === kind)
       .reduce((sum, spec) => sum + spec.weeklyHours, 0);
+  const hours: Record<BarPart, number> = {
+    oneOff: oneOffHours,
+    job: hoursOf("job"),
+    life: hoursOf("life"),
+    work: hoursOf("work"),
+    over: preview.shortHours,
+  };
   const scale = Math.max(budget, preview.hours) || 1;
-  const width = (hours: number) => `${(hours / scale) * 100}%`;
-  const oneOff = Math.min(oneOffHours, budget);
-  const job = Math.min(hoursOf("job"), budget - oneOff);
-  const own = Math.min(hoursOf("life") + hoursOf("work"), budget - oneOff - job);
+  let room = budget;
+  const drawn = (part: BarPart) => {
+    if (part === "over") return hours.over;
+    const inside = Math.min(hours[part], Math.max(0, room));
+    room -= inside;
+    return inside;
+  };
+  const parts = (Object.keys(BAR_LABELS) as BarPart[]).map((part) => ({
+    part,
+    width: drawn(part),
+  }));
+  const present = (Object.keys(BAR_LABELS) as BarPart[]).filter((part) => hours[part] > 0);
   return (
-    <div className="bar" aria-hidden="true">
-      <span className="bar-oneoff" style={{ width: width(oneOff) }} />
-      <span className="bar-job" style={{ width: width(job) }} />
-      <span className="bar-life" style={{ width: width(own) }} />
-      <span className="bar-over" style={{ width: width(preview.shortHours) }} />
-    </div>
+    <>
+      <div className="bar" aria-hidden="true">
+        {parts.map(({ part, width }) => (
+          <span
+            key={part}
+            className={`bar-${part}`}
+            style={{ width: `${(width / scale) * 100}%` }}
+          />
+        ))}
+      </div>
+      {present.length ? (
+        <ul className="bar-legend">
+          {present.map((part) => (
+            <li key={part}>
+              <i className={`bar-${part}`} aria-hidden="true" />
+              {barLegendItem(BAR_LABELS[part], hours[part])}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </>
   );
 }
 
