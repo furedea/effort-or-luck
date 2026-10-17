@@ -308,11 +308,22 @@ main {
   font-size: 14px;
   color: var(--ink);
 }
+/* One row per figure, label on the left and value on the right, so longer values such as
+   地方で一人暮らし never wrap as more rows are added. */
 .event-table {
+  grid-template-columns: 1fr;
+  row-gap: 8px;
   margin: 0;
+}
+.event-table .status-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  column-gap: 12px;
 }
 .event-table .status-item dd {
   font-size: 16px;
+  white-space: nowrap;
 }
 .opt {
   display: grid;
