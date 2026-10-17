@@ -92,9 +92,13 @@ function startingStats(difficulty: Difficulty): Record<Stat, number> {
   return stats;
 }
 
-/** Savings gained (or, when negative, lost) each week from allowance and scholarship after living costs. */
+/**
+ * Savings gained (or, when negative, lost) each week from allowance and scholarship after living
+ * costs, in round thousands so savings read as plain amounts.
+ */
 export function weeklyIncomeYen(life: Life): number {
-  return Math.round((life.allowance + life.scholarship - MONTHLY_EXPENSE_YEN) / WEEKS_PER_MONTH);
+  const weekly = (life.allowance + life.scholarship - MONTHLY_EXPENSE_YEN) / WEEKS_PER_MONTH;
+  return Math.round(weekly / 1_000) * 1_000;
 }
 
 /** Hours of part-time work a week that would cover the living costs. */
