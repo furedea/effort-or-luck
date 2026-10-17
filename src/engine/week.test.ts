@@ -16,7 +16,8 @@ describe("a week's timetable", () => {
     const outcome = planWeek(richLife(), 0, ["selfAnalysis", "friends"]);
 
     expect(outcome.taken.map((spec) => spec.key)).toEqual(["selfAnalysis", "friends"]);
-    expect(outcome).toMatchObject({ hours: 10, shortHours: 0, paid: 0 });
+    const hours = routineOf("selfAnalysis").weeklyHours + routineOf("friends").weeklyHours;
+    expect(outcome).toMatchObject({ hours, shortHours: 0, paid: 0 });
   });
 
   it("skips routines not open that week", () => {
@@ -49,7 +50,7 @@ describe("a week's timetable", () => {
     const life = richLife();
     life.oneOff = { hours: 30, weeks: 3 };
 
-    expect(planWeek(life, 0, ["friends"]).hours).toBe(10 + 8);
+    expect(planWeek(life, 0, ["friends"]).hours).toBe(10 + routineOf("friends").weeklyHours);
   });
 });
 
@@ -63,7 +64,7 @@ describe("living a week", () => {
 
     const outcome = liveWeek(life, 0, ["extraWork"]);
 
-    expect(outcome?.earned).toBe(5 * WAGE_YEN_PER_HOUR);
+    expect(outcome?.earned).toBe(routineOf("extraWork").weeklyHours * WAGE_YEN_PER_HOUR);
     expect(life.money).toBe(before + (outcome?.earned ?? 0) - (outcome?.paid ?? 0));
     expect(life.oneOff).toEqual({ hours: 20, weeks: 2 });
     expect(life.lostWeeks).toBe(1);

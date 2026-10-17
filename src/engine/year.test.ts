@@ -1,5 +1,6 @@
 import { eventAt } from "./events";
-import { makeLife } from "./life";
+import { makeLife, weekBudget } from "./life";
+import { routineOf } from "./routine";
 import { autoLive, followDecisions, middlePolicy, mostPolicy, type Decision } from "./year";
 
 const decisions: Decision[] = [
@@ -44,4 +45,15 @@ test("putting everything into job hunting adds part-time work only while savings
 
   life.money = 20_000;
   expect(mostPolicy.timetable(life, 0)).not.toContain("extraWork");
+});
+
+test("the middle way takes only what fits the week, research and friends first", () => {
+  for (const seed of [1, 2, 3, 4, 5, 6]) {
+    const life = makeLife(seed);
+    const timetable = middlePolicy.timetable(life, 30);
+    const hours = timetable.reduce((sum, key) => sum + routineOf(key).weeklyHours, 0);
+
+    expect(hours).toBeLessThanOrEqual(weekBudget(life));
+    expect(timetable.slice(0, 2)).toEqual(["research", "friends"]);
+  }
 });
