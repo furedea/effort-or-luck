@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import "../styles/game.css";
-import { PLAY_AGAIN, shareText, TITLE, type View } from "../copy/screen";
+import { PLAY_AGAIN, shareText, TITLE } from "../copy/screen";
 import {
   advanceFor,
   chooseAndAdvance,
@@ -24,7 +24,6 @@ interface Game {
   /** The self the player lives as; the other selves silently make the same choices. */
   readonly player: number;
   readonly yearEnd: YearEnd | null;
-  readonly view: View;
   /** What the last choice led to, shown on the next month. */
   readonly carried: Carried | null;
   /** Every choice the player made, in order, so the year can be shared and replayed. */
@@ -47,7 +46,7 @@ export function GameScreen() {
   }, [step]);
 
   if (!game) return <main />;
-  const { cohort, player, yearEnd, view, carried } = game;
+  const { cohort, player, yearEnd, carried } = game;
   const life = cohort.lives[player];
   const scene = cohort.scenes[player];
 
@@ -61,8 +60,6 @@ export function GameScreen() {
           paths={{ same: cohort.lives, most: yearEnd.most, least: yearEnd.least }}
           ranks={cohort.allowanceRanks}
           player={player}
-          view={view}
-          onView={(next) => setGame({ ...game, view: next })}
           wants={cohort.wants}
           subject="you"
           actions={
@@ -95,7 +92,6 @@ function newGame(): Game {
     cohort: startCohort(seed),
     player: Math.floor(Math.random() * COHORT_SIZE),
     yearEnd: null,
-    view: "same",
     carried: null,
     choices: [],
   };

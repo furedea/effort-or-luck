@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import "../styles/game.css";
-import { LINK_ERRORS, PLAY_YOURSELF, TITLE, type View } from "../copy/screen";
+import { LINK_ERRORS, PLAY_YOURSELF, TITLE } from "../copy/screen";
 import type { Cohort, YearEnd } from "../engine/cohort";
 import { parse, replay, type LinkError } from "../share/result_link";
 import { RevealView } from "./reveal_view";
@@ -17,7 +17,6 @@ type Shared =
 
 export function ShareScreen() {
   const [shared, setShared] = useState<Shared | null>(null);
-  const [view, setView] = useState<View>("same");
 
   // The link lives in the query string, which only the browser has; reading it after
   // hydration keeps the server and browser output the same.
@@ -44,8 +43,6 @@ export function ShareScreen() {
           }}
           ranks={shared.cohort.allowanceRanks}
           player={shared.player}
-          view={view}
-          onView={setView}
           wants={shared.cohort.wants}
           subject="them"
           actions={playLink}

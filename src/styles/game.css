@@ -94,8 +94,7 @@ main {
   grid-template-rows: auto auto auto 1fr;
   row-gap: 18px;
 }
-.reveal-head,
-.bands-block {
+.reveal-head {
   display: grid;
   row-gap: 8px;
 }
@@ -267,14 +266,48 @@ main {
   font-size: 13px;
   color: var(--sub);
 }
-.lead {
-  margin: 0;
+.part {
+  display: grid;
+  row-gap: 8px;
+}
+.part-title {
+  margin: 8px 0 0;
   font-family: var(--display);
   font-size: 17px;
+  font-weight: 700;
 }
-.lead.small {
-  margin-top: 8px;
-  font-size: 15px;
+.part-lead {
+  margin: 0;
+  font-size: 13px;
+  color: var(--sub);
+}
+.effort-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.effort-table th,
+.effort-table td {
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--rule);
+  text-align: right;
+}
+.effort-table th:first-child {
+  text-align: left;
+}
+.effort-table thead th {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--sub);
+}
+.effort-table tbody th {
+  font-weight: 400;
+  color: var(--sub);
+}
+.effort-table .yours {
+  font-weight: 700;
+  color: var(--suit);
 }
 .bands {
   display: grid;
@@ -328,11 +361,6 @@ main {
   box-shadow:
     0 0 0 2px var(--paper),
     0 0 0 3.5px var(--shu);
-}
-.toggles {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
 }
 .toggle {
   padding: 8px 14px;

@@ -11,12 +11,15 @@ import { describeLog } from "./scenes";
 
 // Japanese text for the screen around the scenes: the play header and the year-end reveal.
 
-export type View = "same" | "most" | "least";
+/** The ways the same 100 selves are replayed: always least effort, the player's choices, always most. */
+export type Path = "least" | "same" | "most";
 
 export const TITLE = "努力か，運か";
 export const NEXT = "次へ";
 export const YEAR_END = "4年 6月1日";
-export const SAME_LUCK = "同じ運のまま，選び方だけ変えると";
+export const LUCK_PART = "① 努力をそろえて，運だけ変えると";
+export const EFFORT_PART = "② 運をそろえて，努力だけ変えると";
+export const ALLOWANCE_HEADER = "仕送り";
 export const SOURCES_LINK = "数字の出典と仮定について";
 export const SOURCES_TITLE = "数字の出典と仮定";
 export const BACK_TO_GAME = "ゲームに戻る";
@@ -31,12 +34,6 @@ export const LINK_ERRORS = {
   unreadable: "このリンクは読み取れなかった．",
   oldRules: "このリンクは今とは違うルールで遊んだ結果なので，再現できない．",
 } as const;
-
-export const VIEWS = [
-  ["same", "あなたの選択"],
-  ["most", "いつも頑張る"],
-  ["least", "いつも楽をする"],
-] as const satisfies readonly (readonly [View, string])[];
 
 export function previousChoice(result: string): string {
   return `前の選択で，${result}`;
@@ -89,8 +86,20 @@ export function shareText(offers: number): string {
   return `${TITLE}｜6月1日，内定 ${offers ? `${offers} 社` : "なし"}`;
 }
 
-export function revealLead(size: number): string {
-  return `同じ選択を，仕送りの違う ${size} 人のあなたがしていた．`;
+export function luckLead(subject: Subject, size: number): string {
+  return `全員が${SUBJECT[subject]}と同じ選択をした ${size} 人`;
+}
+
+export function effortLead(size: number): string {
+  return `同じ ${size} 人が，全員こう選んでいたら`;
+}
+
+export function pathLabel(path: Path, subject: Subject): string {
+  return path === "same" ? SUBJECT[subject] : path === "most" ? "いつも頑張る" : "いつも楽をする";
+}
+
+export function offeredFraction(offered: number, total: number): string {
+  return `${offered}/${total}`;
 }
 
 export function allowanceRow(amount: number): string {
