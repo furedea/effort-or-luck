@@ -153,7 +153,7 @@ type Facts<Id extends EventFacts["id"]> = Extract<EventFacts, { id: Id }>;
 
 function introLines(facts: Facts<"intro">): string[] {
   return [
-    "卒業前の1年が始まる．",
+    "就活の1年が始まる．翌年の6月1日まで．",
     facts.allowance
       ? `${region(facts.metro)}で一人暮らし．仕送りは月 ${yen(facts.allowance)}．`
       : `${region(facts.metro)}で一人暮らし．仕送りはない．`,
