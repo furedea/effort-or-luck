@@ -2,15 +2,7 @@
 // order of draws here is part of what makes a seed reproducible.
 import { EVENT_WEEKS, weekOfMonthStart, WEEKS } from "./calendar";
 import type { AutumnEvent, Effort, EventFacts, OptionKey, Shortfall, Stat } from "./facts";
-import {
-  isActive,
-  loseHours,
-  partTimeHours,
-  tripYen,
-  weekBudget,
-  weeklyFreeHours,
-  type Life,
-} from "./life";
+import { isActive, loseHours, neededWorkHours, tripYen, type Life } from "./life";
 import {
   ALLOWANCE_CUT_YEN,
   AUTUMN_EVENT,
@@ -27,7 +19,7 @@ import {
   THESIS_CRUNCH_HOURS,
   THESIS_CRUNCH_RESEARCH,
   TRAVEL_REIMBURSED_CHANCE,
-  WAGE_YEN_PER_HOUR,
+  WEEKLY_HOURS,
 } from "./parameters";
 import { countSuccesses } from "./random";
 import { SMALL_EVENTS, type SmallOption } from "./small_events";
@@ -130,9 +122,9 @@ export function eventAt(life: Life, week: number): Event | null {
 
 function price(life: Life, option: EventOption): PricedOption {
   const weeklyHours = option.hours / option.weeks;
-  const shortHours = Math.max(0, weeklyHours - weekBudget(life)) * option.weeks;
-  const total = option.money + shortHours * WAGE_YEN_PER_HOUR;
-  const shortfall = total <= life.money ? null : shortHours > 0 ? "time" : "money";
+  // Hours beyond the free hours come out of sleep; only a week's worth that cannot fit at all is short.
+  const total = option.money;
+  const shortfall = weeklyHours > WEEKLY_HOURS ? "time" : total <= life.money ? null : "money";
   return { ...option, total, shortfall };
 }
 
@@ -210,8 +202,8 @@ function intro(life: Life) {
     allowance: life.allowance,
     metro: life.metro,
     scholarship: life.scholarship,
-    partTimeHours: partTimeHours(life),
-    weeklyFreeHours: weeklyFreeHours(life),
+    neededWorkHours: neededWorkHours(life),
+    weeklyHours: WEEKLY_HOURS,
     money: life.money,
   };
   return { facts, options: [] };

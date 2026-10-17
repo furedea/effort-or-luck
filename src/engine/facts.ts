@@ -35,7 +35,8 @@ export type RoutineKey =
   | "summerEsPrep"
   | "earlyPrep"
   | "entryPrep"
-  | "finalPrep";
+  | "finalPrep"
+  | "moreWork";
 
 /** Selection stages that limited-time preparation raises the pass rate of. */
 export type Boost = "internEs" | "early" | "entryEs" | "final";
@@ -57,8 +58,9 @@ export type EventFacts =
       readonly allowance: number;
       readonly metro: boolean;
       readonly scholarship: number;
-      readonly partTimeHours: number;
-      readonly weeklyFreeHours: number;
+      /** Weekly hours of part-time work living costs would need. */
+      readonly neededWorkHours: number;
+      readonly weeklyHours: number;
       readonly money: number;
     }
   | { readonly id: "internEs" }

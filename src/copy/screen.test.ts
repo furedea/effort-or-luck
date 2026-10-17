@@ -32,10 +32,8 @@ test("the stat bars flag stats close to zero", () => {
   expect(bars.filter((bar) => bar.low).map((bar) => bar.label)).toEqual(["健康", "研究"]);
 });
 
-test("hours beyond the budget are said to come from savings", () => {
-  expect(overflowLine(5, 5_500)).toBe(
-    "足りない週5時間は，バイトを減らして貯金から（−5,500円／週）",
-  );
+test("hours beyond the budget are said to come from sleep", () => {
+  expect(overflowLine(5)).toBe("はみ出た週5時間は睡眠を削る（健康 −1／週）");
 });
 
 test("selves who ended early are counted by reason", () => {

@@ -328,9 +328,7 @@ function WeekBar({
         <span className="bar-over" style={{ width: width(preview.shortHours) }} />
       </div>
       {oneOffHours ? <p className="time-left">{oneOffLine(oneOffHours)}</p> : null}
-      {preview.shortHours ? (
-        <p className="time-over">{overflowLine(preview.shortHours, preview.paid)}</p>
-      ) : null}
+      {preview.shortHours ? <p className="time-over">{overflowLine(preview.shortHours)}</p> : null}
     </div>
   );
 }

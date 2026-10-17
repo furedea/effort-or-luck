@@ -116,6 +116,6 @@ test("a recorded link still replays to the recorded result under the current rul
   if (!replayed.ok) return;
   const offersPerSelf = replayed.value.cohort.lives.map((life) => life.offers.length).join("");
   expect(offersPerSelf).toBe(
-    "0021100002000020111101001222010012012111110001000001111111110000100000010011102001111001000012301010",
+    "1031120112121120110111310241010112002111210001111101121411210000101210011030202202113011011012211131",
   );
 });

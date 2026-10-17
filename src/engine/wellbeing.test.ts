@@ -1,8 +1,9 @@
-import { makeLife, weeklyPartTimeHours } from "./life";
+import { makeLife } from "./life";
 import {
   DIFFICULTY,
   FOURTH_YEAR_RESEARCH_DRIFT,
   HEALTH_PER_OVERLOAD_HOUR,
+  HEALTH_PER_SLEEP_HOUR,
   HEALTHY_WORKLOAD_WEEKLY_HOURS,
   MIND_PER_JOB_HOUR,
   STARTING_STATS,
@@ -29,6 +30,7 @@ describe("living through a period", () => {
       taken: [],
       jobHours: 0,
       extraWorkHours: 0,
+      shortHours: 0,
     });
 
     expect(life.stats.social).toBeCloseTo(STARTING_STATS.social + WEEKLY_DRIFT.social * 4);
@@ -44,6 +46,7 @@ describe("living through a period", () => {
       taken: [],
       jobHours: 0,
       extraWorkHours: 0,
+      shortHours: 0,
     });
 
     expect(life.stats.research).toBeCloseTo(
@@ -60,6 +63,7 @@ describe("living through a period", () => {
       taken: [friends],
       jobHours: 0,
       extraWorkHours: 0,
+      shortHours: 0,
     });
 
     expect(life.stats.social).toBeCloseTo(STARTING_STATS.social + (WEEKLY_DRIFT.social + 1.4) * 4);
@@ -67,7 +71,7 @@ describe("living through a period", () => {
 
   it("wears health down for weekly work beyond the healthy load, and mind for job hunting", () => {
     const life = richLife();
-    const jobHours = 4 * (HEALTHY_WORKLOAD_WEEKLY_HOURS - weeklyPartTimeHours(life) + 10);
+    const jobHours = 4 * (HEALTHY_WORKLOAD_WEEKLY_HOURS + 10);
 
     liveThroughPeriod(life, {
       weeks: 4,
@@ -75,6 +79,7 @@ describe("living through a period", () => {
       taken: [],
       jobHours,
       extraWorkHours: 0,
+      shortHours: 0,
     });
 
     expect(life.stats.health).toBeCloseTo(
@@ -97,6 +102,7 @@ describe("the end of the year", () => {
       taken: [],
       jobHours: 0,
       extraWorkHours: 0,
+      shortHours: 0,
     });
 
     expect(life.over).toBe("social");
@@ -122,6 +128,7 @@ describe("the end of the year", () => {
       taken: [],
       jobHours: 0,
       extraWorkHours: 0,
+      shortHours: 0,
     });
     const health = life.stats.health;
 
@@ -131,6 +138,7 @@ describe("the end of the year", () => {
       taken: [],
       jobHours: 0,
       extraWorkHours: 0,
+      shortHours: 0,
     });
 
     expect(life.stats.health).toBe(health);
@@ -160,6 +168,7 @@ describe("difficulty", () => {
         taken: [],
         jobHours: 0,
         extraWorkHours: 0,
+        shortHours: 0,
       });
       return life.stats.social - before;
     };
@@ -168,4 +177,21 @@ describe("difficulty", () => {
     expect(drift("easy")).toBeCloseTo(WEEKLY_DRIFT.social * DIFFICULTY.easy.driftFactor);
     expect(drift("hard")).toBeCloseTo(WEEKLY_DRIFT.social * DIFFICULTY.hard.driftFactor);
   });
+});
+
+test("hours beyond the free hours come out of sleep and cost health", () => {
+  const life = makeLife(1);
+
+  liveThroughPeriod(life, {
+    weeks: 1,
+    fourthYear: false,
+    taken: [],
+    jobHours: 0,
+    extraWorkHours: 0,
+    shortHours: 5,
+  });
+
+  expect(life.stats.health).toBeCloseTo(
+    STARTING_STATS.health + WEEKLY_DRIFT.health - 5 * HEALTH_PER_SLEEP_HOUR,
+  );
 });
