@@ -19,8 +19,10 @@ export function ShareScreen() {
   const [shared, setShared] = useState<Shared | null>(null);
   const [view, setView] = useState<View>("same");
 
-  // The link lives in the query string, which only the browser has.
+  // The link lives in the query string, which only the browser has; reading it after
+  // hydration keeps the server and browser output the same.
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setShared(load(window.location.search));
   }, []);
 
