@@ -6,7 +6,7 @@ const WEEK_MS = 300;
 const MAX_ACTIONS = 2000;
 
 /**
- * Plays the year to the reveal under fake timers: moves on from notices, takes the first option
+ * Plays the year to the reveal under fake timers: moves on from stopping notices, takes the first option
  * the player can afford, presses play when paused, and otherwise lets a week pass.
  */
 export function playToReveal(host: HTMLElement): void {

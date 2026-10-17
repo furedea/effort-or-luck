@@ -127,10 +127,26 @@ main {
   display: grid;
   row-gap: 6px;
 }
-.carried {
+.feed-block {
+  display: grid;
+  row-gap: 4px;
+}
+.feed {
+  display: grid;
+  row-gap: 4px;
   margin: 0;
+  padding: 0;
+  list-style: none;
   font-size: 13px;
-  color: var(--suit);
+  line-height: 1.6;
+}
+.feed li:first-child {
+  animation: rise 0.45s ease both;
+}
+.feed-when {
+  margin-right: 0.6em;
+  color: var(--sub);
+  font-variant-numeric: tabular-nums;
 }
 .status {
   display: grid;

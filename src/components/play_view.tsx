@@ -12,6 +12,7 @@ import {
 import {
   budgetLine,
   CANNOT_PAY,
+  FEED_TITLE,
   LOW_NOTE,
   NEXT,
   oneOffLine,
@@ -30,6 +31,11 @@ import type { Life } from "../engine/life";
 import { isOpen, ROUTINES, type RoutineSpec } from "../engine/routine";
 import { planWeek } from "../engine/week";
 
+export interface FeedEntry {
+  readonly week: number;
+  readonly text: string;
+}
+
 interface Props {
   readonly life: Life;
   readonly week: number;
@@ -37,8 +43,7 @@ interface Props {
   readonly event: Event | null;
   readonly timetable: readonly RoutineKey[];
   readonly playing: boolean;
-  /** A line about what happened since the last stop, or a warning. */
-  readonly notice: string | null;
+  readonly feed: readonly FeedEntry[];
   readonly onTimetable: (timetable: readonly RoutineKey[]) => void;
   readonly onPlay: () => void;
   readonly onPause: () => void;
@@ -47,7 +52,7 @@ interface Props {
 }
 
 export function PlayView(props: Props) {
-  const { life, week, event, playing, notice } = props;
+  const { life, week, event, playing, feed } = props;
   const heading = useRef<HTMLHeadingElement>(null);
   // An event replaces the controls the player was using, so keyboard focus moves to it.
   useEffect(() => {
@@ -59,12 +64,12 @@ export function PlayView(props: Props) {
         <span style={{ width: `${(Math.min(week, WEEKS) / WEEKS) * 100}%` }} />
       </div>
       <header className="play-head">
-        {notice ? <p className="carried">{notice}</p> : null}
         <h2 className="when" ref={heading} tabIndex={-1}>
           {weekLabel(week)}
         </h2>
         <Status life={life} />
       </header>
+      <Feed entries={feed} />
       {event ? (
         <EventPanel event={event} onChoose={props.onChoose} onNext={props.onNext} />
       ) : (
@@ -86,6 +91,25 @@ export function PlayView(props: Props) {
           </div>
         </>
       )}
+    </section>
+  );
+}
+
+const FEED_SHOWN = 3;
+
+function Feed({ entries }: { entries: readonly FeedEntry[] }) {
+  if (!entries.length) return null;
+  return (
+    <section className="feed-block">
+      <h3 className="activity-section">{FEED_TITLE}</h3>
+      <ul className="feed" aria-live="polite">
+        {entries.slice(0, FEED_SHOWN).map(({ week, text }) => (
+          <li key={`${week}${text}`}>
+            <span className="feed-when">{weekLabel(week)}</span>
+            {text}
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

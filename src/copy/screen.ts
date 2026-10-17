@@ -40,6 +40,7 @@ export const LINK_ERRORS = {
 export const SECTION = { job: "就活", life: "自分のこと", work: "お金" } as const;
 export const PLAY = "▶ 進む";
 export const PAUSE = "⏸ 止める";
+export const FEED_TITLE = "これまで";
 export const TIMETABLE_TITLE = "毎週の過ごし方";
 export const CANNOT_PAY = "お金が足りない";
 
@@ -58,25 +59,6 @@ export function oneOffLine(hours: number): string {
 /** A stat that has dropped close to zero, e.g. "健康が 18 まで下がった．". */
 export function warningLine(stat: Stat, value: number): string {
   return `${STAT_LABELS[stat]}が ${Math.round(value)} まで下がった．このままだと危ない．`;
-}
-
-/** What the last period did to savings and the four stats, e.g. "貯金 +3万円・健康 −6". */
-export function periodSummary(
-  moneyChange: number,
-  statChanges: Readonly<Record<Stat, number>>,
-): string {
-  const money = moneyChange
-    ? `貯金 ${moneyChange > 0 ? "+" : "−"}${yen(Math.abs(moneyChange))}`
-    : "";
-  const stats = (Object.keys(STAT_LABELS) as Stat[])
-    .map((stat) => [stat, Math.round(statChanges[stat])] as const)
-    .filter(([, change]) => change !== 0)
-    .map(([stat, change]) => `${STAT_LABELS[stat]} ${change > 0 ? "+" : "−"}${Math.abs(change)}`);
-  return [money, ...stats].filter(Boolean).join("・");
-}
-
-export function sinceLastStop(summary: string): string {
-  return `前に止まってから，${summary}`;
 }
 
 interface StatusItem {

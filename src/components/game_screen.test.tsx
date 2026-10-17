@@ -34,6 +34,10 @@ function startYear(host: HTMLElement) {
 }
 
 const when = (host: HTMLElement) => host.querySelector(".when")?.textContent;
+const tileNamed = (host: HTMLElement, name: string) =>
+  [...host.querySelectorAll<HTMLButtonElement>(".activity")].find(
+    (button) => button.querySelector(".activity-name")?.textContent === name,
+  )!;
 const playButton = (host: HTMLElement) => host.querySelector<HTMLButtonElement>(".actions .flow")!;
 
 test("opens on the first week with the opening notice", () => {
@@ -71,6 +75,34 @@ test("stops flowing when paused", () => {
   });
 
   expect(when(host)).toBe(paused);
+});
+
+test("stops only for choices, listing other happenings while time flows", () => {
+  const host = mount();
+  startYear(host);
+  // Living only for oneself never ends the year early, so the year reaches June.
+  for (const name of ["友達と遊ぶ", "SNS・動画", "研究・ゼミ", "ゆっくり休む"]) {
+    click(tileNamed(host, name));
+  }
+  click(playButton(host));
+
+  const stopsWithoutChoice: string[] = [];
+  for (let guard = 0; guard < 400 && !host.querySelector(".event .next"); guard++) {
+    const event = host.querySelector(".event");
+    const option = event?.querySelector<HTMLButtonElement>(".opt:not([disabled])");
+    if (event && !event.querySelector(".opt")) stopsWithoutChoice.push(when(host) ?? "");
+    if (option) {
+      click(option);
+    } else {
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+    }
+  }
+
+  expect(stopsWithoutChoice).toEqual([]);
+  expect(when(host)).toBe("6月1日");
+  expect(host.querySelectorAll(".feed li").length).toBeGreaterThan(0);
 });
 
 test("can be played from the first week to the reveal", () => {

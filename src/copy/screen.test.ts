@@ -1,12 +1,4 @@
-import {
-  budgetLine,
-  endedCount,
-  overflowLine,
-  periodSummary,
-  statBars,
-  statusItems,
-  warningLine,
-} from "./screen";
+import { budgetLine, endedCount, overflowLine, statBars, statusItems, warningLine } from "./screen";
 
 const base = { allowance: 70_000, scholarship: 50_000, money: 20_000, offers: 0 };
 
@@ -38,12 +30,6 @@ test("the stat bars flag stats close to zero", () => {
   const bars = statBars({ health: 24, mind: 25, social: 80, research: 3 });
 
   expect(bars.filter((bar) => bar.low).map((bar) => bar.label)).toEqual(["健康", "研究"]);
-});
-
-test("a period's summary names the change in savings and in each stat that moved", () => {
-  expect(periodSummary(30_000, { health: -6.4, mind: 3.2, social: 0.2, research: 0 })).toBe(
-    "貯金 +3万円・健康 −6・心の余裕 +3",
-  );
 });
 
 test("hours beyond the budget are said to come from savings", () => {
