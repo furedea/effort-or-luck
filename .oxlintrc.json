@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["typescript", "import", "promise", "node", "vitest"],
-  "ignorePatterns": ["coverage/**", "dist/**", "node_modules/**"],
+  "plugins": ["typescript", "react", "import", "promise", "node", "vitest"],
+  "ignorePatterns": [".astro/**", "coverage/**", "dist/**", "node_modules/**"],
   "settings": {
     "vitest": {
       "typecheck": true
@@ -15,7 +15,7 @@
   },
   "overrides": [
     {
-      "files": ["**/*.test.ts", "**/*.spec.ts"],
+      "files": ["**/*.test.ts", "**/*.spec.ts", "**/*.test.tsx", "**/*.spec.tsx"],
       "globals": {
         "afterAll": "readonly",
         "afterEach": "readonly",
