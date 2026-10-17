@@ -1,6 +1,12 @@
 import type { Scene } from "../engine/choice";
 import type { LogFact, OptionKey, ResultFact, SceneFacts, Shortfall } from "../engine/facts";
-import { ALLOWANCE_CUT_YEN, SHOP_CLOSED_LOSS_YEN, TRIP_YEN } from "../engine/parameters";
+import {
+  ALLOWANCE_CUT_YEN,
+  FAMILY_TRIP_YEN,
+  LAPTOP_REPAIR_YEN,
+  SHOP_CLOSED_LOSS_YEN,
+  TRIP_YEN,
+} from "../engine/parameters";
 import { region, yen } from "./format";
 
 // Japanese text for what the engine reports. Wording lives here, never in the engine.
@@ -18,6 +24,7 @@ const WHEN = {
   summerIntern: "3年 8月",
   autumn: "3年 10月",
   early: "3年 12月",
+  jan: "4年 1月",
   feb: "4年 2月",
   march: "4年 3月",
   finals: "4年 4月",
@@ -37,10 +44,26 @@ export function describeScene({ facts }: Scene): SceneText {
       return { when, lines: autumnLines(facts) };
     case "early":
       return { when, lines: [EARLY[facts.result]] };
+    case "jan":
+      return {
+        when,
+        lines: [
+          facts.metro
+            ? "大学の先輩から，会社の話を聞かせてもらえることになった．"
+            : "東京で働く先輩に，話を聞けることになった．",
+        ],
+      };
     case "feb":
       return { when, lines: [facts.hasOffer ? "内定が一つある．" : "まだ内定はない．"] };
     case "march":
-      return { when, lines: ["本選考のエントリーが始まった．", "ES は一社 2 時間．"] };
+      return {
+        when,
+        lines: [
+          "本選考のエントリーが始まった．",
+          "ES は一社 2 時間．",
+          ...(facts.busy ? ["ゼミの発表と卒論の締切が重なり，今月は時間が減る．"] : []),
+        ],
+      };
     case "finals":
       return { when, lines: finalsLines(facts) };
     case "june":
@@ -92,6 +115,14 @@ export function describeLog(fact: LogFact): string {
       return "10月，熱を出した";
     case "earlyOffer":
       return "12月，早期選考で内定";
+    case "familyIllness":
+      return "10月，家族の入院で帰省した";
+    case "laptopBroken":
+      return "10月，パソコンが壊れた";
+    case "seniorTalk":
+      return "1月，先輩に話を聞いた";
+    case "thesisCrunch":
+      return "3月，卒論の締切が重なった";
     case "missed":
       return missedMessage(fact.option);
     case "june":
@@ -132,6 +163,8 @@ function autumnLines(facts: Facts<"autumn">): string[] {
     allowanceCut: `仕送りが月 ${yen(ALLOWANCE_CUT_YEN)}減った．`,
     shopClosed: `バイト先が閉店した．貯金が ${yen(SHOP_CLOSED_LOSS_YEN)}減った．`,
     sick: "一週間，熱が下がらなかった．",
+    familyIllness: `家族が入院し，実家に帰った．交通費で ${yen(FAMILY_TRIP_YEN)}かかり，時間も減った．`,
+    laptopBroken: `パソコンが壊れた．修理に ${yen(LAPTOP_REPAIR_YEN)}かかる．`,
     calm: "何も起きなかった．",
   }[facts.event.kind];
   return [event, ...(facts.invited ? ["インターン先から早期選考の案内が来た．"] : [])];
@@ -151,6 +184,7 @@ function finalsLines(facts: Facts<"finals">): string[] {
     facts.metro
       ? `最終面接は ${facts.finals} 社．`
       : `最終面接は東京で ${facts.finals} 社．一社 ${yen(TRIP_YEN.regional)}．`,
+    ...(facts.reimbursed ? [`うち ${facts.reimbursed} 社は交通費を出してくれる．`] : []),
   ];
 }
 
@@ -191,6 +225,9 @@ const OPTION_LABELS = {
   oneFace: "1 社だけ対面，残りはオンライン",
   allOnline: "オンラインで受ける",
   decline: "辞退する",
+  meetSenior: "会って話を聞く",
+  askOnline: "オンラインで少し聞く",
+  pass: "今回は見送る",
 } as const satisfies Record<OptionKey, string>;
 
 function finalsOptionLabel(count: number, key: OptionKey): string {

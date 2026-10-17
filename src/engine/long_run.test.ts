@@ -8,6 +8,7 @@ const EVERY_SCENE: readonly SceneId[] = [
   "summerEs",
   "summerIntern",
   "autumn",
+  "jan",
   "feb",
   "march",
   "finals",

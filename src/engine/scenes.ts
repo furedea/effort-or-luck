@@ -6,11 +6,18 @@ import {
   ALLOWANCE_CUT_YEN,
   AUTUMN_EVENT,
   EXTRA_WORK_HOURS,
+  FAMILY_TRIP_HOURS,
+  FAMILY_TRIP_YEN,
+  LAPTOP_REPAIR_YEN,
   MAX_PASS_PROBABILITY,
   PASS,
   SCHOLARSHIP_MONTHS,
+  SENIOR_TALK_CHANCE,
   SHOP_CLOSED_LOSS_YEN,
   SICK_HOURS,
+  THESIS_CRUNCH_CHANCE,
+  THESIS_CRUNCH_HOURS,
+  TRAVEL_REIMBURSED_CHANCE,
   WAGE_YEN_PER_HOUR,
 } from "./parameters";
 import { countSuccesses } from "./random";
@@ -38,6 +45,7 @@ const SCENES: readonly SceneBuilder[] = [
   summerIntern,
   autumn,
   earlySelection,
+  january,
   february,
   march,
   finals,
@@ -173,16 +181,30 @@ function drawAutumnEvent(life: Life): AutumnEvent {
     life.log.push({ kind: "shopClosed" });
     return { kind: "shopClosed" };
   }
-  if (roll < AUTUMN_EVENT.allowanceCut + AUTUMN_EVENT.sick) {
-    life.sickHours = SICK_HOURS;
+  let threshold = AUTUMN_EVENT.allowanceCut + AUTUMN_EVENT.sick;
+  if (roll < threshold) {
+    life.lostHours = SICK_HOURS;
     life.log.push({ kind: "sick" });
     return { kind: "sick" };
+  }
+  threshold += AUTUMN_EVENT.familyIllness;
+  if (roll < threshold) {
+    life.money = Math.max(0, life.money - FAMILY_TRIP_YEN);
+    life.lostHours = FAMILY_TRIP_HOURS;
+    life.log.push({ kind: "familyIllness" });
+    return { kind: "familyIllness" };
+  }
+  threshold += AUTUMN_EVENT.laptopBroken;
+  if (roll < threshold) {
+    life.money = Math.max(0, life.money - LAPTOP_REPAIR_YEN);
+    life.log.push({ kind: "laptopBroken" });
+    return { kind: "laptopBroken" };
   }
   return { kind: "calm" };
 }
 
 function earlySelection(life: Life): SceneDraft {
-  life.sickHours = 0;
+  life.lostHours = 0;
   if (!life.invited) {
     return {
       facts: { id: "early", result: "notInvited", hadIntern: life.intern !== "none" },
@@ -195,6 +217,25 @@ function earlySelection(life: Life): SceneDraft {
     life.log.push({ kind: "earlyOffer" });
   }
   return { facts: { id: "early", result: passed ? "passed" : "failed" }, options: [] };
+}
+
+function january(life: Life): SceneDraft | null {
+  const chance = life.metro ? SENIOR_TALK_CHANCE.metro : SENIOR_TALK_CHANCE.regional;
+  if (life.rng() >= chance) return null;
+  return {
+    facts: { id: "jan", metro: life.metro },
+    options: [
+      option("meetSenior", 2, { hours: 6 }, (x) => {
+        x.prep += 2;
+        x.log.push({ kind: "seniorTalk" });
+      }),
+      option("askOnline", 1, { hours: 2 }, (x) => {
+        x.prep += 1;
+        x.log.push({ kind: "seniorTalk" });
+      }),
+      option("pass", 0),
+    ],
+  };
 }
 
 function february(life: Life): SceneDraft {
@@ -215,8 +256,11 @@ function february(life: Life): SceneDraft {
 
 function march(life: Life): SceneDraft | null {
   if (life.done) return null;
+  const busy = life.rng() < THESIS_CRUNCH_CHANCE;
+  life.lostHours = busy ? THESIS_CRUNCH_HOURS : 0;
+  if (busy) life.log.push({ kind: "thesisCrunch" });
   return {
-    facts: { id: "march" },
+    facts: { id: "march", busy },
     options: [
       option("entryTwenty", 2, { hours: 40, blockable: true }, (x) => {
         x.entries = 20;
@@ -237,6 +281,7 @@ function march(life: Life): SceneDraft | null {
 
 function finals(life: Life): SceneDraft | null {
   if (life.done) return null;
+  life.lostHours = 0;
   const firstRound = countSuccesses(
     life.rng,
     life.entries,
@@ -247,15 +292,19 @@ function finals(life: Life): SceneDraft | null {
     firstRound,
     passChance(PASS.toFinal, PASS.toFinalPerPrep, life),
   );
+  const reimbursed =
+    count && !life.metro ? countSuccesses(life.rng, count, TRAVEL_REIMBURSED_CHANCE) : 0;
   const facts = {
     id: "finals",
     entries: life.entries,
     firstRound,
     finals: count,
+    reimbursed,
     metro: life.metro,
   } as const;
   if (!count) return { facts, options: [] };
   const trip = tripYen(life);
+  const paidTrips = count - reimbursed;
   const take =
     (face: number, online: number) =>
     (x: Life): undefined => {
@@ -267,7 +316,7 @@ function finals(life: Life): SceneDraft | null {
       option(
         "allFace",
         2,
-        { hours: 8 * count, money: trip * count, blockable: true },
+        { hours: 8 * count, money: trip * paidTrips, blockable: true },
         take(count, 0),
       ),
       ...(count > 1
@@ -275,7 +324,7 @@ function finals(life: Life): SceneDraft | null {
             option(
               "oneFace",
               1,
-              { hours: 8 + 2 * (count - 1), money: trip, blockable: true },
+              { hours: 8 + 2 * (count - 1), money: reimbursed ? 0 : trip, blockable: true },
               take(1, count - 1),
             ),
           ]

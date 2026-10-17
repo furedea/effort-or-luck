@@ -2,7 +2,7 @@
 // that always choosing the middle option lands near the surveyed June 1st offer rate.
 
 /** Bump whenever a change alters results, so shared links from older rules are reported as old. */
-export const RULES_VERSION = 1;
+export const RULES_VERSION = 2;
 
 export const WAGE_YEN_PER_HOUR = 1100;
 export const MONTHLY_EXPENSE_YEN = 130_000;
@@ -41,11 +41,29 @@ export const PASS = {
   entryEsPerPrep: 0.02,
   toFinal: 0.5,
   toFinalPerPrep: 0.03,
-  final: 0.61,
+  final: 0.58,
   finalPerPrep: 0.03,
   onlineFinalFactor: 0.7,
   /** Sized so the metro/regional gap matches the surveyed 関東 vs other-regions offer rates. */
-  regionalFinalFactor: 0.86,
+  regionalFinalFactor: 0.89,
 } as const;
 
-export const AUTUMN_EVENT = { allowanceCut: 0.08, sick: 0.1 } as const;
+// Chances and sizes below are assumptions unless a source is given.
+export const AUTUMN_EVENT = {
+  allowanceCut: 0.08,
+  sick: 0.1,
+  familyIllness: 0.05,
+  laptopBroken: 0.05,
+} as const;
+export const FAMILY_TRIP_YEN = 20_000;
+export const FAMILY_TRIP_HOURS = 15;
+export const LAPTOP_REPAIR_YEN = 50_000;
+export const THESIS_CRUNCH_CHANCE = 0.3;
+export const THESIS_CRUNCH_HOURS = 20;
+/**
+ * Chance that a company pays a regional self's travel to a final interview. マイナビ 2025年卒
+ * 学生就職モニター調査 (6月): 67.9% of students received travel or lodging from companies, from
+ * 2.7 companies on average; at 0.5 per company, most selves with two or three finals get one.
+ */
+export const TRAVEL_REIMBURSED_CHANCE = 0.5;
+export const SENIOR_TALK_CHANCE = { metro: 0.5, regional: 0.25 } as const;

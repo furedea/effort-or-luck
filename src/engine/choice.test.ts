@@ -62,7 +62,7 @@ describe("choosing what a life cannot afford", () => {
   function brokeScene(life: Life): Scene {
     life.money = 0;
     return {
-      facts: { id: "march" },
+      facts: { id: "march", busy: false },
       options: [
         price(life, { ...spec(2, { money: 1 }), key: "entryTwenty" }),
         price(life, { ...spec(1, { money: 1 }), key: "entryEight" }),
