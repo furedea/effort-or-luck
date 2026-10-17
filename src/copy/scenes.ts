@@ -64,8 +64,8 @@ export function describeEvent({ facts }: Event): EventText {
       return {
         lines: [
           facts.metro
-            ? "冬インターン（3日間）の募集が来た．"
-            : `冬インターン（3日間，東京）の募集が来た．往復と宿で ${yen(TRIP_YEN.regional)}．`,
+            ? "3日間の冬インターンの募集が来た．"
+            : `東京で3日間の冬インターンの募集が来た．往復と宿で ${yen(TRIP_YEN.regional)}．`,
         ],
       };
     case "early":
@@ -100,9 +100,9 @@ export function optionLabel(option: PricedOption, facts: EventFacts): string {
   return OPTION_LABELS[option.key];
 }
 
-/** What an option takes and brings, e.g. "15時間（3週）・3万円・心の余裕 +5". */
+/** What an option takes and brings, e.g. "3週で15時間・3万円・心の余裕 +5". */
 export function optionCost({ hours, weeks, money, pay, stats, prep }: PricedOption): string {
-  const time = hours ? `${hours}時間${weeks > 1 ? `（${weeks}週）` : ""}` : "";
+  const time = hours ? `${weeks > 1 ? `${weeks}週で` : ""}${hours}時間` : "";
   const signed = (value: number) => (value < 0 ? `−${-value}` : `+${value}`);
   const statChanges = (Object.keys(STAT_LABELS) as Stat[])
     .filter((stat) => stats?.[stat])
@@ -141,7 +141,7 @@ export function routineDetail(spec: RoutineSpec): string {
     spec.weeklyMoney ? `−${yen(spec.weeklyMoney)}` : "",
     spec.weeklyPay ? `+${yen(spec.weeklyPay)}` : "",
   ].filter(Boolean);
-  return `${ROUTINES[spec.key].label}（週${spec.weeklyHours}時間）：${effects.join("・")}／週`;
+  return `${ROUTINES[spec.key].label} 週${spec.weeklyHours}時間：${effects.join("・")}／週`;
 }
 
 export function describeLog(fact: LogFact): string {
@@ -183,7 +183,7 @@ type Facts<Id extends EventFacts["id"]> = Extract<EventFacts, { id: Id }>;
 
 const INTRO_LINES = [
   "就活の1年が始まる．",
-  `6月1日（面接解禁）までに，同級生の${Math.round(JUNE_OFFER_RATE * 10)}割が内定を持つ．`,
+  `面接が解禁される6月1日までに，同級生の${Math.round(JUNE_OFFER_RATE * 10)}割が内定を持つ．`,
 ];
 
 /** The self's situation; allowance and scholarship are left to the status panel. */
@@ -346,7 +346,7 @@ const ROUTINES = {
   research: { tile: "研究・ゼミ", label: "研究・ゼミ" },
   rest: { tile: "ゆっくり休む", label: "ゆっくり休む" },
   extraWork: { tile: "バイト", label: "バイト" },
-  moreWork: { tile: "バイト（多め）", label: "バイト（多め）" },
+  moreWork: { tile: "バイト多め", label: "バイト多め" },
   summerEsPrep: { tile: "夏インターンのES対策", label: "夏インターンの ES 対策" },
   earlyPrep: { tile: "早期選考の対策", label: "早期選考の対策" },
   entryPrep: { tile: "本選考のES準備", label: "本選考の ES 準備" },

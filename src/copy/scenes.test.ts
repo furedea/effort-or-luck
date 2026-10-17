@@ -40,7 +40,7 @@ function option(extra: Partial<PricedOption>): PricedOption {
 
 describe("what an option takes", () => {
   it("lists hours, the weeks they spread over, and money that are not zero", () => {
-    expect(optionCost(option({ hours: 15, weeks: 3, money: 30_000 }))).toBe("15時間（3週）・3万円");
+    expect(optionCost(option({ hours: 15, weeks: 3, money: 30_000 }))).toBe("3週で15時間・3万円");
     expect(optionCost(option({ hours: 8 }))).toBe("8時間");
     expect(optionCost(option({}))).toBe("");
   });
@@ -71,7 +71,7 @@ describe("final interview labels", () => {
 
 test("a routine's detail gives its weekly hours and effects in numbers", () => {
   expect(routineDetail(routineOf("rest"))).toBe(
-    "ゆっくり休む（週10時間）：健康 +2.4・心の余裕 +0.6／週",
+    "ゆっくり休む 週10時間：健康 +2.4・心の余裕 +0.6／週",
   );
 });
 
@@ -119,7 +119,7 @@ describe("why the year ends on June 1st", () => {
   it("is said at the start in two short lines, with the share holding an offer by then", () => {
     expect(intro().lines).toEqual([
       "就活の1年が始まる．",
-      "6月1日（面接解禁）までに，同級生の8割が内定を持つ．",
+      "面接が解禁される6月1日までに，同級生の8割が内定を持つ．",
     ]);
   });
 

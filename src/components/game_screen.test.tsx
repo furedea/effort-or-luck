@@ -133,7 +133,7 @@ test("returns to one week per press when limited-time preparation appears", () =
   expect(when(host)).toBe("5月 第1週");
   expect(stepButton(host)).not.toBeNull();
   expect(host.querySelector(".feed li")?.textContent).toContain(
-    "★ 今だけ：夏インターンのES対策（あと4週）",
+    "★ 今だけ：夏インターンのES対策 あと4週",
   );
 });
 
@@ -177,7 +177,7 @@ test("shows this week's hours and what each option leaves at an event", () => {
     keepFlowing(host);
   }
 
-  expect(host.querySelector(".event .week-status")?.textContent).toMatch(/^週.+時間（.+）・貯金 /);
+  expect(host.querySelector(".event .week-status")?.textContent).toMatch(/^週.+時間・.+・貯金 /);
   const afters = [...host.querySelectorAll(".event .opt .after")].map((n) => n.textContent);
   expect(afters.length).toBeGreaterThan(0);
   for (const after of afters) expect(after).toMatch(/^選ぶと：/);
@@ -280,7 +280,7 @@ describe("the weekly timetable", () => {
     const before = total(host);
 
     click(tile(host, "説明会"));
-    expect(total(host)).toMatch(/^週6／\d+時間（あと\d+(\.\d)?時間）$/);
+    expect(total(host)).toMatch(/^週6／\d+時間・あと\d+(\.\d)?時間$/);
 
     click(tile(host, "説明会"));
     expect(total(host)).toBe(before);
@@ -304,7 +304,7 @@ describe("the weekly timetable", () => {
     click(tile(host, "ゆっくり休む"));
 
     expect(host.querySelector(".activity-detail")?.textContent).toBe(
-      "ゆっくり休む（週10時間）：健康 +2.4・心の余裕 +0.6／週",
+      "ゆっくり休む 週10時間：健康 +2.4・心の余裕 +0.6／週",
     );
   });
 
