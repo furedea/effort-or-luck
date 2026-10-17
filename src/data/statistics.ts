@@ -1,6 +1,6 @@
 // Statistics shown in the game, each credited to its publisher.
 
-export interface Statistic {
+interface Statistic {
   readonly text: string;
   readonly source: string;
 }
