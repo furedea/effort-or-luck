@@ -16,6 +16,7 @@ import {
   LIMITED_TITLE,
   LOW_NOTE,
   NEXT,
+  optionAfterLine,
   oneOffLine,
   overflowLine,
   SECTION,
@@ -24,10 +25,11 @@ import {
   statusItems,
   STEP,
   TIMETABLE_TITLE,
+  weekStatusLine,
   weeksLeftLine,
 } from "../copy/screen";
 import { WEEKS } from "../engine/calendar";
-import type { Event } from "../engine/events";
+import type { Event, PricedOption } from "../engine/events";
 import type { OptionKey, RoutineKey } from "../engine/facts";
 import type { Life } from "../engine/life";
 import { isLimited, isOpen, ROUTINES, type RoutineSpec } from "../engine/routine";
@@ -76,7 +78,14 @@ export function PlayView(props: Props) {
       </header>
       <Feed entries={feed} />
       {event ? (
-        <EventPanel event={event} onChoose={props.onChoose} onNext={props.onNext} />
+        <EventPanel
+          event={event}
+          life={life}
+          week={week}
+          timetable={props.timetable}
+          onChoose={props.onChoose}
+          onNext={props.onNext}
+        />
       ) : (
         <>
           <Timetable
@@ -172,14 +181,30 @@ function Status({ life }: { life: Life }) {
 
 function EventPanel({
   event,
+  life,
+  week,
+  timetable,
   onChoose,
   onNext,
 }: {
   event: Event;
+  life: Life;
+  week: number;
+  timetable: readonly RoutineKey[];
   onChoose: (option: OptionKey) => void;
   onNext: () => void;
 }) {
   const text = describeEvent(event);
+  const preview = planWeek(life, week, timetable);
+  // An option's hours replace any one-off booked before, so they are added to the routines alone.
+  const bookedHours = life.oneOff.weeks > 0 ? life.oneOff.hours / life.oneOff.weeks : 0;
+  const routineHours = preview.hours - bookedHours;
+  const after = (option: PricedOption) =>
+    optionAfterLine({
+      hoursLeft: preview.budget - routineHours - option.hours / option.weeks,
+      weeks: option.weeks,
+      moneyAfter: life.money - option.money + (option.pay ?? 0),
+    });
   return (
     <div className="event">
       <div className="lines" aria-live="polite">
@@ -199,6 +224,9 @@ function EventPanel({
           ))}
         </dl>
       ) : null}
+      {event.options.length ? (
+        <p className="week-status">{weekStatusLine(preview.hours, preview.budget, life.money)}</p>
+      ) : null}
       <div className="actions">
         {event.options.length ? (
           event.options.map((option) => (
@@ -213,6 +241,7 @@ function EventPanel({
               <span className="cost">
                 {option.shortfall ? shortfallReason(option.shortfall) : optionCost(option)}
               </span>
+              {option.shortfall ? null : <span className="after">{after(option)}</span>}
             </button>
           ))
         ) : (

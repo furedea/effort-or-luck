@@ -79,6 +79,28 @@ export function budgetLine(used: number, budget: number): string {
   return `週${hours(used)}／${budget}時間（${rest}）`;
 }
 
+/** This week's hours and savings, shown at an event, e.g. "週26／40時間（あと14時間）・貯金 5万円". */
+export function weekStatusLine(used: number, budget: number, money: number): string {
+  return `${budgetLine(used, budget)}・貯金 ${yen(Math.round(money))}`;
+}
+
+interface OptionAfter {
+  /** Hours left this week after choosing; negative when the week runs over. */
+  readonly hoursLeft: number;
+  /** Weeks the option's hours last. */
+  readonly weeks: number;
+  readonly moneyAfter: number;
+}
+
+/** What choosing an option leaves, e.g. "選ぶと：今週あと12時間・貯金 3万円". */
+export function optionAfterLine({ hoursLeft, weeks, moneyAfter }: OptionAfter): string {
+  const hours = Number(Math.abs(hoursLeft).toFixed(1));
+  const span = weeks > 1 ? `${weeks}週間，毎週` : "今週";
+  const time =
+    hoursLeft >= 0 ? `${span}あと${hours}時間` : `${span}${hours}時間オーバー（睡眠を削る）`;
+  return `選ぶと：${time}・貯金 ${yen(Math.max(0, Math.round(moneyAfter)))}`;
+}
+
 /** Hours beyond the free hours, taken from sleep, e.g. "はみ出た週5時間は睡眠を削る（健康 −1／週）". */
 export function overflowLine(shortHours: number): string {
   const hours = Number(shortHours.toFixed(1));
