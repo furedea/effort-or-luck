@@ -75,7 +75,9 @@ export function PlayView({ life, scene, step, carried, onChoose, onNext }: Props
 
 function NextButton({ label, onClick }: { label: string; onClick: () => void }) {
   const ref = useRef<HTMLButtonElement>(null);
-  useEffect(() => ref.current?.focus({ preventScroll: true }), []);
+  useEffect(() => {
+    ref.current?.focus({ preventScroll: true });
+  }, []);
   return (
     <button ref={ref} type="button" className="next" onClick={onClick}>
       {label}

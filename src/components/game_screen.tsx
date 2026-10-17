@@ -30,9 +30,14 @@ export function GameScreen() {
   const [game, setGame] = useState<Game | null>(null);
 
   // The base seed is random, so the selves are created only in the browser.
-  useEffect(() => setGame(newGame()), []);
+  useEffect(() => {
+    setGame(newGame());
+  }, []);
   const step = game?.cohort.step;
-  useEffect(() => window.scrollTo(0, 0), [step]);
+  // Effects must not return the call's value: scrollTo returns a promise in current browsers.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [step]);
 
   if (!game) return <main />;
   const { cohort, player, yearEnd, view, carried } = game;
