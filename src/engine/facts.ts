@@ -31,7 +31,14 @@ export type RoutineKey =
   | "sns"
   | "research"
   | "rest"
-  | "extraWork";
+  | "extraWork"
+  | "summerEsPrep"
+  | "earlyPrep"
+  | "entryPrep"
+  | "finalPrep";
+
+/** Selection stages that limited-time preparation raises the pass rate of. */
+export type Boost = "internEs" | "early" | "entryEs" | "final";
 
 export type EventFacts =
   | {

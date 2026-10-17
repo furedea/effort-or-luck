@@ -628,3 +628,6 @@ main {
     transition: none;
   }
 }
+.limited .activity-section {
+  color: var(--shu);
+}

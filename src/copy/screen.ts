@@ -57,10 +57,19 @@ export const STEP = "次の週へ";
 export const SPEED_LABELS = { step: "1週ずつ", normal: "▶ 自動", double: "▶▶ 2倍" } as const;
 export const FEED_TITLE = "これまで";
 export const TIMETABLE_TITLE = "毎週の過ごし方";
+export const LIMITED_TITLE = "★ 今だけ";
+
+export function weeksLeftLine(weeks: number): string {
+  return `あと${weeks}週`;
+}
 export const CANNOT_PAY = "お金が足りない";
 
+/** The week's hours against the budget, with what is left or over, e.g. "週26／38時間（あと12時間）". */
 export function budgetLine(used: number, budget: number): string {
-  return `週${Number(used.toFixed(1))}／${budget}時間`;
+  const hours = (value: number) => Number(value.toFixed(1));
+  const rest =
+    used <= budget ? `あと${hours(budget - used)}時間` : `${hours(used - budget)}時間オーバー`;
+  return `週${hours(used)}／${budget}時間（${rest}）`;
 }
 
 export function overflowLine(shortHours: number, paid: number): string {

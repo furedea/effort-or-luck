@@ -13,6 +13,7 @@ import {
   budgetLine,
   CANNOT_PAY,
   FEED_TITLE,
+  LIMITED_TITLE,
   LOW_NOTE,
   NEXT,
   oneOffLine,
@@ -23,12 +24,13 @@ import {
   statusItems,
   STEP,
   TIMETABLE_TITLE,
+  weeksLeftLine,
 } from "../copy/screen";
 import { WEEKS } from "../engine/calendar";
 import type { Event } from "../engine/events";
 import type { OptionKey, RoutineKey } from "../engine/facts";
 import type { Life } from "../engine/life";
-import { isOpen, ROUTINES, type RoutineSpec } from "../engine/routine";
+import { isLimited, isOpen, ROUTINES, type RoutineSpec } from "../engine/routine";
 import { planWeek } from "../engine/week";
 
 /** How time moves: one week per press, or on its own at normal or double speed. */
@@ -250,13 +252,17 @@ function Timetable({
       <p className="activity-detail" aria-live="polite">
         {pressed ? routineDetail(pressed) : ""}
       </p>
-      {(["job", "life", "work"] as const).map((kind) => (
-        <div className="activity-group" key={kind}>
-          <h4 className="activity-section">{SECTION[kind]}</h4>
+      {groups(week).map(({ key, title, specs }) => (
+        <div className={key === "limited" ? "activity-group limited" : "activity-group"} key={key}>
+          <h4 className="activity-section">{title}</h4>
           <div className="tiles">
-            {ROUTINES.filter((spec) => spec.kind === kind && isOpen(spec, week)).map((spec) => {
+            {specs.map((spec) => {
               const chosen = timetable.includes(spec.key);
               const dropped = preview.dropped.includes(spec.key);
+              const hours = `週${spec.weeklyHours}時間`;
+              const cost = isLimited(spec)
+                ? `${hours}・${weeksLeftLine(spec.until - week)}`
+                : hours;
               return (
                 <button
                   key={spec.key}
@@ -269,9 +275,7 @@ function Timetable({
                   onClick={() => toggle(spec)}
                 >
                   <span className="activity-name">{routineTileLabel(spec.key)}</span>
-                  <span className="activity-cost">
-                    {dropped ? CANNOT_PAY : `週${spec.weeklyHours}時間`}
-                  </span>
+                  <span className="activity-cost">{dropped ? CANNOT_PAY : cost}</span>
                 </button>
               );
             })}
@@ -280,6 +284,20 @@ function Timetable({
       ))}
     </div>
   );
+}
+
+/** Open routines grouped for the tiles: limited-time preparation first, when there is any. */
+function groups(week: number) {
+  const open = ROUTINES.filter((spec) => isOpen(spec, week));
+  const limited = open.filter(isLimited);
+  return [
+    ...(limited.length ? [{ key: "limited", title: LIMITED_TITLE, specs: limited }] : []),
+    ...(["job", "life", "work"] as const).map((kind) => ({
+      key: kind,
+      title: SECTION[kind],
+      specs: open.filter((spec) => spec.kind === kind && !isLimited(spec)),
+    })),
+  ];
 }
 
 function WeekBar({

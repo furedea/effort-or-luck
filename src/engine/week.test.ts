@@ -1,3 +1,4 @@
+import { EVENT_WEEKS } from "./calendar";
 import { makeLife, weekBudget, type Life } from "./life";
 import { WAGE_YEN_PER_HOUR } from "./parameters";
 import { routineOf } from "./routine";
@@ -85,4 +86,13 @@ test("savings grow only from part-time work, which takes hours", () => {
 
   liveWeek(life, 1, ["extraWork"]);
   expect(life.money).toBe(before + routineOf("extraWork").weeklyHours * WAGE_YEN_PER_HOUR);
+});
+
+test("a limited routine is open only in the weeks before its event", () => {
+  const spec = routineOf("summerEsPrep");
+
+  expect(spec.until).toBe(EVENT_WEEKS.internEs);
+  expect(planWeek(richLife(), spec.from - 1, ["summerEsPrep"]).taken).toEqual([]);
+  expect(planWeek(richLife(), spec.from, ["summerEsPrep"]).taken).toEqual([spec]);
+  expect(planWeek(richLife(), spec.until, ["summerEsPrep"]).taken).toEqual([]);
 });

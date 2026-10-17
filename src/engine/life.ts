@@ -1,4 +1,4 @@
-import type { LogFact, OfferMonth, Stat } from "./facts";
+import type { Boost, LogFact, OfferMonth, Stat } from "./facts";
 import {
   ALLOWANCE_DISTRIBUTION,
   DIFFICULTY,
@@ -33,6 +33,8 @@ export interface Life {
   documentPrep: number;
   /** Extra chance of being invited to early selection. */
   inviteBonus: number;
+  /** Pass-rate raises from limited-time preparation, per selection stage. */
+  boosts: Record<Boost, number>;
   /** Hours lost each week to illness, a trip home, or deadlines, for `lostWeeks` more weeks. */
   lostWeekly: number;
   lostWeeks: number;
@@ -66,6 +68,7 @@ export function makeLife(seed: number, difficulty: Difficulty = "normal"): Life 
     prep: 0,
     documentPrep: 0,
     inviteBonus: 0,
+    boosts: { internEs: 0, early: 0, entryEs: 0, final: 0 },
     lostWeekly: 0,
     lostWeeks: 0,
     oneOff: { hours: 0, weeks: 0 },
