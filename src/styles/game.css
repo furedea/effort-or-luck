@@ -275,7 +275,7 @@ main {
   height: 100%;
   transition: width 0.3s ease;
 }
-.bar-oneoff {
+.bar-oneOff {
   background: var(--ink);
 }
 .bar-job {
@@ -284,8 +284,38 @@ main {
 .bar-life {
   background: var(--suit-soft);
 }
+.bar-work {
+  background: var(--sub);
+}
+/* Stripes keep over hours apart from the blues, not only by color. */
 .bar-over {
-  background: var(--shu);
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--shu) 0 4px,
+    color-mix(in srgb, var(--shu) 45%, transparent) 4px 8px
+  );
+}
+.bar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--sub);
+  font-variant-numeric: tabular-nums;
+}
+.bar-legend li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.bar-legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
 }
 .time-over,
 .time-left {

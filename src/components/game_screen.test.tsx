@@ -221,6 +221,8 @@ test("stops on the timetable after a choice that runs the week over", () => {
   expect(host.querySelector(".event")).toBeNull();
   expect(stepButton(host)).not.toBeNull();
   expect(host.querySelector(".time-over")).not.toBeNull();
+  const legend = [...host.querySelectorAll(".bar-legend li")].map((n) => n.textContent);
+  expect(legend.at(-1)).toMatch(/^オーバー \d+(\.\d)?時間$/);
 });
 
 test("keeps the chosen speed after a choice that fits the week", () => {
@@ -345,6 +347,16 @@ describe("the weekly timetable", () => {
     const tile = host.querySelector(".limited .activity");
     expect(tile?.querySelector(".activity-name")?.textContent).toBe("夏インターンのES対策");
     expect(tile?.querySelector(".activity-cost")?.textContent).toBe("週4時間・あと4週");
+  });
+
+  it("names the bar's colors with their hours", () => {
+    const host = firstWeek();
+
+    click(tile(host, "説明会"));
+    click(tile(host, "友達と遊ぶ"));
+
+    const legend = [...host.querySelectorAll(".bar-legend li")].map((n) => n.textContent);
+    expect(legend).toEqual(["就活 6時間", "自分のこと 10時間"]);
   });
 
   it("explains the last pressed tile with its numbers", () => {
