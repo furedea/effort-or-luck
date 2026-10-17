@@ -26,6 +26,31 @@
         "test": "readonly",
         "vi": "readonly"
       }
+    },
+    {
+      "files": ["src/engine/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "**/copy/**",
+                  "**/data/**",
+                  "react",
+                  "react-dom",
+                  "react/**",
+                  "astro",
+                  "astro/**",
+                  "@astrojs/**"
+                ],
+                "message": "The engine is pure calculation: no copy, data, or UI imports."
+              }
+            ]
+          }
+        ]
+      }
     }
   ]
 }
