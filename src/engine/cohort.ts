@@ -24,7 +24,7 @@ export interface Cohort {
   readonly turn: Turn | null;
 }
 
-export interface Turn {
+interface Turn {
   readonly want: Effort;
   readonly taken: readonly (Effort | null)[];
   readonly results: readonly (ResultFact | undefined)[];
