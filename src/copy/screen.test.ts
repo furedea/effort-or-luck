@@ -1,4 +1,4 @@
-import { budgetLine, endedCount, overflowLine, statBars, statusItems, warningLine } from "./screen";
+import { endedCount, overflowLine, statBars, statusItems, warningLine } from "./screen";
 
 const base = { allowance: 70_000, scholarship: 50_000, money: 20_000, offers: 0 };
 
@@ -41,10 +41,6 @@ test("hours beyond the budget are said to come from savings", () => {
 test("selves who ended early are counted by reason", () => {
   expect(endedCount({ mind: 5, research: 3 })).toBe("途中で終わった人：心が折れた 5 人・留年 3 人");
   expect(endedCount({})).toBe("途中で終わった人はいない．");
-});
-
-test("the week's hours are shown against the budget", () => {
-  expect(budgetLine(32.5, 40)).toBe("週32.5／40時間");
 });
 
 test("a falling stat is warned about with its value", () => {

@@ -12,7 +12,13 @@ import {
 } from "./cohort";
 import type { OptionKey, RoutineKey } from "./facts";
 import type { Life } from "./life";
+import type { Timetable } from "./timetable";
 import { autoLive, followDecisions, leastPolicy, mostPolicy } from "./year";
+
+/** A timetable from Monday on, leaving the remaining days empty. */
+function days(...keys: (RoutineKey | null)[]): Timetable {
+  return Array.from({ length: 7 }, (_, day) => keys[day] ?? null);
+}
 
 function withoutRng({ rng: _, ...rest }: Life) {
   return rest;
@@ -22,12 +28,7 @@ function withoutRng({ rng: _, ...rest }: Life) {
  * Plays a year as `player`: sets `first` as the timetable, switches to `later` halfway, and
  * takes the first option offered at each event.
  */
-function playYear(
-  seed: number,
-  player: number,
-  first: readonly RoutineKey[],
-  later: readonly RoutineKey[],
-): Cohort {
+function playYear(seed: number, player: number, first: Timetable, later: Timetable): Cohort {
   let cohort = setTimetable(startCohort(seed), first);
   while (!isOver(cohort)) {
     if (cohort.week === WEEKS / 2) cohort = setTimetable(cohort, later);
@@ -62,8 +63,8 @@ describe("a shared year", () => {
     const cohort = playYear(
       2026,
       0,
-      ["selfAnalysis", "friends", "rest"],
-      ["interviewPractice", "research"],
+      days("selfAnalysis", null, null, null, null, "friends", "rest"),
+      days("interviewPractice", "research"),
     );
 
     expect(isOver(cohort)).toBe(true);
@@ -76,14 +77,18 @@ describe("a shared year", () => {
 
   it("remembers everyone who could not pay for part of the timetable in some week", () => {
     // Paid extras plus more hours than poorer selves have: their savings run out within weeks.
-    let cohort = setTimetable(startCohort(46), [
-      "jobCourse",
-      "certification",
-      "friends",
-      "rest",
-      "sns",
-      "research",
-    ]);
+    let cohort = setTimetable(
+      startCohort(46),
+      days(
+        "jobCourse",
+        "certification",
+        "jobCourse",
+        "certification",
+        "jobCourse",
+        "friends",
+        "rest",
+      ),
+    );
     const seen = new Set<number>();
     while (!isOver(cohort)) {
       cohort = step(cohort);
@@ -97,13 +102,13 @@ describe("a shared year", () => {
   });
 
   it("records each timetable and choice with the week it was made", () => {
-    const cohort = playYear(3, 0, ["friends"], ["rest"]);
+    const cohort = playYear(3, 0, days("friends"), days("rest"));
 
-    expect(cohort.decisions[0]).toEqual({ week: 0, kind: "timetable", timetable: ["friends"] });
+    expect(cohort.decisions[0]).toEqual({ week: 0, kind: "timetable", timetable: days("friends") });
     expect(cohort.decisions).toContainEqual({
       week: WEEKS / 2,
       kind: "timetable",
-      timetable: ["rest"],
+      timetable: days("rest"),
     });
     expect(cohort.decisions.some((d) => d.kind === "choice")).toBe(true);
   });
@@ -111,7 +116,7 @@ describe("a shared year", () => {
 
 describe("the end of the year", () => {
   it("replays the same seeds putting the most and the least into job hunting", () => {
-    const cohort = playYear(9, 0, ["friends"], ["friends"]);
+    const cohort = playYear(9, 0, days("friends"), days("friends"));
 
     const { most, least } = replayYear(cohort);
 
@@ -124,7 +129,7 @@ describe("the end of the year", () => {
   });
 
   it("counts, for each allowance, how many selves had an offer", () => {
-    const cohort = playYear(11, 0, ["selfAnalysis", "infoSessions"], ["interviewPractice"]);
+    const cohort = playYear(11, 0, days("selfAnalysis", "infoSessions"), days("interviewPractice"));
 
     const rows = revealByAllowance(cohort.lives, cohort.allowanceRanks);
 

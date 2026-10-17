@@ -1,6 +1,7 @@
 import type { LogFact, OfferMonth, Stat } from "./facts";
 import {
   ALLOWANCE_DISTRIBUTION,
+  DAY_HOURS,
   DIFFICULTY,
   METRO_SHARE,
   MONTHLY_EXPENSE_YEN,
@@ -10,11 +11,11 @@ import {
   STARTING_STATS,
   TRIP_YEN,
   WAGE_YEN_PER_HOUR,
-  WEEKLY_HOURS,
   WEEKS_PER_MONTH,
   type Difficulty,
 } from "./parameters";
 import { createRng, pickWeighted, type Rng } from "./random";
+import { DAYS } from "./timetable";
 
 type InternKind = "none" | "face" | "online";
 
@@ -90,24 +91,25 @@ function startingStats(difficulty: Difficulty): Record<Stat, number> {
 }
 
 /** Part-time hours a month needed to cover living costs. */
-export function partTimeHours(life: Life): number {
+function partTimeHours(life: Life): number {
   const shortYen = Math.max(0, MONTHLY_EXPENSE_YEN - life.allowance - life.scholarship);
   return Math.ceil(shortYen / WAGE_YEN_PER_HOUR);
 }
 
-export function weeklyPartTimeHours(life: Life): number {
-  return Math.round(partTimeHours(life) / WEEKS_PER_MONTH);
+/** Days a week of part-time work living costs require, fixed in the timetable. */
+export function partTimeDays(life: Life): number {
+  return Math.min(DAYS, Math.round(partTimeHours(life) / WEEKS_PER_MONTH / DAY_HOURS));
 }
 
-/** Free hours a week after the part-time work living costs require. */
-export function weeklyFreeHours(life: Life): number {
-  return Math.max(0, WEEKLY_HOURS - weeklyPartTimeHours(life));
+/** Days a week left after the part-time work living costs require. */
+export function freeDays(life: Life): number {
+  return DAYS - partTimeDays(life);
 }
 
 /** Hours the self can divide this week, after any hours lost. */
 export function weekBudget(life: Life): number {
   const lost = life.lostWeeks > 0 ? life.lostWeekly : 0;
-  return Math.max(0, weeklyFreeHours(life) - lost);
+  return Math.max(0, freeDays(life) * DAY_HOURS - lost);
 }
 
 /** Loses `weekly` hours each week for the next `weeks` weeks. */

@@ -3,9 +3,10 @@
 // new Cohort and the previous one must not be used again.
 import { WEEKS } from "./calendar";
 import { eventAt, OPTION_EFFORT, type Event } from "./events";
-import type { OptionKey, RoutineKey } from "./facts";
+import type { OptionKey } from "./facts";
 import { makeLife, type Life } from "./life";
 import { ALLOWANCE_DISTRIBUTION, type Difficulty } from "./parameters";
+import { EMPTY_TIMETABLE, type Timetable } from "./timetable";
 import { liveWeek, type WeekOutcome } from "./week";
 import { autoLive, leastPolicy, meet, mostPolicy, type Choice, type Decision } from "./year";
 
@@ -24,7 +25,7 @@ export interface Cohort {
   readonly week: number;
   /** Each self's event this week, or null when there is none or it has been met. */
   readonly events: readonly (Event | null)[];
-  readonly timetable: readonly RoutineKey[];
+  readonly timetable: Timetable;
   readonly decisions: readonly Decision[];
   /** What the last week took and gave each self; null for selves not living the year. */
   readonly lastWeek: readonly (WeekOutcome | null)[];
@@ -45,7 +46,7 @@ export function startCohort(baseSeed: number, difficulty: Difficulty = "normal")
     allowanceRanks: lives.map((life) => amounts.indexOf(life.allowance)),
     week: 0,
     events: lives.map((life) => eventAt(life, 0)),
-    timetable: [],
+    timetable: EMPTY_TIMETABLE,
     decisions: [],
     lastWeek: lives.map(() => null),
     everBlocked: new Set(),
@@ -57,7 +58,7 @@ export function isOver(cohort: Cohort): boolean {
 }
 
 /** Sets the timetable everyone follows from this week on. */
-export function setTimetable(cohort: Cohort, timetable: readonly RoutineKey[]): Cohort {
+export function setTimetable(cohort: Cohort, timetable: Timetable): Cohort {
   return {
     ...cohort,
     timetable,

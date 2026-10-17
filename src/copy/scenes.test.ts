@@ -60,10 +60,15 @@ describe("final interview labels", () => {
   });
 });
 
-test("a routine's detail gives its weekly hours and effects in numbers", () => {
-  expect(routineDetail(routineOf("rest"))).toBe(
-    "ゆっくり休む（週5時間）：健康 +1.2・心の余裕 +0.3／週",
-  );
+describe("a routine's detail", () => {
+  it("gives its effects per day in numbers", () => {
+    expect(routineDetail(routineOf("rest"))).toBe("ゆっくり休む：健康 +1.2・心の余裕 +0.3／日");
+  });
+
+  it("says which days it fits and where it works better", () => {
+    expect(routineDetail(routineOf("infoSessions"))).toMatch(/^説明会に出る（平日だけ）：/);
+    expect(routineDetail(routineOf("friends"))).toMatch(/／日・土日は 1\.5 倍$/);
+  });
 });
 
 test("an option that could not be taken is logged with its name", () => {
@@ -72,15 +77,15 @@ test("an option that could not be taken is logged with its name", () => {
   );
 });
 
-function intro(extra: { partTimeHours?: number } = {}) {
+function intro(extra: { partTimeDays?: number } = {}) {
   return describeEvent({
     facts: {
       id: "intro",
       allowance: 70_000,
       metro: false,
       scholarship: 50_000,
-      partTimeHours: 10,
-      weeklyFreeHours: 38,
+      partTimeDays: 2,
+      freeDays: 5,
       money: 0,
       ...extra,
     },
@@ -92,13 +97,13 @@ describe("the opening notice", () => {
   it("sets out the self's situation as a labeled table, leaving out what the status panel shows", () => {
     expect(intro().table).toEqual([
       { label: "住まい", value: "地方で一人暮らし" },
-      { label: "バイト", value: "月 10 時間" },
-      { label: "自由な時間", value: "週 38 時間" },
+      { label: "バイト", value: "週 2 日" },
+      { label: "自由な日", value: "週 5 日" },
     ]);
   });
 
   it("says when there is no part-time job", () => {
-    expect(intro({ partTimeHours: 0 }).table?.[1]).toEqual({ label: "バイト", value: "なし" });
+    expect(intro({ partTimeDays: 0 }).table?.[1]).toEqual({ label: "バイト", value: "なし" });
   });
 });
 

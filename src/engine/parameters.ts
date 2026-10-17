@@ -2,13 +2,13 @@
 // that always choosing the middle option lands near the surveyed June 1st offer rate.
 
 /** Bump whenever a change alters results, so shared links from older rules are reported as old. */
-export const RULES_VERSION = 5;
+export const RULES_VERSION = 6;
 
 export const WAGE_YEN_PER_HOUR = 1100;
 export const MONTHLY_EXPENSE_YEN = 130_000;
-/** Hours per week outside classes, coursework, sleep, and chores, before part-time work. */
-export const WEEKLY_HOURS = 40;
 export const WEEKS_PER_MONTH = 52 / 12;
+/** Hours after classes in one day of the timetable. */
+export const DAY_HOURS = 5;
 export const STARTING_MONEY_YEN = 50_000;
 export const SCHOLARSHIP_YEN = 50_000;
 /** Lives with less allowance than this borrow a scholarship. */
@@ -41,11 +41,11 @@ export const PASS = {
   documentPerPrep: 0.006,
   toFinal: 0.39,
   toFinalPerPrep: 0.006,
-  final: 0.51,
+  final: 0.62,
   finalPerPrep: 0.006,
   onlineFinalFactor: 0.85,
   /** Sized so the metro/regional gap matches the surveyed 関東 vs other-regions offer rates. */
-  regionalFinalFactor: 0.83,
+  regionalFinalFactor: 0.8,
 } as const;
 
 // Chances and sizes below are assumptions unless a source is given.
@@ -83,9 +83,10 @@ export type Difficulty = keyof typeof DIFFICULTY;
 /** Weekly drift when nothing is done for a stat; research drifts faster in the fourth year. */
 export const WEEKLY_DRIFT = { health: -0.5, mind: -0.6, social: -0.8, research: -0.4 } as const;
 export const FOURTH_YEAR_RESEARCH_DRIFT = -1.2;
-/** Weekly hours of part-time and job hunting together beyond which health wears down. */
-export const HEALTHY_WORKLOAD_WEEKLY_HOURS = 30;
-export const HEALTH_PER_OVERLOAD_HOUR = 0.15;
+/** Health lost in a week without a day of rest. */
+export const NO_REST_HEALTH = 1;
+/** Effect of seeing friends on Saturday or Sunday, relative to a weekday. */
+export const WEEKEND_FRIENDS_FACTOR = 1.5;
 export const MIND_PER_JOB_HOUR = 0.025;
 export const MIND_WHEN_BROKE_WEEKLY = 0.8;
 export const BROKE_BELOW_YEN = 10_000;

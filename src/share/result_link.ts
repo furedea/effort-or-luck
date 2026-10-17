@@ -13,6 +13,7 @@ import { OPTION_EFFORT } from "../engine/events";
 import type { OptionKey, RoutineKey } from "../engine/facts";
 import { DIFFICULTY, RULES_VERSION, type Difficulty } from "../engine/parameters";
 import { ROUTINES } from "../engine/routine";
+import { DAYS } from "../engine/timetable";
 import type { Decision } from "../engine/year";
 
 // A shared result is the base seed, the player's index, and every timetable and choice the
@@ -34,6 +35,8 @@ type Result<T> =
 const DECISION_SEPARATOR = ".";
 const TIMETABLE_MARK = "t";
 const CHOICE_MARK = "o";
+/** Marks a day left empty; routine indices never reach it. */
+const EMPTY_DAY = "z";
 // Links name routines and options by position, so reordering them needs a RULES_VERSION bump.
 const ROUTINE_KEYS: readonly RoutineKey[] = ROUTINES.map((spec) => spec.key);
 const OPTION_KEYS = Object.keys(OPTION_EFFORT) as OptionKey[];
@@ -123,12 +126,14 @@ function awaitsChoice(cohort: Cohort, player: number): boolean {
   return Boolean(cohort.events[player]?.options.length);
 }
 
-/** A decision as its week, a mark, and base-36 indices, e.g. "12t0156" or "9o2". */
+/** A decision as its week, a mark, and base-36 indices, e.g. "12t01z6z89" or "9o2". */
 function encodeDecision(decision: Decision): string {
   if (decision.kind === "choice") {
     return `${decision.week}${CHOICE_MARK}${OPTION_KEYS.indexOf(decision.option).toString(36)}`;
   }
-  const routines = decision.timetable.map((key) => ROUTINE_KEYS.indexOf(key).toString(36));
+  const routines = decision.timetable.map((key) =>
+    key ? ROUTINE_KEYS.indexOf(key).toString(36) : EMPTY_DAY,
+  );
   return `${decision.week}${TIMETABLE_MARK}${routines.join("")}`;
 }
 
@@ -142,10 +147,12 @@ function decodeDecision(text: string): Decision | null {
     const option = digits.length === 1 ? OPTION_KEYS[digits[0] ?? -1] : undefined;
     return option ? { week, kind: "choice", option } : null;
   }
-  const timetable = digits.map((digit) => ROUTINE_KEYS[digit]);
+  if (indices.length !== DAYS) return null;
+  const timetable = indices
+    .split("")
+    .map((digit) => (digit === EMPTY_DAY ? null : ROUTINE_KEYS[Number.parseInt(digit, 36)]));
   if (timetable.some((key) => key === undefined)) return null;
-  if (new Set(timetable).size !== timetable.length) return null;
-  return { week, kind: "timetable", timetable: timetable.filter((key) => key !== undefined) };
+  return { week, kind: "timetable", timetable: timetable.map((key) => key ?? null) };
 }
 
 function failure(error: LinkError): { ok: false; error: LinkError } {

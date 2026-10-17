@@ -104,23 +104,31 @@ export function routineTileLabel(key: RoutineKey): string {
   return ROUTINES[key].tile;
 }
 
-/** What a routine takes and gives each week, in numbers. */
+/** What a routine takes and gives each day, in numbers, with the days it fits. */
 export function routineDetail(spec: RoutineSpec): string {
   const percent = (value: number) => `${Number((value * 100).toFixed(2))}%`;
   const effects = [
-    spec.prepPerWeek ? `面接・書類の通過率 +${percent(spec.prepPerWeek * PASS.finalPerPrep)}` : "",
-    spec.documentPrepPerWeek
-      ? `書類の通過率 +${percent(2 * spec.documentPrepPerWeek * PASS.documentPerPrep)}`
+    spec.prepPerDay ? `面接・書類の通過率 +${percent(spec.prepPerDay * PASS.finalPerPrep)}` : "",
+    spec.documentPrepPerDay
+      ? `書類の通過率 +${percent(2 * spec.documentPrepPerDay * PASS.documentPerPrep)}`
       : "",
-    spec.inviteBonusPerWeek ? `早期選考の案内 +${percent(spec.inviteBonusPerWeek)}` : "",
+    spec.inviteBonusPerDay ? `早期選考の案内 +${percent(spec.inviteBonusPerDay)}` : "",
     ...(Object.keys(STAT_LABELS) as Stat[])
-      .filter((stat) => spec.statsPerWeek[stat])
-      .map((stat) => `${STAT_LABELS[stat]} +${spec.statsPerWeek[stat]}`),
-    spec.weeklyMoney ? `−${yen(spec.weeklyMoney)}` : "",
-    spec.weeklyPay ? `+${yen(spec.weeklyPay)}` : "",
+      .filter((stat) => spec.statsPerDay[stat])
+      .map((stat) => `${STAT_LABELS[stat]} +${spec.statsPerDay[stat]}`),
+    spec.dayMoney ? `−${yen(spec.dayMoney)}` : "",
+    spec.dayPay ? `+${yen(spec.dayPay)}` : "",
   ].filter(Boolean);
-  return `${ROUTINES[spec.key].label}（週${spec.weeklyHours}時間）：${effects.join("・")}／週`;
+  const days = spec.weekdayOnly ? "（平日だけ）" : "";
+  const weekend = spec.weekendFactor > 1 ? `・土日は ${spec.weekendFactor} 倍` : "";
+  return `${ROUTINES[spec.key].label}${days}：${effects.join("・")}／日${weekend}`;
 }
+
+/** Labels for the days of the week, from Monday. */
+export const DAY_LABELS = ["月", "火", "水", "木", "金", "土", "日"] as const;
+
+/** What fills a day the timetable does not decide. */
+export const DAY_STATE_LABELS = { partTime: "バイト", event: "予定", lost: "使えない" } as const;
 
 export function describeLog(fact: LogFact): string {
   switch (fact.kind) {
@@ -168,8 +176,8 @@ const INTRO_LINES = [
 function introTable(facts: Facts<"intro">): TableRow[] {
   return [
     { label: "住まい", value: `${region(facts.metro)}で一人暮らし` },
-    { label: "バイト", value: facts.partTimeHours ? `月 ${facts.partTimeHours} 時間` : "なし" },
-    { label: "自由な時間", value: `週 ${facts.weeklyFreeHours} 時間` },
+    { label: "バイト", value: facts.partTimeDays ? `週 ${facts.partTimeDays} 日` : "なし" },
+    { label: "自由な日", value: `週 ${facts.freeDays} 日` },
   ];
 }
 

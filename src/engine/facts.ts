@@ -39,8 +39,8 @@ export type EventFacts =
       readonly allowance: number;
       readonly metro: boolean;
       readonly scholarship: number;
-      readonly partTimeHours: number;
-      readonly weeklyFreeHours: number;
+      readonly partTimeDays: number;
+      readonly freeDays: number;
       readonly money: number;
     }
   | { readonly id: "internEs" }

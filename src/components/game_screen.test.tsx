@@ -50,6 +50,19 @@ const tileNamed = (host: HTMLElement, name: string) =>
   [...host.querySelectorAll<HTMLButtonElement>(".activity")].find(
     (button) => button.querySelector(".activity-name")?.textContent === name,
   )!;
+const dayCell = (host: HTMLElement, label: string) =>
+  [...host.querySelectorAll<HTMLButtonElement>(".day")].find(
+    (button) => button.querySelector(".day-label")?.textContent === label,
+  )!;
+
+/** Puts `tile` on each day in `plan` that is free to plan. */
+function planDays(host: HTMLElement, plan: Record<string, string>) {
+  for (const [day, tile] of Object.entries(plan)) {
+    if (dayCell(host, day).disabled) continue;
+    click(dayCell(host, day));
+    click(tileNamed(host, tile));
+  }
+}
 const stepButton = (host: HTMLElement) => host.querySelector<HTMLButtonElement>(".actions .step");
 const speedButton = (host: HTMLElement, label: string) =>
   [...host.querySelectorAll<HTMLButtonElement>(".speeds button")].find(
@@ -120,9 +133,15 @@ test("stops only for choices, listing other happenings while time flows", () => 
   const host = mount();
   startYear(host);
   // Living only for oneself never ends the year early, so the year reaches June.
-  for (const name of ["友達と遊ぶ", "SNS・動画", "研究・ゼミ", "ゆっくり休む"]) {
-    click(tileNamed(host, name));
-  }
+  planDays(host, {
+    月: "研究・ゼミ",
+    火: "SNS・動画",
+    水: "研究・ゼミ",
+    木: "友達と遊ぶ",
+    金: "友達と遊ぶ",
+    土: "友達と遊ぶ",
+    日: "ゆっくり休む",
+  });
   click(speedButton(host, "▶▶ 2倍"));
 
   const stopsWithoutChoice: string[] = [];
@@ -239,30 +258,48 @@ describe("the weekly timetable", () => {
     startYear(host);
     return host;
   }
-  const total = (host: HTMLElement) => host.querySelector(".time-total")?.textContent;
-  const tile = (host: HTMLElement, name: string) =>
-    [...host.querySelectorAll<HTMLButtonElement>(".activity")].find(
-      (button) => button.querySelector(".activity-name")?.textContent === name,
-    )!;
+  const freeWeekday = (host: HTMLElement) =>
+    ["月", "火", "木"].find((label) => !dayCell(host, label).disabled)!;
 
-  it("adds a chosen routine's weekly hours to the bar and removes them when chosen again", () => {
+  it("puts the pressed tile on the selected day", () => {
     const host = firstWeek();
-    const before = total(host);
+    const day = freeWeekday(host);
 
-    click(tile(host, "説明会"));
-    expect(total(host)).toMatch(/^週2／\d+(\.\d)?時間$/);
+    click(dayCell(host, day));
+    click(tileNamed(host, "説明会"));
 
-    click(tile(host, "説明会"));
-    expect(total(host)).toBe(before);
+    expect(dayCell(host, day).querySelector(".day-plan")?.textContent).toBe("説明会");
+  });
+
+  it("does not offer weekday-only routines on Sunday", () => {
+    const host = firstWeek();
+
+    click(dayCell(host, "日"));
+
+    expect(tileNamed(host, "説明会").disabled).toBe(true);
+    expect(tileNamed(host, "友達と遊ぶ").disabled).toBe(false);
+  });
+
+  it("empties the selected day", () => {
+    const host = firstWeek();
+    const day = freeWeekday(host);
+    click(dayCell(host, day));
+    click(tileNamed(host, "説明会"));
+
+    click(dayCell(host, day));
+    click(host.querySelector<HTMLButtonElement>(".clear-day")!);
+
+    expect(dayCell(host, day).querySelector(".day-plan")?.textContent).toBe("—");
   });
 
   it("explains the last pressed tile with its numbers", () => {
     const host = firstWeek();
 
-    click(tile(host, "ゆっくり休む"));
+    click(dayCell(host, "日"));
+    click(tileNamed(host, "ゆっくり休む"));
 
     expect(host.querySelector(".activity-detail")?.textContent).toBe(
-      "ゆっくり休む（週5時間）：健康 +1.2・心の余裕 +0.3／週",
+      "ゆっくり休む：健康 +1.2・心の余裕 +0.3／日",
     );
   });
 

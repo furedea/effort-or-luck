@@ -1,13 +1,12 @@
 import type { Stat } from "./facts";
-import { weeklyPartTimeHours, type Life } from "./life";
+import type { Life } from "./life";
 import {
   BROKE_BELOW_YEN,
   DIFFICULTY,
   FOURTH_YEAR_RESEARCH_DRIFT,
-  HEALTH_PER_OVERLOAD_HOUR,
-  HEALTHY_WORKLOAD_WEEKLY_HOURS,
   MIND_PER_JOB_HOUR,
   MIND_WHEN_BROKE_WEEKLY,
+  NO_REST_HEALTH,
   STAT_SHOCK,
   WEEKLY_DRIFT,
 } from "./parameters";
@@ -20,25 +19,23 @@ const MAX_STAT = 100;
 interface PeriodLoad {
   readonly weeks: number;
   readonly fourthYear: boolean;
-  readonly taken: readonly { readonly statsPerWeek?: Readonly<Partial<Record<Stat, number>>> }[];
+  /** What the period's activities gave each stat in total. */
+  readonly gains: Readonly<Partial<Record<Stat, number>>>;
   readonly jobHours: number;
-  readonly extraWorkHours: number;
+  /** Whether every week of the period had a day of rest. */
+  readonly rested: boolean;
 }
 
 /** Moves every stat for a period of living, then ends the year if one reached zero. */
 export function liveThroughPeriod(life: Life, load: PeriodLoad): void {
   if (life.over) return;
-  const { weeks, fourthYear, taken, jobHours, extraWorkHours } = load;
+  const { weeks, fourthYear, gains, jobHours, rested } = load;
   const change: Record<Stat, number> = { ...WEEKLY_DRIFT };
   if (fourthYear) change.research = FOURTH_YEAR_RESEARCH_DRIFT;
   const { driftFactor } = DIFFICULTY[life.difficulty];
   for (const stat of STATS) change[stat] *= weeks * driftFactor;
-  for (const activity of taken) {
-    for (const stat of STATS) change[stat] += (activity.statsPerWeek?.[stat] ?? 0) * weeks;
-  }
-  const weeklyLoad = weeklyPartTimeHours(life) + (jobHours + extraWorkHours) / weeks;
-  change.health -=
-    Math.max(0, weeklyLoad - HEALTHY_WORKLOAD_WEEKLY_HOURS) * HEALTH_PER_OVERLOAD_HOUR * weeks;
+  for (const stat of STATS) change[stat] += gains[stat] ?? 0;
+  if (!rested) change.health -= NO_REST_HEALTH * weeks;
   change.mind -= jobHours * MIND_PER_JOB_HOUR;
   if (life.money < BROKE_BELOW_YEN) change.mind -= MIND_WHEN_BROKE_WEEKLY * weeks;
   shift(life, change);

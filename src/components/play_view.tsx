@@ -6,16 +6,17 @@ import {
   optionLabel,
   routineDetail,
   routineTileLabel,
+  DAY_LABELS,
+  DAY_STATE_LABELS,
   shortfallReason,
   weekLabel,
 } from "../copy/scenes";
 import {
-  budgetLine,
   CANNOT_PAY,
+  CLEAR_DAY,
   FEED_TITLE,
   LOW_NOTE,
   NEXT,
-  oneOffLine,
   overflowLine,
   SECTION,
   SPEED_LABELS,
@@ -28,8 +29,9 @@ import { WEEKS } from "../engine/calendar";
 import type { Event } from "../engine/events";
 import type { OptionKey, RoutineKey } from "../engine/facts";
 import type { Life } from "../engine/life";
-import { isOpen, ROUTINES, type RoutineSpec } from "../engine/routine";
-import { planWeek } from "../engine/week";
+import { fitsDay, isOpen, ROUTINES, type RoutineSpec } from "../engine/routine";
+import { withDay, type Timetable } from "../engine/timetable";
+import { planWeek, type DayOutcome } from "../engine/week";
 
 /** How time moves: one week per press, or on its own at normal or double speed. */
 export type Speed = keyof typeof SPEED_LABELS;
@@ -44,10 +46,10 @@ interface Props {
   readonly week: number;
   /** The player's event this week, or null while weeks are flowing. */
   readonly event: Event | null;
-  readonly timetable: readonly RoutineKey[];
+  readonly timetable: Timetable;
   readonly speed: Speed;
   readonly feed: readonly FeedEntry[];
-  readonly onTimetable: (timetable: readonly RoutineKey[]) => void;
+  readonly onTimetable: (timetable: Timetable) => void;
   readonly onSpeed: (speed: Speed) => void;
   readonly onStep: () => void;
   readonly onChoose: (option: OptionKey) => void;
@@ -77,7 +79,7 @@ export function PlayView(props: Props) {
         <EventPanel event={event} onChoose={props.onChoose} onNext={props.onNext} />
       ) : (
         <>
-          <Timetable
+          <WeekPlanner
             life={life}
             week={week}
             timetable={props.timetable}
@@ -221,7 +223,7 @@ function EventPanel({
   );
 }
 
-function Timetable({
+function WeekPlanner({
   life,
   week,
   timetable,
@@ -229,24 +231,41 @@ function Timetable({
 }: {
   life: Life;
   week: number;
-  timetable: readonly RoutineKey[];
-  onChange: (timetable: readonly RoutineKey[]) => void;
+  timetable: Timetable;
+  onChange: (timetable: Timetable) => void;
 }) {
-  const [pressed, setPressed] = useState<RoutineSpec | null>(null);
   const preview = planWeek(life, week, timetable);
-  const toggle = (spec: RoutineSpec) => {
-    setPressed(spec);
-    onChange(
-      timetable.includes(spec.key)
-        ? timetable.filter((key) => key !== spec.key)
-        : [...timetable, spec.key],
-    );
+  const plannable = (day: number) => {
+    const kind = preview.days[day]?.kind;
+    return kind !== "partTime" && kind !== "event" && kind !== "lost";
   };
-  const oneOffHours = life.oneOff.weeks > 0 ? life.oneOff.hours / life.oneOff.weeks : 0;
+  const [selected, setSelected] = useState(() => DAY_LABELS.findIndex((_, d) => plannable(d)));
+  const [pressed, setPressed] = useState<RoutineSpec | null>(null);
+  const day = plannable(selected) ? selected : -1;
+  const put = (key: RoutineKey | null) => {
+    if (day < 0) return;
+    onChange(withDay(timetable, day, key));
+    const next = DAY_LABELS.findIndex((_, d) => d > day && plannable(d));
+    if (next >= 0) setSelected(next);
+  };
   return (
     <div className="timetable">
       <h3 className="activity-section">{TIMETABLE_TITLE}</h3>
-      <WeekBar budget={preview.budget} preview={preview} oneOffHours={oneOffHours} />
+      <div className="days">
+        {DAY_LABELS.map((label, d) => (
+          <DayCell
+            key={label}
+            label={label}
+            outcome={preview.days[d]}
+            planned={timetable[d] ?? null}
+            selected={d === day}
+            onSelect={() => setSelected(d)}
+          />
+        ))}
+      </div>
+      {preview.shortHours ? (
+        <p className="time-over">{overflowLine(preview.shortHours, preview.paid)}</p>
+      ) : null}
       <p className="activity-detail" aria-live="polite">
         {pressed ? routineDetail(pressed) : ""}
       </p>
@@ -254,66 +273,70 @@ function Timetable({
         <div className="activity-group" key={kind}>
           <h4 className="activity-section">{SECTION[kind]}</h4>
           <div className="tiles">
-            {ROUTINES.filter((spec) => spec.kind === kind && isOpen(spec, week)).map((spec) => {
-              const chosen = timetable.includes(spec.key);
-              const dropped = preview.dropped.includes(spec.key);
-              return (
-                <button
-                  key={spec.key}
-                  type="button"
-                  className={["activity", chosen ? "chosen" : "", dropped ? "dropped" : ""]
-                    .filter(Boolean)
-                    .join(" ")}
-                  aria-pressed={chosen}
-                  aria-label={routineDetail(spec)}
-                  onClick={() => toggle(spec)}
-                >
-                  <span className="activity-name">{routineTileLabel(spec.key)}</span>
-                  <span className="activity-cost">
-                    {dropped ? CANNOT_PAY : `週${spec.weeklyHours}時間`}
-                  </span>
-                </button>
-              );
-            })}
+            {ROUTINES.filter((spec) => spec.kind === kind && isOpen(spec, week)).map((spec) => (
+              <button
+                key={spec.key}
+                type="button"
+                className={timetable[day] === spec.key ? "activity chosen" : "activity"}
+                aria-pressed={timetable[day] === spec.key}
+                aria-label={routineDetail(spec)}
+                disabled={day < 0 || !fitsDay(spec, week, day)}
+                onClick={() => {
+                  setPressed(spec);
+                  put(spec.key);
+                }}
+              >
+                <span className="activity-name">{routineTileLabel(spec.key)}</span>
+              </button>
+            ))}
           </div>
         </div>
       ))}
+      <button
+        type="button"
+        className="toggle clear-day"
+        disabled={day < 0}
+        onClick={() => put(null)}
+      >
+        {CLEAR_DAY}
+      </button>
     </div>
   );
 }
 
-function WeekBar({
-  budget,
-  preview,
-  oneOffHours,
+function DayCell({
+  label,
+  outcome,
+  planned,
+  selected,
+  onSelect,
 }: {
-  budget: number;
-  preview: ReturnType<typeof planWeek>;
-  oneOffHours: number;
+  label: string;
+  outcome: DayOutcome | undefined;
+  planned: RoutineKey | null;
+  selected: boolean;
+  onSelect: () => void;
 }) {
-  const hoursOf = (kind: RoutineSpec["kind"]) =>
-    preview.taken
-      .filter((spec) => spec.kind === kind)
-      .reduce((sum, spec) => sum + spec.weeklyHours, 0);
-  const scale = Math.max(budget, preview.hours) || 1;
-  const width = (hours: number) => `${(hours / scale) * 100}%`;
-  const oneOff = Math.min(oneOffHours, budget);
-  const job = Math.min(hoursOf("job"), budget - oneOff);
-  const own = Math.min(hoursOf("life") + hoursOf("work"), budget - oneOff - job);
+  const kind = outcome?.kind ?? "idle";
+  const fixed = kind === "partTime" || kind === "event" || kind === "lost";
+  const plan = fixed
+    ? DAY_STATE_LABELS[kind]
+    : kind === "dropped"
+      ? CANNOT_PAY
+      : planned
+        ? routineTileLabel(planned)
+        : "—";
   return (
-    <div className="time-bar">
-      <p className="time-total">{budgetLine(preview.hours, budget)}</p>
-      <div className="bar" aria-hidden="true">
-        <span className="bar-oneoff" style={{ width: width(oneOff) }} />
-        <span className="bar-job" style={{ width: width(job) }} />
-        <span className="bar-life" style={{ width: width(own) }} />
-        <span className="bar-over" style={{ width: width(preview.shortHours) }} />
-      </div>
-      {oneOffHours ? <p className="time-left">{oneOffLine(oneOffHours)}</p> : null}
-      {preview.shortHours ? (
-        <p className="time-over">{overflowLine(preview.shortHours, preview.paid)}</p>
-      ) : null}
-    </div>
+    <button
+      type="button"
+      className={["day", `day-${kind}`, selected ? "selected" : ""].filter(Boolean).join(" ")}
+      aria-pressed={selected}
+      disabled={fixed}
+      onClick={onSelect}
+    >
+      <span className="day-label">{label}</span>
+      <span className="day-plan">{plan}</span>
+    </button>
   );
 }
 

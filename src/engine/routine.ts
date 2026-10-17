@@ -1,92 +1,86 @@
 import { weekOfMonthStart, WEEKS } from "./calendar";
 import type { RoutineKey, Stat } from "./facts";
 import type { Life } from "./life";
-import { WAGE_YEN_PER_HOUR } from "./parameters";
+import { DAY_HOURS, WAGE_YEN_PER_HOUR, WEEKEND_FRIENDS_FACTOR } from "./parameters";
+import { isWeekend } from "./timetable";
 
-// What a self can do every week. Hours, costs, and effects are assumptions, listed on the
-// sources page; effects accumulate week by week.
+// What a self can do on a day of the week. Costs and effects are assumptions, listed on the
+// sources page; effects accumulate day by day.
 
 export interface RoutineSpec {
   readonly key: RoutineKey;
   /** Job hunting, time for oneself, or extra paid work. */
   readonly kind: "job" | "life" | "work";
-  readonly weeklyHours: number;
-  readonly weeklyMoney: number;
-  readonly weeklyPay: number;
+  readonly dayMoney: number;
+  readonly dayPay: number;
   /** Weeks in which the routine is open: from `from` up to but not including `until`. */
   readonly from: number;
   readonly until: number;
-  readonly statsPerWeek: Readonly<Partial<Record<Stat, number>>>;
-  readonly prepPerWeek: number;
-  readonly documentPrepPerWeek: number;
-  readonly inviteBonusPerWeek: number;
+  /** Held only on weekdays, such as company information sessions. */
+  readonly weekdayOnly: boolean;
+  /** Effect on Saturday and Sunday relative to a weekday. */
+  readonly weekendFactor: number;
+  readonly statsPerDay: Readonly<Partial<Record<Stat, number>>>;
+  readonly prepPerDay: number;
+  readonly documentPrepPerDay: number;
+  readonly inviteBonusPerDay: number;
 }
 
-const ALL_YEAR = { from: 0, until: WEEKS } as const;
-const NONE = { statsPerWeek: {}, prepPerWeek: 0, documentPrepPerWeek: 0, inviteBonusPerWeek: 0 };
+const DEFAULTS = {
+  dayMoney: 0,
+  dayPay: 0,
+  from: 0,
+  until: WEEKS,
+  weekdayOnly: false,
+  weekendFactor: 1,
+  statsPerDay: {},
+  prepPerDay: 0,
+  documentPrepPerDay: 0,
+  inviteBonusPerDay: 0,
+} as const;
 
-function routine(
-  spec: Partial<RoutineSpec> & Pick<RoutineSpec, "key" | "kind" | "weeklyHours">,
-): RoutineSpec {
-  return { weeklyMoney: 0, weeklyPay: 0, ...ALL_YEAR, ...NONE, ...spec };
+function routine(spec: Partial<RoutineSpec> & Pick<RoutineSpec, "key" | "kind">): RoutineSpec {
+  return { ...DEFAULTS, ...spec };
 }
 
 /** Every routine in a fixed order, used to encode timetables in shared links. */
 export const ROUTINES: readonly RoutineSpec[] = [
-  routine({ key: "selfAnalysis", kind: "job", weeklyHours: 2, prepPerWeek: 0.15 }),
+  routine({ key: "selfAnalysis", kind: "job", prepPerDay: 0.15 }),
   routine({
     key: "infoSessions",
     kind: "job",
-    weeklyHours: 2,
-    prepPerWeek: 0.1,
-    inviteBonusPerWeek: 0.003,
+    weekdayOnly: true,
+    prepPerDay: 0.1,
+    inviteBonusPerDay: 0.003,
   }),
   routine({
     key: "interviewPractice",
     kind: "job",
-    weeklyHours: 2,
+    weekdayOnly: true,
     from: weekOfMonthStart(6),
-    prepPerWeek: 0.25,
+    prepPerDay: 0.25,
   }),
   routine({
     key: "jobCourse",
     kind: "job",
-    weeklyHours: 2,
-    weeklyMoney: 2500,
+    weekdayOnly: true,
+    dayMoney: 2500,
     until: weekOfMonthStart(10),
-    prepPerWeek: 0.25,
+    prepPerDay: 0.25,
   }),
-  routine({
-    key: "longIntern",
-    kind: "job",
-    weeklyHours: 16,
-    until: weekOfMonthStart(10),
-    prepPerWeek: 0.25,
-  }),
-  routine({
-    key: "certification",
-    kind: "life",
-    weeklyHours: 3,
-    weeklyMoney: 800,
-    documentPrepPerWeek: 0.08,
-  }),
+  routine({ key: "longIntern", kind: "job", until: weekOfMonthStart(10), prepPerDay: 0.12 }),
+  routine({ key: "certification", kind: "life", dayMoney: 800, documentPrepPerDay: 0.08 }),
   routine({
     key: "friends",
     kind: "life",
-    weeklyHours: 8,
-    statsPerWeek: { mind: 0.9, social: 1.4 },
-    prepPerWeek: 0.05,
+    weekendFactor: WEEKEND_FRIENDS_FACTOR,
+    statsPerDay: { mind: 0.9, social: 1.4 },
+    prepPerDay: 0.05,
   }),
-  routine({
-    key: "sns",
-    kind: "life",
-    weeklyHours: 5,
-    statsPerWeek: { mind: 0.4 },
-    inviteBonusPerWeek: 0.003,
-  }),
-  routine({ key: "research", kind: "life", weeklyHours: 4, statsPerWeek: { research: 1.8 } }),
-  routine({ key: "rest", kind: "life", weeklyHours: 5, statsPerWeek: { health: 1.2, mind: 0.3 } }),
-  routine({ key: "extraWork", kind: "work", weeklyHours: 5, weeklyPay: 5 * WAGE_YEN_PER_HOUR }),
+  routine({ key: "sns", kind: "life", statsPerDay: { mind: 0.4 }, inviteBonusPerDay: 0.003 }),
+  routine({ key: "research", kind: "life", statsPerDay: { research: 1.8 } }),
+  routine({ key: "rest", kind: "life", statsPerDay: { health: 1.2, mind: 0.3 } }),
+  routine({ key: "extraWork", kind: "work", dayPay: DAY_HOURS * WAGE_YEN_PER_HOUR }),
 ];
 
 export function routineOf(key: RoutineKey): RoutineSpec {
@@ -100,9 +94,19 @@ export function isOpen(spec: RoutineSpec, week: number): boolean {
   return week >= spec.from && week < spec.until;
 }
 
-/** Applies a week of the routine's effects other than stats. */
-export function practise(life: Life, spec: RoutineSpec): void {
-  life.prep += spec.prepPerWeek;
-  life.documentPrep += spec.documentPrepPerWeek;
-  life.inviteBonus += spec.inviteBonusPerWeek;
+/** Whether the routine can be placed on `day` of `week`. */
+export function fitsDay(spec: RoutineSpec, week: number, day: number): boolean {
+  return isOpen(spec, week) && !(spec.weekdayOnly && isWeekend(day));
+}
+
+/** How strongly the routine works on `day`. */
+export function dayFactor(spec: RoutineSpec, day: number): number {
+  return isWeekend(day) ? spec.weekendFactor : 1;
+}
+
+/** Applies a day of the routine's effects other than stats, scaled by `factor`. */
+export function practise(life: Life, spec: RoutineSpec, factor: number): void {
+  life.prep += spec.prepPerDay * factor;
+  life.documentPrep += spec.documentPrepPerDay * factor;
+  life.inviteBonus += spec.inviteBonusPerDay * factor;
 }

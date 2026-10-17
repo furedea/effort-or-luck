@@ -16,9 +16,10 @@ import {
   type YearEnd,
 } from "../engine/cohort";
 import type { Event } from "../engine/events";
-import type { OptionKey, RoutineKey, Stat } from "../engine/facts";
+import type { OptionKey, Stat } from "../engine/facts";
 import { isActive, type Life } from "../engine/life";
 import type { Difficulty } from "../engine/parameters";
+import { EMPTY_TIMETABLE, type Timetable } from "../engine/timetable";
 import { encode } from "../share/result_link";
 import { DifficultyPicker } from "./difficulty_picker";
 import { PlayView, type FeedEntry, type Speed } from "./play_view";
@@ -40,7 +41,7 @@ interface Game {
   /** The self the player lives as; the other selves silently follow the same decisions. */
   readonly player: number;
   /** The timetable being edited; it takes effect when the next week is lived. */
-  readonly timetable: readonly RoutineKey[];
+  readonly timetable: Timetable;
   readonly speed: Speed;
   /** Happenings that did not stop time, newest first. */
   readonly feed: readonly FeedEntry[];
@@ -121,7 +122,7 @@ function newGame(difficulty: Difficulty): Game {
     seed,
     cohort,
     player,
-    timetable: [],
+    timetable: EMPTY_TIMETABLE,
     speed: "step",
     feed: [],
     warned: [],
@@ -177,7 +178,7 @@ function noticeEntries(cohort: Cohort, player: number): FeedEntry[] {
   return [{ week: cohort.week, text: describeEvent(event).lines.join("") }];
 }
 
-function withTimetable(cohort: Cohort, timetable: readonly RoutineKey[]): Cohort {
+function withTimetable(cohort: Cohort, timetable: Timetable): Cohort {
   const same =
     timetable.length === cohort.timetable.length &&
     timetable.every((key, i) => cohort.timetable[i] === key);

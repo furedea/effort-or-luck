@@ -5,10 +5,10 @@ import type { AutumnEvent, Effort, EventFacts, OptionKey, Shortfall } from "./fa
 import {
   isActive,
   loseHours,
-  partTimeHours,
+  partTimeDays,
   tripYen,
   weekBudget,
-  weeklyFreeHours,
+  freeDays,
   type Life,
 } from "./life";
 import {
@@ -162,8 +162,8 @@ function intro(life: Life) {
     allowance: life.allowance,
     metro: life.metro,
     scholarship: life.scholarship,
-    partTimeHours: partTimeHours(life),
-    weeklyFreeHours: weeklyFreeHours(life),
+    partTimeDays: partTimeDays(life),
+    freeDays: freeDays(life),
     money: life.money,
   };
   return { facts, options: [] };
