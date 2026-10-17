@@ -81,7 +81,7 @@ test("an option that could not be taken is logged with its name", () => {
   );
 });
 
-function intro(extra: { neededWorkHours?: number } = {}) {
+function intro(extra: { neededWorkHours?: number; weeklyGapYen?: number } = {}) {
   return describeEvent({
     facts: {
       id: "intro",
@@ -89,6 +89,7 @@ function intro(extra: { neededWorkHours?: number } = {}) {
       metro: false,
       scholarship: 50_000,
       neededWorkHours: 3,
+      weeklyGapYen: 2_308,
       weeklyHours: 40,
       money: 0,
       ...extra,
@@ -102,15 +103,15 @@ describe("the opening notice", () => {
     expect(intro().table).toEqual([
       { label: "住まい", value: "地方で一人暮らし" },
       { label: "自由な時間", value: "週 40 時間" },
-      { label: "必要なバイト", value: "週 3 時間（しないと貯金が減る）" },
+      { label: "生活費の不足", value: "週 2,308円" },
+      { label: "埋めるのに要るバイト", value: "週 3 時間" },
     ]);
   });
 
   it("says when living costs are covered without part-time work", () => {
-    expect(intro({ neededWorkHours: 0 }).table?.[2]).toEqual({
-      label: "必要なバイト",
-      value: "なし",
-    });
+    expect(intro({ neededWorkHours: 0, weeklyGapYen: 0 }).table?.slice(2)).toEqual([
+      { label: "生活費の不足", value: "なし" },
+    ]);
   });
 });
 

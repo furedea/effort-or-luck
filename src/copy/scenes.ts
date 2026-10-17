@@ -191,12 +191,12 @@ function introTable(facts: Facts<"intro">): TableRow[] {
   return [
     { label: "住まい", value: `${region(facts.metro)}で一人暮らし` },
     { label: "自由な時間", value: `週 ${facts.weeklyHours} 時間` },
-    {
-      label: "必要なバイト",
-      value: facts.neededWorkHours
-        ? `週 ${facts.neededWorkHours} 時間（しないと貯金が減る）`
-        : "なし",
-    },
+    ...(facts.weeklyGapYen
+      ? [
+          { label: "生活費の不足", value: `週 ${yen(facts.weeklyGapYen)}` },
+          { label: "埋めるのに要るバイト", value: `週 ${facts.neededWorkHours} 時間` },
+        ]
+      : [{ label: "生活費の不足", value: "なし" }]),
   ];
 }
 
