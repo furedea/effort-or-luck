@@ -37,9 +37,16 @@ const MIDDLE_TIMETABLE: readonly RoutineKey[] = [
 ];
 const MIDDLE_CHOICE: Choice = { key: null, want: 1 };
 
-/** Every job-hunting routine and the most effortful option at every event; nothing for oneself. */
+/** Savings below which the all-in path takes on part-time work to keep paying for job hunting. */
+const LOW_SAVINGS_YEN = 20_000;
+const JOB_ROUTINES_WITH_WORK: readonly RoutineKey[] = [...JOB_ROUTINES, "extraWork"];
+
+/**
+ * Every job-hunting routine and the most effortful option at every event; nothing for oneself,
+ * apart from part-time work while savings run low.
+ */
 export const mostPolicy: Policy = {
-  timetable: () => JOB_ROUTINES,
+  timetable: (life) => (life.money < LOW_SAVINGS_YEN ? JOB_ROUTINES_WITH_WORK : JOB_ROUTINES),
   choose: () => ({ key: null, want: 2 }),
 };
 
