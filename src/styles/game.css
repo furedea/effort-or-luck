@@ -676,6 +676,16 @@ main {
   border-radius: 4px;
   cursor: pointer;
 }
+.paused-note {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--shu);
+  background: color-mix(in srgb, var(--shu) 12%, transparent);
+  border-radius: 6px;
+  animation: rise 0.3s ease both;
+}
 .speeds {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

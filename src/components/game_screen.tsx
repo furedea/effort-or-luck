@@ -30,7 +30,7 @@ import { isLimited, ROUTINES } from "../engine/routine";
 import { planWeek } from "../engine/week";
 import { encode } from "../share/result_link";
 import { DifficultyPicker } from "./difficulty_picker";
-import { PlayView, type FeedEntry, type Speed } from "./play_view";
+import { PlayView, type FeedEntry, type PauseReason, type Speed } from "./play_view";
 import { RevealView } from "./reveal_view";
 import { ShareButton } from "./share_button";
 
@@ -51,6 +51,8 @@ interface Game {
   /** The timetable being edited; it takes effect when the next week is lived. */
   readonly timetable: readonly RoutineKey[];
   readonly speed: Speed;
+  /** Why the game took auto play back to one week per press, until the player moves on. */
+  readonly pausedFor: PauseReason | null;
   /** Happenings that did not stop time, newest first. */
   readonly feed: readonly FeedEntry[];
   /** Stats already warned about, so each warning comes once. */
@@ -113,7 +115,8 @@ export function GameScreen() {
           speed={game.speed}
           feed={game.feed}
           onTimetable={(timetable) => setGame({ ...game, timetable })}
-          onSpeed={(speed) => setGame({ ...game, speed })}
+          pausedFor={game.pausedFor}
+          onSpeed={(speed) => setGame({ ...game, speed, pausedFor: null })}
           onStep={() => setGame(advance(game))}
           onChoose={(option: OptionKey) => setGame(decide(game, option))}
           onNext={() => setGame(acknowledge(game))}
@@ -133,6 +136,7 @@ function newGame(difficulty: Difficulty): Game {
     player,
     timetable: [],
     speed: "step",
+    pausedFor: null,
     feed: [],
     warned: [],
     beforeBooking: null,
@@ -168,6 +172,7 @@ function advance(game: Game): Game {
     beforeBooking: booked.weeks === 1 ? null : game.beforeBooking,
     // Limited-time preparation would pass within seconds at speed, so time waits for the player.
     speed: appeared.length ? "step" : game.speed,
+    pausedFor: appeared.length && game.speed !== "step" ? "limited" : null,
     feed: [
       ...appeared,
       ...(restored ? [{ week: cohort.week, text: TIMETABLE_RESTORED }] : []),
@@ -201,6 +206,7 @@ function decide(game: Game, option: OptionKey): Game {
     ...game,
     cohort,
     speed: over ? "step" : game.speed,
+    pausedFor: over && game.speed !== "step" ? "over" : game.pausedFor,
     beforeBooking: takesHours ? game.timetable : game.beforeBooking,
   };
 }

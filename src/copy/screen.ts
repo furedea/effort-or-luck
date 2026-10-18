@@ -56,6 +56,10 @@ export const LINK_ERRORS = {
 
 export const SECTION = { job: "就活", study: "学業", life: "自分のこと", work: "お金" } as const;
 export const STEP = "次の週へ";
+export const PAUSE_REASONS = {
+  limited: "⏸ ★ 今だけの札が出たので，自動を止めた",
+  over: "⏸ 今週の時間がはみ出たので，自動を止めた",
+} as const;
 export const SPEED_LABELS = { step: "1週ずつ", normal: "▶ 自動", double: "▶▶ 2倍" } as const;
 export const TIMETABLE_TITLE = "毎週の過ごし方";
 export const CARD_TITLES = { event: "出来事" } as const;

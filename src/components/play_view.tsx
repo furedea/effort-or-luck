@@ -25,6 +25,7 @@ import {
   optionRoom,
   oneOffLine,
   overflowLine,
+  PAUSE_REASONS,
   savingsAfterLine,
   SECTION,
   SPEED_LABELS,
@@ -45,6 +46,8 @@ import { planWeek } from "../engine/week";
 /** How time moves: one week per press, or on its own at normal or double speed. */
 export type Speed = keyof typeof SPEED_LABELS;
 
+export type PauseReason = keyof typeof PAUSE_REASONS;
+
 export interface FeedEntry {
   readonly week: number;
   readonly text: string;
@@ -57,6 +60,7 @@ interface Props {
   readonly event: Event | null;
   readonly timetable: readonly RoutineKey[];
   readonly speed: Speed;
+  readonly pausedFor: PauseReason | null;
   readonly feed: readonly FeedEntry[];
   readonly onTimetable: (timetable: readonly RoutineKey[]) => void;
   readonly onSpeed: (speed: Speed) => void;
@@ -104,6 +108,11 @@ export function PlayView(props: Props) {
             onChange={props.onTimetable}
           />
           <div className="actions">
+            {props.pausedFor ? (
+              <p className="paused-note" role="status">
+                {PAUSE_REASONS[props.pausedFor]}
+              </p>
+            ) : null}
             {speed === "step" ? (
               <button type="button" className="next step" onClick={props.onStep}>
                 {STEP}
@@ -282,8 +291,15 @@ function Timetable({
     );
   };
   const oneOffHours = life.oneOff.weeks > 0 ? life.oneOff.hours / life.oneOff.weeks : 0;
-  const [tab, setTab] = useState<string>("job");
+  // A tab chosen before limited-time tiles opened gives way to them once.
+  const [chosen, setChosen] = useState({ key: "job", week: -1 });
+  const setTab = (key: string) => setChosen({ key, week });
   const shown = groups(week);
+  const openedAt = Math.max(
+    -1,
+    ...(shown.find((g) => g.key === "limited")?.specs.map((spec) => spec.from) ?? []),
+  );
+  const tab = openedAt > chosen.week ? "limited" : chosen.key;
   const group = shown.find((g) => g.key === tab) ?? shown[0];
   return (
     <div className="card timetable">

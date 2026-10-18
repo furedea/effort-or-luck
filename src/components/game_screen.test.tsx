@@ -182,6 +182,25 @@ test("returns to one week per press when limited-time preparation appears", () =
   expect(host.querySelector(".feed-entry")?.textContent).toContain(
     "★ 今だけ：夏インターンのES対策（あと4週）",
   );
+  expect(host.querySelector(".tab[aria-selected='true']")?.textContent).toBe("★ 今だけ");
+  expect(host.querySelector(".actions .paused-note")?.textContent).toBe(
+    "⏸ ★ 今だけの札が出たので，自動を止めた",
+  );
+
+  click(speedButton(host, "▶ 自動"));
+  expect(host.querySelector(".actions .paused-note")).toBeNull();
+});
+
+test("opens the limited-time tab even when another tab was chosen", () => {
+  const host = mount();
+  startYear(host);
+  click(tabNamed(host, "お金"));
+
+  for (let i = 0; i < 4; i++) click(stepButton(host)!);
+
+  expect(when(host)).toBe("5月 第1週");
+  expect(host.querySelector(".tab[aria-selected='true']")?.textContent).toBe("★ 今だけ");
+  expect(host.querySelector(".actions .paused-note")).toBeNull();
 });
 
 test("stops only for choices, listing other happenings while time flows", () => {
