@@ -499,6 +499,16 @@ main {
   outline: 2px solid var(--suit);
   outline-offset: -2px;
 }
+.tile-stack {
+  display: grid;
+}
+.tile-stack > .tiles {
+  grid-area: 1 / 1;
+  align-content: start;
+}
+.tile-stack > .tiles:not(.active) {
+  visibility: hidden;
+}
 .chosen-list {
   margin: 0;
   font-size: 12px;

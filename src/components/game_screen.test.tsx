@@ -49,7 +49,7 @@ const when = (host: HTMLElement) => host.querySelector(".when")?.textContent;
 /** The tile named `name`, switching tabs until its group is shown. */
 function tileNamed(host: HTMLElement, name: string): HTMLButtonElement {
   const visible = () =>
-    [...host.querySelectorAll<HTMLButtonElement>(".activity")].find(
+    [...host.querySelectorAll<HTMLButtonElement>(".tiles.active .activity")].find(
       (button) => button.querySelector(".activity-name")?.textContent === name,
     );
   for (const tab of [null, ...host.querySelectorAll<HTMLButtonElement>(".tab")]) {
@@ -435,14 +435,15 @@ describe("the weekly timetable", () => {
 
     expect(when(host)).toBe("5月 第1週");
     click(tabNamed(host, "★ 今だけ"));
-    const tile = host.querySelector(".tiles .activity");
+    const tile = host.querySelector(".tiles.active .activity");
     expect(tile?.querySelector(".activity-name")?.textContent).toBe("夏インターンのES対策");
     expect(tile?.querySelector(".activity-cost")?.textContent).toBe("週4時間・あと4週");
   });
 
   it("shows one group of tiles at a time, chosen by tabs", () => {
     const host = firstWeek();
-    const names = () => [...host.querySelectorAll(".activity-name")].map((n) => n.textContent);
+    const names = () =>
+      [...host.querySelectorAll(".tiles.active .activity-name")].map((n) => n.textContent);
 
     expect([...host.querySelectorAll(".tab")].map((n) => n.textContent)).toEqual([
       "就活",
@@ -452,6 +453,17 @@ describe("the weekly timetable", () => {
     ]);
     click(tabNamed(host, "学業"));
     expect(names()).toEqual(["資格の勉強", "研究・ゼミ"]);
+  });
+
+  it("keeps every tab's tiles stacked in one place, so switching tabs keeps the height", () => {
+    const host = firstWeek();
+    const panels = [...host.querySelectorAll(".tile-stack > .tiles")];
+
+    expect(panels).toHaveLength(host.querySelectorAll(".tab").length);
+    expect(panels.filter((panel) => panel.classList.contains("active"))).toHaveLength(1);
+    for (const panel of panels.filter((p) => !p.classList.contains("active"))) {
+      expect(panel.hasAttribute("inert")).toBe(true);
+    }
   });
 
   it("lists the chosen tiles under the bar, from every group", () => {

@@ -324,27 +324,40 @@ function Timetable({
           </button>
         ))}
       </div>
-      <div className="tiles" role="tabpanel">
-        {group?.specs.map((spec) => {
-          const chosen = timetable.includes(spec.key);
-          const dropped = preview.dropped.includes(spec.key);
-          return (
-            <button
-              key={spec.key}
-              type="button"
-              className={["activity", chosen ? "chosen" : "", dropped ? "dropped" : ""]
-                .filter(Boolean)
-                .join(" ")}
-              aria-pressed={chosen}
-              aria-label={routineDetail(spec)}
-              onClick={() => toggle(spec)}
-            >
-              <span className="activity-name">{routineTileLabel(spec.key)}</span>
-              <span className="activity-cost">{dropped ? CANNOT_PAY : tileCost(spec, week)}</span>
-              <span className="activity-effects">{routineEffects(spec)}</span>
-            </button>
-          );
-        })}
+      {/* Every tab's tiles share one grid cell, so the tallest sets the height and switching
+          tabs does not shift the screen; the hidden ones are inert. */}
+      <div className="tile-stack">
+        {shown.map(({ key, specs }) => (
+          <div
+            key={key}
+            className={key === group?.key ? "tiles active" : "tiles"}
+            role="tabpanel"
+            inert={key !== group?.key}
+          >
+            {specs.map((spec) => {
+              const chosen = timetable.includes(spec.key);
+              const dropped = preview.dropped.includes(spec.key);
+              return (
+                <button
+                  key={spec.key}
+                  type="button"
+                  className={["activity", chosen ? "chosen" : "", dropped ? "dropped" : ""]
+                    .filter(Boolean)
+                    .join(" ")}
+                  aria-pressed={chosen}
+                  aria-label={routineDetail(spec)}
+                  onClick={() => toggle(spec)}
+                >
+                  <span className="activity-name">{routineTileLabel(spec.key)}</span>
+                  <span className="activity-cost">
+                    {dropped ? CANNOT_PAY : tileCost(spec, week)}
+                  </span>
+                  <span className="activity-effects">{routineEffects(spec)}</span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </div>
     </div>
   );
