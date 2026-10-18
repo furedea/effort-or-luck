@@ -392,7 +392,7 @@ describe("tiles taken out while an event's hours need room", () => {
   const pressed = (host: HTMLElement, name: string) =>
     tileNamed(host, name).getAttribute("aria-pressed");
   const pausedChips = (host: HTMLElement) =>
-    [...host.querySelectorAll(".chosen-chips .chip.paused")].map((c) => c.textContent);
+    [...host.querySelectorAll(".chosen-chips .chip.paused > span")].map((c) => c.textContent);
   /** Lives on, declining events, for up to `weeks` weeks or until `done`. */
   function liveOn(host: HTMLElement, done: () => boolean, weeks = 40) {
     for (let guard = 0; guard < weeks * 3 && !done(); guard++) {
@@ -404,29 +404,10 @@ describe("tiles taken out while an event's hours need room", () => {
     if (options.length) click(options.at(-1)!);
   }
 
-  const answer = (host: HTMLElement, label: string) =>
-    click(
-      [...host.querySelectorAll<HTMLButtonElement>(".remove-question button")].find(
-        (b) => b.textContent === label,
-      )!,
-    );
-
-  it("ask whether to rest until the event is over or go for good", () => {
-    const host = bookHours();
-
-    click(tileNamed(host, "説明会"));
-
-    expect(host.querySelector(".remove-question p")?.textContent).toBe("説明会を外す？");
-    expect([...host.querySelectorAll(".remove-question button")].map((b) => b.textContent)).toEqual(
-      ["予定のあいだだけ休む", "やめる", "そのまま"],
-    );
-  });
-
   it("rest as paused and come back afterwards, while tiles added meanwhile stay", () => {
     const host = bookHours();
 
     click(tileNamed(host, "説明会"));
-    answer(host, "予定のあいだだけ休む");
     click(tileNamed(host, "ゆっくり休む"));
     expect(pausedChips(host)).toEqual(["説明会 ⏸ 予定後に戻る"]);
     expect(tileNamed(host, "説明会").querySelector(".activity-cost")?.textContent).toBe("休み中");
@@ -438,16 +419,11 @@ describe("tiles taken out while an event's hours need room", () => {
     expect(pressed(host, "ゆっくり休む")).toBe("true");
   });
 
-  it("go for good when the player says so, now or from the paused chip", () => {
+  it("go for good when the paused chip's やめる is tapped", () => {
     const host = bookHours();
     click(tileNamed(host, "説明会"));
-    answer(host, "予定のあいだだけ休む");
 
-    click(host.querySelector<HTMLButtonElement>(".chosen-chips .chip.paused")!);
-    expect([...host.querySelectorAll(".remove-question button")].map((b) => b.textContent)).toEqual(
-      ["今すぐ戻す", "やめる", "そのまま"],
-    );
-    answer(host, "やめる");
+    click(host.querySelector<HTMLButtonElement>(".chosen-chips .chip-drop")!);
     liveOn(host, () => false, 12);
 
     expect(pausedChips(host)).toEqual([]);
@@ -464,11 +440,6 @@ test("puts back tiles dropped for a limited-time tile once it closes, and keeps 
   expect(when(host)).toBe("5月 第1週");
 
   click(tileNamed(host, "説明会"));
-  click(
-    [...host.querySelectorAll<HTMLButtonElement>(".remove-question button")].find(
-      (b) => b.textContent === "予定のあいだだけ休む",
-    )!,
-  );
   click(tileNamed(host, "夏インターンのES対策"));
   click(tileNamed(host, "ゆっくり休む"));
   const pressed = (name: string) => tileNamed(host, name).getAttribute("aria-pressed");

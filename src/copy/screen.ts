@@ -86,22 +86,12 @@ export function removeLabel(tile: string): string {
 export const PAUSED_CHIP = "⏸ 予定後に戻る";
 export const PAUSED_TILE = "休み中";
 
-/** Asked when a tile is taken out while an event needs room. */
-export function removeAsk(tile: string): string {
-  return `${tile}を外す？`;
-}
+export const DROP_FOR_GOOD = "やめる";
 
-/** Asked when a paused chip is tapped. */
-export function pausedAsk(tile: string): string {
-  return `${tile}は予定が終わったら戻る`;
+/** What a paused tile's drop button does, for screen readers, e.g. "研究・ゼミをやめる". */
+export function dropLabel(tile: string): string {
+  return `${tile}をやめる`;
 }
-
-export const REMOVE_CHOICES = {
-  pause: "予定のあいだだけ休む",
-  drop: "やめる",
-  resume: "今すぐ戻す",
-  keep: "そのまま",
-} as const;
 
 export const TIMETABLE_RESTORED = "予定が終わったので，時間割を元に戻した";
 export const LIMITED_TITLE = "★ 今だけ";
