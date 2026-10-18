@@ -462,12 +462,6 @@ main {
   color: var(--paper);
   opacity: 0.85;
 }
-.activity-detail {
-  min-height: 1.6em;
-  margin: 0;
-  font-size: 12px;
-  color: var(--sub);
-}
 .activity.dropped .activity-cost {
   color: var(--shu);
 }

@@ -402,12 +402,13 @@ describe("the weekly timetable", () => {
     expect(legend).toEqual(["就活 6時間", "学業 10時間", "自分のこと 10時間"]);
   });
 
-  it("explains the last pressed tile with its numbers", () => {
+  it("keeps the numbers off the screen, for screen readers only", () => {
     const host = firstWeek();
 
     click(tile(host, "ゆっくり休む"));
 
-    expect(host.querySelector(".activity-detail")?.textContent).toBe(
+    expect(host.querySelector(".activity-detail")).toBeNull();
+    expect(tile(host, "ゆっくり休む").getAttribute("aria-label")).toBe(
       "ゆっくり休む（週10時間）：健康 +2.4・心の余裕 +0.6／週",
     );
   });

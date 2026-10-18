@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 import {
   describeEvent,
@@ -269,10 +269,8 @@ function Timetable({
   timetable: readonly RoutineKey[];
   onChange: (timetable: readonly RoutineKey[]) => void;
 }) {
-  const [pressed, setPressed] = useState<RoutineSpec | null>(null);
   const preview = planWeek(life, week, timetable);
   const toggle = (spec: RoutineSpec) => {
-    setPressed(spec);
     onChange(
       timetable.includes(spec.key)
         ? timetable.filter((key) => key !== spec.key)
@@ -284,9 +282,6 @@ function Timetable({
     <div className="timetable">
       <h3 className="activity-section">{TIMETABLE_TITLE}</h3>
       <WeekBar budget={preview.budget} preview={preview} oneOffHours={oneOffHours} />
-      <p className="activity-detail" aria-live="polite">
-        {pressed ? routineDetail(pressed) : ""}
-      </p>
       {groups(week).map(({ key, title, specs }) => (
         <div className={key === "limited" ? "activity-group limited" : "activity-group"} key={key}>
           <h4 className="activity-section">{title}</h4>
