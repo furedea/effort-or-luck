@@ -281,6 +281,9 @@ main {
 .bar-job {
   background: var(--suit);
 }
+.bar-study {
+  background: color-mix(in srgb, var(--suit) 55%, var(--suit-soft));
+}
 .bar-life {
   background: var(--suit-soft);
 }

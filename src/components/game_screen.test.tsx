@@ -372,14 +372,26 @@ describe("the weekly timetable", () => {
     expect(tile?.querySelector(".activity-cost")?.textContent).toBe("週4時間・あと4週");
   });
 
+  it("groups the tiles into job hunting, study, oneself, and money", () => {
+    const host = firstWeek();
+    const groups = [...host.querySelectorAll(".activity-group")].map((group) => ({
+      title: group.querySelector(".activity-section")?.textContent,
+      tiles: [...group.querySelectorAll(".activity-name")].map((n) => n.textContent),
+    }));
+
+    expect(groups.map((g) => g.title)).toEqual(["就活", "学業", "自分のこと", "お金"]);
+    expect(groups[1]?.tiles).toEqual(["資格の勉強", "研究・ゼミ"]);
+  });
+
   it("names the bar's colors with their hours", () => {
     const host = firstWeek();
 
     click(tile(host, "説明会"));
+    click(tile(host, "研究・ゼミ"));
     click(tile(host, "友達と遊ぶ"));
 
     const legend = [...host.querySelectorAll(".bar-legend li")].map((n) => n.textContent);
-    expect(legend).toEqual(["就活 6時間", "自分のこと 10時間"]);
+    expect(legend).toEqual(["就活 6時間", "学業 10時間", "自分のこと 10時間"]);
   });
 
   it("explains the last pressed tile with its numbers", () => {

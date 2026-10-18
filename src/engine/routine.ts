@@ -8,8 +8,8 @@ import { WAGE_YEN_PER_HOUR } from "./parameters";
 
 export interface RoutineSpec {
   readonly key: RoutineKey;
-  /** Job hunting, time for oneself, or extra paid work. */
-  readonly kind: "job" | "life" | "work";
+  /** Job hunting, study, time for oneself, or part-time work. */
+  readonly kind: "job" | "study" | "life" | "work";
   readonly weeklyHours: number;
   readonly weeklyMoney: number;
   readonly weeklyPay: number;
@@ -96,7 +96,7 @@ export const ROUTINES: readonly RoutineSpec[] = [
   }),
   routine({
     key: "certification",
-    kind: "life",
+    kind: "study",
     weeklyHours: 6,
     weeklyMoney: 2000,
     documentPrepPerWeek: 0.16,
@@ -115,7 +115,7 @@ export const ROUTINES: readonly RoutineSpec[] = [
     statsPerWeek: { mind: 0.56 },
     inviteBonusPerWeek: 0.004,
   }),
-  routine({ key: "research", kind: "life", weeklyHours: 10, statsPerWeek: { research: 4.5 } }),
+  routine({ key: "research", kind: "study", weeklyHours: 10, statsPerWeek: { research: 4.5 } }),
   routine({ key: "rest", kind: "life", weeklyHours: 10, statsPerWeek: { health: 2.4, mind: 0.6 } }),
   // Pay is the hourly wage times the hours, rounded to the thousand so savings stay plain amounts.
   routine({ key: "extraWork", kind: "work", weeklyHours: 8, weeklyPay: roundPay(8) }),

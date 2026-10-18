@@ -54,7 +54,7 @@ export const LINK_ERRORS = {
   oldRules: "このリンクは今とは違うルールで遊んだ結果なので，再現できない．",
 } as const;
 
-export const SECTION = { job: "就活", life: "自分のこと", work: "お金" } as const;
+export const SECTION = { job: "就活", study: "学業", life: "自分のこと", work: "お金" } as const;
 export const STEP = "次の週へ";
 export const SPEED_LABELS = { step: "1週ずつ", normal: "▶ 自動", double: "▶▶ 2倍" } as const;
 export const FEED_TITLE = "これまで";
@@ -79,6 +79,7 @@ export const CANNOT_PAY = "お金が足りない";
 export const BAR_LABELS = {
   oneOff: "予定",
   job: "就活",
+  study: "学業",
   life: "自分のこと",
   work: "バイト",
   over: "オーバー",

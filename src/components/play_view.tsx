@@ -326,7 +326,7 @@ function groups(week: number) {
   const limited = open.filter(isLimited);
   return [
     ...(limited.length ? [{ key: "limited", title: LIMITED_TITLE, specs: limited }] : []),
-    ...(["job", "life", "work"] as const).map((kind) => ({
+    ...(["job", "study", "life", "work"] as const).map((kind) => ({
       key: kind,
       title: SECTION[kind],
       specs: open.filter((spec) => spec.kind === kind && !isLimited(spec)),
@@ -375,6 +375,7 @@ function HourBar({
   const hours: Record<BarPart, number> = {
     oneOff: oneOffHours,
     job: hoursOf("job"),
+    study: hoursOf("study"),
     life: hoursOf("life"),
     work: hoursOf("work"),
     over: preview.shortHours,
