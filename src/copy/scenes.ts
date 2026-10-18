@@ -18,6 +18,7 @@ import {
   PASS,
   SHOP_CLOSED_LOSS_YEN,
   TRIP_YEN,
+  WAGE_YEN_PER_HOUR,
 } from "../engine/parameters";
 import type { RoutineSpec } from "../engine/routine";
 import { region, yen } from "./format";
@@ -239,6 +240,7 @@ function livingGapLines(facts: Facts<"intro">): string[] {
   return [
     `生活費は月${yen(MONTHLY_EXPENSE_YEN)}．${sources}月${yen(income)}．`,
     `毎月の初めに${yen(facts.monthlyGapYen)}ずつ貯金が減る．`,
+    `バイトは時給${yen(WAGE_YEN_PER_HOUR)}．週${facts.neededWorkHours}時間働けば埋まる．`,
   ];
 }
 
