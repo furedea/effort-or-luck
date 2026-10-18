@@ -362,6 +362,31 @@ test("puts back the tiles dropped for an event's hours when they end, without st
   expect(stepButton(host)).toBeNull();
 });
 
+test("puts back tiles dropped for a limited-time tile once it closes, and keeps tiles added", () => {
+  const host = mount();
+  startYear(host);
+  click(tileNamed(host, "説明会"));
+  click(tileNamed(host, "研究・ゼミ"));
+  for (let i = 0; i < 4; i++) click(stepButton(host)!);
+  expect(when(host)).toBe("5月 第1週");
+
+  click(tileNamed(host, "説明会"));
+  click(tileNamed(host, "夏インターンのES対策"));
+  click(tileNamed(host, "ゆっくり休む"));
+  const pressed = (name: string) => tileNamed(host, name).getAttribute("aria-pressed");
+  expect(pressed("説明会")).toBe("false");
+
+  // Declining events on the way, live until the limited-time tile has closed in June.
+  for (let guard = 0; guard < 12 && when(host) !== "6月 第2週"; guard++) {
+    const options = [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")];
+    click(options.at(-1) ?? stepButton(host)!);
+  }
+
+  expect(pressed("説明会")).toBe("true");
+  expect(pressed("ゆっくり休む")).toBe("true");
+  expect(host.querySelector(".chosen-chips")?.textContent).not.toContain("夏インターンのES対策");
+});
+
 test("moves focus to an event when time stops for it", () => {
   const host = mount();
   startYear(host);
