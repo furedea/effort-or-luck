@@ -174,7 +174,9 @@ function advance(game: Game): Game {
   );
   // When an event's hours end, the week has room again, so time waits for the player to refill it.
   const freedPause: PauseReason | null =
-    living && booked.weeks === 1 ? { kind: "bookingEnded", hours: booked.hours } : null;
+    living && booked.weeks === 1 && booked.hours > 0
+      ? { kind: "bookingEnded", hours: booked.hours }
+      : null;
   return {
     ...game,
     cohort,
