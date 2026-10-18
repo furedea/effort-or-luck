@@ -2,7 +2,7 @@
 // that always choosing the middle option lands near the surveyed June 1st offer rate.
 
 /** Bump whenever a change alters results, so shared links from older rules are reported as old. */
-export const RULES_VERSION = 13;
+export const RULES_VERSION = 14;
 
 export const WAGE_YEN_PER_HOUR = 1100;
 export const MONTHLY_EXPENSE_YEN = 130_000;
@@ -90,6 +90,9 @@ export const HEALTH_PER_OVERLOAD_HOUR = 0.15;
  * Hours beyond the week's free hours come out of sleep: the first few cost a little health each,
  * hours beyond them much more, and every hour wears the mind down a little.
  */
+/** Hours left free in a week rest health and mind a little, counted up to a cap. */
+export const SPARE_TIME = { maxHours: 10, perHour: 0.08 } as const;
+
 export const SLEEP_LOSS = {
   lightHours: 5,
   healthPerLightHour: 0.3,

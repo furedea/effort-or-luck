@@ -69,6 +69,7 @@ export function liveWeek(
     jobHours: hoursOf("job") + oneOffHours,
     extraWorkHours: hoursOf("work"),
     shortHours: outcome.shortHours,
+    spareHours: Math.max(0, outcome.budget - outcome.hours),
   });
   if (life.oneOff.weeks > 0) {
     life.oneOff = { hours: life.oneOff.hours - oneOffHours, weeks: life.oneOff.weeks - 1 };

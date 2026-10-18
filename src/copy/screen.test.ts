@@ -4,7 +4,7 @@ import {
   optionRoom,
   pauseLines,
   monthlyBreakdown,
-  overflowLine,
+  slackLine,
   statBars,
   statusItems,
   warningLine,
@@ -35,7 +35,12 @@ test("the stat bars flag stats close to zero", () => {
 });
 
 test("hours beyond the budget are said to come from sleep", () => {
-  expect(overflowLine(10)).toBe("はみ出た週10時間は睡眠を削る（健康 −5.5・心 −1／週）");
+  expect(slackLine(10, 0)).toBe("睡眠を削るので，健康・心↓");
+});
+
+test("hours left over are said to help health and mind, and an exact fit says nothing", () => {
+  expect(slackLine(0, 5)).toBe("余った時間で，健康・心↑");
+  expect(slackLine(0, 0)).toBeNull();
 });
 
 test("selves who ended early are counted by reason", () => {

@@ -9,6 +9,7 @@ import {
   MIND_PER_JOB_HOUR,
   MIND_WHEN_BROKE_WEEKLY,
   SLEEP_LOSS,
+  SPARE_TIME,
   STAT_SHOCK,
   WEEKLY_DRIFT,
 } from "./parameters";
@@ -26,12 +27,14 @@ interface PeriodLoad {
   readonly extraWorkHours: number;
   /** Hours beyond the free hours, taken from sleep. */
   readonly shortHours: number;
+  /** Hours left free in the week, which rest health and mind a little. */
+  readonly spareHours: number;
 }
 
 /** Moves every stat for a period of living, then ends the year if one reached zero. */
 export function liveThroughPeriod(life: Life, load: PeriodLoad): void {
   if (life.over) return;
-  const { weeks, fourthYear, taken, jobHours, extraWorkHours, shortHours } = load;
+  const { weeks, fourthYear, taken, jobHours, extraWorkHours, shortHours, spareHours } = load;
   const change: Record<Stat, number> = { ...WEEKLY_DRIFT };
   if (fourthYear) change.research = FOURTH_YEAR_RESEARCH_DRIFT;
   const { driftFactor } = DIFFICULTY[life.difficulty];
@@ -45,6 +48,9 @@ export function liveThroughPeriod(life: Life, load: PeriodLoad): void {
   const sleep = sleepCost(shortHours / weeks);
   change.health -= sleep.health * weeks;
   change.mind -= sleep.mind * weeks;
+  const spare = Math.min(spareHours / weeks, SPARE_TIME.maxHours) * SPARE_TIME.perHour * weeks;
+  change.health += spare;
+  change.mind += spare;
   change.mind -= jobHours * MIND_PER_JOB_HOUR;
   if (life.money < BROKE_BELOW_YEN) change.mind -= MIND_WHEN_BROKE_WEEKLY * weeks;
   shift(life, change);

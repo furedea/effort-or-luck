@@ -469,6 +469,11 @@ main {
 .time-over {
   color: var(--warn);
 }
+.time-spare {
+  margin: 0;
+  font-size: 12px;
+  color: var(--c-study);
+}
 .time-left {
   color: var(--sub);
 }

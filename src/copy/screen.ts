@@ -8,7 +8,6 @@ import {
   WEEKLY_HOURS,
   type Difficulty,
 } from "../engine/parameters";
-import { sleepCost } from "../engine/wellbeing";
 import { yen } from "./format";
 import { describeLog, STAT_LABELS } from "./scenes";
 
@@ -139,12 +138,11 @@ export function savingsAfterLine(money: number): string {
   return `貯金 ${yen(Math.max(0, money))}`;
 }
 
-/** Hours beyond the free hours, taken from sleep, e.g. "はみ出た週5時間は睡眠を削る（健康 −1／週）". */
-export function overflowLine(shortHours: number): string {
-  const hours = Number(shortHours.toFixed(1));
-  const { health, mind } = sleepCost(shortHours);
-  const one = (value: number) => Number(value.toFixed(1));
-  return `はみ出た週${hours}時間は睡眠を削る（健康 −${one(health)}・心 −${one(mind)}／週）`;
+/** What the week's slack does: hours over cost health and mind, hours left over help them. */
+export function slackLine(shortHours: number, spareHours: number): string | null {
+  if (shortHours > 0) return "睡眠を削るので，健康・心↓";
+  if (spareHours > 0) return "余った時間で，健康・心↑";
+  return null;
 }
 
 export function oneOffLine(hours: number): string {

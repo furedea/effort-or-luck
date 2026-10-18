@@ -27,7 +27,7 @@ import {
   NEXT,
   optionRoom,
   oneOffLine,
-  overflowLine,
+  slackLine,
   PAUSE_HEAD,
   pauseLines,
   type PauseReason,
@@ -462,12 +462,13 @@ function WeekBar({
   preview: ReturnType<typeof planWeek>;
   oneOffHours: number;
 }) {
+  const slack = slackLine(preview.shortHours, Math.max(0, budget - preview.hours));
   return (
     <div className="time-bar">
       <p className="time-total">{budgetLine(preview.hours, budget)}</p>
       <HourBar budget={budget} preview={preview} oneOffHours={oneOffHours} />
       {oneOffHours ? <p className="time-left">{oneOffLine(oneOffHours)}</p> : null}
-      {preview.shortHours ? <p className="time-over">{overflowLine(preview.shortHours)}</p> : null}
+      {slack ? <p className={preview.shortHours ? "time-over" : "time-spare"}>{slack}</p> : null}
     </div>
   );
 }
