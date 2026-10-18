@@ -5,7 +5,8 @@ import { WAGE_YEN_PER_HOUR } from "./parameters";
 
 // Light two-way choices every few weeks, between the big events. Costs and effects are
 // assumptions, listed on the sources page. Each option's effects are data, so the screen can show
-// them in numbers before the player chooses.
+// them in numbers before the player chooses. Declining costs a little where turning someone down
+// would: a friend, a seminar, a shop manager, family.
 
 export interface SmallOption {
   readonly key: OptionKey;
@@ -33,7 +34,7 @@ export const SMALL_EVENTS: readonly SmallEvent[] = [
     week: weekOfMonthStart(1) + 1,
     options: () => [
       { key: "tripGo", hours: 10, money: 20_000, stats: { mind: 5, social: 6 } },
-      { key: "tripSkip" },
+      { key: "tripSkip", stats: { social: -2 } },
     ],
   },
   {
@@ -41,7 +42,7 @@ export const SMALL_EVENTS: readonly SmallEvent[] = [
     week: weekOfMonthStart(3),
     options: () => [
       { key: "seminarTake", hours: 10, weeks: 2, stats: { research: 8 } },
-      { key: "seminarDecline" },
+      { key: "seminarDecline", stats: { research: -3 } },
     ],
   },
   {
@@ -49,7 +50,7 @@ export const SMALL_EVENTS: readonly SmallEvent[] = [
     week: weekOfMonthStart(5),
     options: () => [
       { key: "campJoin", hours: 10, money: 15_000, stats: { social: 8, mind: 4 } },
-      { key: "campSkip" },
+      { key: "campSkip", stats: { social: -2 } },
     ],
   },
   {
@@ -62,7 +63,7 @@ export const SMALL_EVENTS: readonly SmallEvent[] = [
         pay: EXTRA_SHIFT_HOURS * WAGE_YEN_PER_HOUR,
         stats: { mind: -2 },
       },
-      { key: "shiftNo" },
+      { key: "shiftNo", stats: { mind: -1 } },
     ],
   },
   {
@@ -80,7 +81,7 @@ export const SMALL_EVENTS: readonly SmallEvent[] = [
         money: life.metro ? HOME_TRIP_YEN.metro : HOME_TRIP_YEN.regional,
         stats: { mind: 8 },
       },
-      { key: "homeStay" },
+      { key: "homeStay", stats: { mind: -2 } },
     ],
   },
   {
