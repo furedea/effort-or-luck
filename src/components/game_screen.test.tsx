@@ -361,6 +361,22 @@ test("keeps the chosen speed after declining, even in a week already over", () =
   expect(stepButton(host)).toBeNull();
 });
 
+test("keeps flowing into the next week after a choice that books no hours", () => {
+  const host = toFirstChoice();
+  const takesNoTime = () =>
+    [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")]
+      .filter((button) => !/\d+時間/.test(button.querySelector(".cost")?.textContent ?? ""))
+      .at(-1);
+
+  click(takesNoTime()!);
+  passMs(300);
+  // An event in the next week hides the speeds; declining it shows whether time kept flowing.
+  const next = takesNoTime();
+  if (next) click(next);
+
+  expect(stepButton(host)).toBeNull();
+});
+
 test("keeps the chosen speed after a choice that fits the week", () => {
   const host = toFirstChoice();
   const options = [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")];
