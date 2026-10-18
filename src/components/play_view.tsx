@@ -292,10 +292,13 @@ function Timetable({
           {CLEAR_ALL}
         </button>
       </div>
-      <WeekBar budget={preview.budget} preview={preview} oneOffHours={oneOffHours} />
-      {timetable.length ? (
-        <p className="chosen-list">{chosenLine(timetable.map((key) => routineTileLabel(key)))}</p>
-      ) : null}
+      {/* The bar, its legend, and the chosen tiles read as one block, so they sit close. */}
+      <div className="week-summary">
+        <WeekBar budget={preview.budget} preview={preview} oneOffHours={oneOffHours} />
+        {timetable.length ? (
+          <p className="chosen-list">{chosenLine(timetable.map((key) => routineTileLabel(key)))}</p>
+        ) : null}
+      </div>
       <div className="tabs" role="tablist">
         {shown.map(({ key, title }) => (
           <button

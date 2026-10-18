@@ -501,6 +501,13 @@ main {
 .tile-stack > .tiles:not(.active) {
   visibility: hidden;
 }
+.week-summary {
+  display: grid;
+  row-gap: 4px;
+}
+.week-summary .time-bar {
+  padding-bottom: 0;
+}
 .chosen-list {
   margin: 0;
   font-size: 12px;
