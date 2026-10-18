@@ -213,12 +213,12 @@ function Status({ life }: { life: Life }) {
           <div key={stat} className={low ? "stat-bar low" : "stat-bar"}>
             <dt>{label}</dt>
             <dd>
-              <span className="meter" aria-hidden="true">
-                <span style={{ width: `${value}%` }} />
-              </span>
               <span className="meter-value">
                 {value}
                 {low ? <span className="sr-only">{LOW_NOTE}</span> : null}
+              </span>
+              <span className="meter" aria-hidden="true">
+                <span style={{ width: `${value}%` }} />
               </span>
             </dd>
           </div>

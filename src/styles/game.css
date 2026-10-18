@@ -347,8 +347,11 @@ main {
   gap: 0 10px;
   margin: 0;
 }
+/* Label and value share the top line, the gauge sits below, so each value reads with its stat. */
 .stat-bar {
   display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
   row-gap: 4px;
   font-size: 12px;
 }
@@ -356,11 +359,10 @@ main {
   color: var(--sub);
 }
 .stat-bar dd {
-  display: grid;
-  grid-template-columns: 1fr 1.8em;
-  align-items: center;
-  column-gap: 6px;
-  margin: 0;
+  display: contents;
+}
+.stat-bar .meter {
+  grid-column: 1 / -1;
 }
 .meter {
   height: 6px;
