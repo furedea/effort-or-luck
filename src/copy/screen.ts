@@ -104,21 +104,17 @@ export function weekStatusLine(used: number, budget: number, money: number): str
   return `${budgetLine(used, budget)}・貯金 ${yen(Math.round(money))}`;
 }
 
-interface OptionAfter {
-  /** Hours left this week after choosing; negative when the week runs over. */
-  readonly hoursLeft: number;
-  /** Weeks the option's hours last. */
-  readonly weeks: number;
-  readonly moneyAfter: number;
+/** The hours an option leaves in the week, or runs over it by, for a badge beside the option. */
+export function optionRoom(hoursLeft: number): { over: boolean; caption: string; hours: string } {
+  const hours = `${Number(Math.abs(hoursLeft).toFixed(1))}時間`;
+  return hoursLeft >= 0
+    ? { over: false, caption: "あと", hours }
+    : { over: true, caption: "オーバー", hours };
 }
 
-/** What choosing an option leaves, e.g. "選ぶと：今週あと12時間・貯金 3万円". */
-export function optionAfterLine({ hoursLeft, weeks, moneyAfter }: OptionAfter): string {
-  const hours = Number(Math.abs(hoursLeft).toFixed(1));
-  const span = weeks > 1 ? `${weeks}週間，毎週` : "今週";
-  const time =
-    hoursLeft >= 0 ? `${span}あと${hours}時間` : `${span}${hours}時間オーバー（睡眠を削る）`;
-  return `選ぶと：${time}・貯金 ${yen(Math.max(0, Math.round(moneyAfter)))}`;
+/** Savings after an option that costs or pays money. */
+export function savingsAfterLine(money: number): string {
+  return `貯金 ${yen(Math.max(0, money))}`;
 }
 
 /** Hours beyond the free hours, taken from sleep, e.g. "はみ出た週5時間は睡眠を削る（健康 −1／週）". */

@@ -22,9 +22,10 @@ import {
   LIMITED_TITLE,
   LOW_NOTE,
   NEXT,
-  optionAfterLine,
+  optionRoom,
   oneOffLine,
   overflowLine,
+  savingsAfterLine,
   SECTION,
   SPEED_LABELS,
   statBars,
@@ -195,12 +196,8 @@ function EventPanel({
   // An option's hours replace any one-off booked before, so they are added to the routines alone.
   const bookedHours = life.oneOff.weeks > 0 ? life.oneOff.hours / life.oneOff.weeks : 0;
   const routineHours = preview.hours - bookedHours;
-  const after = (option: PricedOption) =>
-    optionAfterLine({
-      hoursLeft: preview.budget - routineHours - option.hours / option.weeks,
-      weeks: option.weeks,
-      moneyAfter: life.money - option.money + (option.pay ?? 0),
-    });
+  const roomOf = (option: PricedOption) =>
+    optionRoom(preview.budget - routineHours - option.hours / option.weeks);
   return (
     <div className="event">
       <div className="card">
@@ -245,7 +242,16 @@ function EventPanel({
               <span className="cost">
                 {option.shortfall ? shortfallReason(option.shortfall) : optionCost(option)}
               </span>
-              {option.shortfall ? null : <span className="after">{after(option)}</span>}
+              {option.shortfall ? null : (
+                <OptionRoom
+                  room={roomOf(option)}
+                  savings={
+                    option.money || option.pay
+                      ? savingsAfterLine(life.money - option.money + (option.pay ?? 0))
+                      : null
+                  }
+                />
+              )}
             </button>
           ))
         ) : (
@@ -456,6 +462,25 @@ function HourBar({
         </ul>
       ) : null}
     </>
+  );
+}
+
+/** The hours an option leaves this week, large beside it, with savings when money moves. */
+function OptionRoom({
+  room,
+  savings,
+}: {
+  room: ReturnType<typeof optionRoom>;
+  savings: string | null;
+}) {
+  return (
+    <span className={room.over ? "room-block over" : "room-block"}>
+      <span className="room">
+        <span className="room-caption">{room.caption}</span>
+        <span className="room-hours">{room.hours}</span>
+      </span>
+      {savings ? <span className="room-savings">{savings}</span> : null}
+    </span>
   );
 }
 

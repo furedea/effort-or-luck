@@ -1,7 +1,7 @@
 import {
   budgetLine,
   endedCount,
-  optionAfterLine,
+  optionRoom,
   overflowLine,
   statBars,
   statusItems,
@@ -50,16 +50,12 @@ test("a falling stat is warned about with its value", () => {
   expect(warningLine("health", 18.4)).toBe("健康が 18 まで下がった．このままだと危ない．");
 });
 
-describe("what choosing an option leaves", () => {
-  it("gives the hours left this week and the savings after", () => {
-    expect(optionAfterLine({ hoursLeft: 12, weeks: 1, moneyAfter: 30_000 })).toBe(
-      "選ぶと：今週あと12時間・貯金 3万円",
-    );
+describe("the room an option leaves in the week", () => {
+  it("gives the hours left", () => {
+    expect(optionRoom(1)).toEqual({ over: false, caption: "あと", hours: "1時間" });
   });
 
-  it("says how many weeks the hours last and when they run over", () => {
-    expect(optionAfterLine({ hoursLeft: -4, weeks: 3, moneyAfter: 0 })).toBe(
-      "選ぶと：3週間，毎週4時間オーバー（睡眠を削る）・貯金 0円",
-    );
+  it("marks hours over the week", () => {
+    expect(optionRoom(-4.5)).toEqual({ over: true, caption: "オーバー", hours: "4.5時間" });
   });
 });

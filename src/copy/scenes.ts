@@ -107,9 +107,9 @@ export function optionLabel(option: PricedOption, facts: EventFacts): string {
   return OPTION_LABELS[option.key];
 }
 
-/** What an option takes and brings, e.g. "15時間（3週）・3万円・心の余裕 +5". */
+/** What an option takes and brings, e.g. "週5時間 × 3週・3万円・心の余裕 +5". */
 export function optionCost({ hours, weeks, money, pay, stats, prep }: PricedOption): string {
-  const time = hours ? `${hours}時間${weeks > 1 ? `（${weeks}週）` : ""}` : "";
+  const time = !hours ? "" : weeks > 1 ? `週${hours / weeks}時間 × ${weeks}週` : `${hours}時間`;
   const signed = (value: number) => (value < 0 ? `−${-value}` : `+${value}`);
   const statChanges = (Object.keys(STAT_LABELS) as Stat[])
     .filter((stat) => stats?.[stat])
