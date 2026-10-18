@@ -2,7 +2,14 @@ import { useEffect, useState } from "react";
 
 import "../styles/game.css";
 import { describeEvent, routineTileLabel } from "../copy/scenes";
-import { limitedLine, PLAY_AGAIN, shareText, TITLE, warningLine } from "../copy/screen";
+import {
+  bookingEndedLine,
+  limitedLine,
+  PLAY_AGAIN,
+  shareText,
+  TITLE,
+  warningLine,
+} from "../copy/screen";
 import { WEEKS } from "../engine/calendar";
 import {
   choose,
@@ -136,6 +143,8 @@ function newGame(difficulty: Difficulty): Game {
  * the player's choices and the end of the year; anything else goes into the feed.
  */
 function advance(game: Game): Game {
+  // Lives change in place, so the booking is read before the week is lived.
+  const booked = game.cohort.lives[game.player]?.oneOff ?? { hours: 0, weeks: 0 };
   let cohort = step(withTimetable(game.cohort, game.timetable));
   const life = cohort.lives[game.player];
   while (life && !isActive(life) && cohort.week < WEEKS && !cohort.events[game.player]) {
@@ -145,13 +154,19 @@ function advance(game: Game): Game {
   const falling = life ? warningFor(life, game.warned) : null;
   const warnings =
     falling && life ? [{ week: cohort.week, text: warningLine(falling, life.stats[falling]) }] : [];
-  const appeared = life && isActive(life) ? limitedEntries(cohort.week) : [];
+  const living = Boolean(life && isActive(life));
+  const appeared = living ? limitedEntries(cohort.week) : [];
+  const freed =
+    living && booked.weeks === 1
+      ? [{ week: cohort.week, text: bookingEndedLine(booked.hours) }]
+      : [];
   return {
     ...game,
     cohort,
-    // Limited-time preparation would pass within seconds at speed, so time waits for the player.
-    speed: appeared.length ? "step" : game.speed,
-    feed: [...appeared, ...warnings, ...noticeEntries(cohort, game.player), ...game.feed],
+    // Limited-time preparation would pass within seconds at speed, and the hours an event booked
+    // free up a timetable that may have been emptied for it, so time waits for the player.
+    speed: appeared.length || freed.length ? "step" : game.speed,
+    feed: [...appeared, ...freed, ...warnings, ...noticeEntries(cohort, game.player), ...game.feed],
     warned: falling ? [...game.warned, falling] : game.warned,
   };
 }

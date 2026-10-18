@@ -65,6 +65,11 @@ export function weeksLeftLine(weeks: number): string {
   return `あと${weeks}週`;
 }
 
+/** Hours an event booked have ended, e.g. "予定が終わり，週5時間あいた．時間割を見直そう". */
+export function bookingEndedLine(weeklyHours: number): string {
+  return `予定が終わり，週${Number(weeklyHours.toFixed(1))}時間あいた．時間割を見直そう`;
+}
+
 /** A limited-time tile that has just appeared, e.g. "★ 今だけ：夏インターンのES対策（あと4週）". */
 export function limitedLine(tile: string, weeks: number): string {
   return `${LIMITED_TITLE}：${tile}（${weeksLeftLine(weeks)}）`;

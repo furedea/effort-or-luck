@@ -234,6 +234,29 @@ test("keeps the chosen speed after a choice that fits the week", () => {
   expect(stepButton(host)).toBeNull();
 });
 
+test("returns to one week per press when hours booked for an event end", () => {
+  const host = mount();
+  startYear(host);
+  click(speedButton(host, "▶▶ 2倍"));
+  const takesHours = () =>
+    [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")].find((button) =>
+      /\d+時間/.test(button.querySelector(".cost")?.textContent ?? ""),
+    );
+  for (let guard = 0; guard < 100 && !takesHours(); guard++) {
+    const options = [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")];
+    if (options.length) click(options.at(-1)!);
+    else keepFlowing(host);
+  }
+  click(takesHours()!);
+
+  for (let guard = 0; guard < 6 && !stepButton(host); guard++) passMs(300);
+
+  expect(stepButton(host)).not.toBeNull();
+  expect(host.querySelector(".feed li")?.textContent).toMatch(
+    /予定が終わり，週\d+(\.\d)?時間あいた/,
+  );
+});
+
 test("moves focus to an event when time stops for it", () => {
   const host = mount();
   startYear(host);
