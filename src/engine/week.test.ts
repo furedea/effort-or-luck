@@ -1,4 +1,5 @@
 import { EVENT_WEEKS, weekOfMonthStart } from "./calendar";
+import type { RoutineKey } from "./facts";
 import { makeLife, monthlyIncomeYen, weekBudget, type Life } from "./life";
 import { routineOf } from "./routine";
 import { liveWeek, planWeek } from "./week";
@@ -140,4 +141,31 @@ test("the long internship tile counts only for a self accepted into it", () => {
   expect(planWeek(life, june, ["longIntern"]).taken.map((spec) => spec.key)).toEqual([
     "longIntern",
   ]);
+});
+
+describe("unnatural trades the week rules out", () => {
+  // 10 + 10 + 7 + 8 = 35 hours: adding 10 hours of rest runs 5 hours into sleep.
+  const full = ["friends", "research", "sns", "extraWork"] as const;
+
+  it("never lets rest added to a full week pay off its hours taken from sleep", () => {
+    const health = (timetable: readonly RoutineKey[]) => {
+      const life = richLife();
+      liveWeek(life, 30, timetable);
+      return life.stats.health;
+    };
+
+    expect(health([...full, "rest"])).toBeLessThanOrEqual(health(full));
+  });
+
+  it("skips the last routines that no longer fit when hours are lost, instead of cutting sleep", () => {
+    const life = richLife();
+    life.lostWeekly = 12.5;
+    life.lostWeeks = 1;
+
+    const outcome = planWeek(life, 30, full);
+
+    expect(outcome.shortHours).toBe(0);
+    expect(outcome.skipped.length).toBeGreaterThan(0);
+    expect(outcome.hours).toBeLessThanOrEqual(outcome.budget);
+  });
 });
