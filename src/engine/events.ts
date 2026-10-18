@@ -2,7 +2,7 @@
 // order of draws here is part of what makes a seed reproducible.
 import { EVENT_WEEKS, weekOfMonthStart, WEEKS } from "./calendar";
 import type { AutumnEvent, Effort, EventFacts, OptionKey, Shortfall, Stat } from "./facts";
-import { isActive, loseHours, neededWorkHours, tripYen, weeklyIncomeYen, type Life } from "./life";
+import { isActive, loseHours, neededWorkHours, tripYen, monthlyIncomeYen, type Life } from "./life";
 import {
   ALLOWANCE_CUT_YEN,
   AUTUMN_EVENT,
@@ -203,7 +203,7 @@ function intro(life: Life) {
     metro: life.metro,
     scholarship: life.scholarship,
     neededWorkHours: neededWorkHours(life),
-    weeklyGapYen: Math.max(0, -weeklyIncomeYen(life)),
+    monthlyGapYen: Math.max(0, -monthlyIncomeYen(life)),
     weeklyHours: WEEKLY_HOURS,
     money: life.money,
   };

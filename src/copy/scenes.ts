@@ -58,7 +58,7 @@ export function describeEvent({ facts }: Event): EventText {
         lines: [
           ...INTRO_LINES,
           `${region(facts.metro)}で一人暮らし．`,
-          ...(facts.weeklyGapYen ? livingGapLines(facts) : []),
+          ...(facts.monthlyGapYen ? livingGapLines(facts) : []),
         ],
         table: introTable(facts),
         next: "始める",
@@ -200,8 +200,8 @@ function livingGapLines(facts: Facts<"intro">): string[] {
   const income = facts.allowance + facts.scholarship;
   const sources = facts.scholarship ? "仕送りと奨学金は合わせて" : "仕送りは";
   return [
-    `生活費は月${yen(MONTHLY_EXPENSE_YEN)}．${sources}月${yen(income)}なので，週${yen(facts.weeklyGapYen)}足りない．`,
-    "バイトをしないと，毎週その分だけ貯金が減る．",
+    `生活費は月${yen(MONTHLY_EXPENSE_YEN)}．${sources}月${yen(income)}．`,
+    `毎月の初めに${yen(facts.monthlyGapYen)}ずつ貯金が減る．`,
   ];
 }
 
@@ -209,12 +209,12 @@ function livingGapLines(facts: Facts<"intro">): string[] {
 function introTable(facts: Facts<"intro">): TableRow[] {
   return [
     { label: "自由な時間", value: `週 ${facts.weeklyHours} 時間` },
-    ...(facts.weeklyGapYen
+    ...(facts.monthlyGapYen
       ? [
-          { label: "生活費の不足", value: `週 ${yen(facts.weeklyGapYen)}` },
+          { label: "毎月の不足", value: yen(facts.monthlyGapYen) },
           { label: "必要なバイト", value: `週 ${facts.neededWorkHours} 時間` },
         ]
-      : [{ label: "生活費の不足", value: "なし" }]),
+      : [{ label: "毎月の不足", value: "なし" }]),
   ];
 }
 

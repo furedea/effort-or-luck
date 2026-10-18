@@ -1,13 +1,13 @@
-import { FINAL_STRETCH_FROM } from "./calendar";
+import { dateOf, FINAL_STRETCH_FROM } from "./calendar";
 import type { RoutineKey } from "./facts";
-import { isActive, weekBudget, weeklyIncomeYen, type Life } from "./life";
+import { isActive, monthlyIncomeYen, weekBudget, type Life } from "./life";
 import { isOpen, practise, routineOf, type RoutineSpec } from "./routine";
 import { liveThroughPeriod } from "./wellbeing";
 
 // One week: a booked one-off comes first, then the timetable in the order it was set. Hours
 // beyond the week's free hours come out of sleep and cost health; a routine the self cannot pay
-// for is dropped that week. Allowance and scholarship minus living costs move savings every week,
-// so savings grow only through part-time work.
+// for is dropped that week. Allowance and scholarship minus living costs move savings at the start
+// of each month, so savings grow only through part-time work.
 
 export interface WeekOutcome {
   readonly budget: number;
@@ -54,7 +54,8 @@ export function liveWeek(
 ): WeekOutcome | null {
   if (!isActive(life)) return null;
   const outcome = planWeek(life, week, timetable);
-  life.money = Math.max(0, life.money + weeklyIncomeYen(life) + outcome.earned - outcome.paid);
+  const monthly = dateOf(week).weekOfMonth === 1 ? monthlyIncomeYen(life) : 0;
+  life.money = Math.max(0, life.money + monthly + outcome.earned - outcome.paid);
   for (const spec of outcome.taken) practise(life, spec);
   const oneOffHours = life.oneOff.weeks > 0 ? life.oneOff.hours / life.oneOff.weeks : 0;
   const hoursOf = (kind: "job" | "work") =>

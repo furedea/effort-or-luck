@@ -60,8 +60,8 @@ export type EventFacts =
       readonly scholarship: number;
       /** Weekly hours of part-time work living costs would need. */
       readonly neededWorkHours: number;
-      /** Living costs the allowance and scholarship leave uncovered each week, in yen. */
-      readonly weeklyGapYen: number;
+      /** Living costs the allowance and scholarship leave uncovered each month, in yen. */
+      readonly monthlyGapYen: number;
       readonly weeklyHours: number;
       readonly money: number;
     }
