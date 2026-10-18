@@ -474,7 +474,7 @@ test("the reveal opens with the offers, the luck and effort gaps, and which was 
   expect(summary?.querySelector(".gap-verdict")?.textContent).toMatch(
     /^→ この1年は，(運|努力)の差のほうが大きかった$/,
   );
-  expect(host.querySelector(".reveal-details summary")?.textContent).toBe("詳しく見る");
+  expect(host.querySelector(".reveal-details > summary")?.textContent).toBe("内訳を見る");
 });
 
 test("describes each allowance row in words for screen readers", () => {
@@ -517,7 +517,30 @@ test("the reveal sets luck against effort in two labeled parts", () => {
   playToReveal(host);
 
   const parts = [...host.querySelectorAll(".reveal h3")].map((node) => node.textContent);
-  expect(parts).toEqual(["① 努力をそろえて，運だけ変えると", "② 運をそろえて，努力だけ変えると"]);
+  expect(parts).toEqual([
+    "① 努力をそろえて，運だけ変えると",
+    "② 運をそろえて，努力だけ変えると",
+    "注",
+  ]);
+  // Each part leads with its gap, as in the summary above.
+  const gaps = [...host.querySelectorAll(".part .part-gap")].map((node) => node.textContent);
+  expect(gaps).toEqual([
+    host.querySelector(".gap-luck")?.textContent?.replace("運の差", ""),
+    host.querySelector(".gap-effort")?.textContent?.replace("努力の差", ""),
+  ]);
+  const bars = [...host.querySelectorAll(".path-bar")].map((bar) => [
+    bar.querySelector(".path-label")?.textContent,
+    bar.classList.contains("yours"),
+  ]);
+  expect(bars).toEqual([
+    ["自分のことだけ", false],
+    ["あなた", true],
+    ["就活に全部使う", false],
+  ]);
+  for (const rate of host.querySelectorAll(".path-bar .path-rate")) {
+    expect(rate.textContent).toMatch(/^\d+%$/);
+  }
+  expect(host.querySelector(".effort-detail > summary")?.textContent).toBe("仕送り別に見る");
 
   const header = [...host.querySelectorAll(".effort-table thead th")].map(
     (node) => node.textContent,
@@ -534,9 +557,15 @@ test("the reveal sets luck against effort in two labeled parts", () => {
   expect(host.querySelector(".toggle[aria-pressed]")).toBeNull();
 });
 
-test("the reveal says what counts as effort and how many could not follow the choices", () => {
+test("the reveal gathers what counts as effort and the counts into notes at the end", () => {
   const host = mount();
   playToReveal(host);
+  const notes = host.querySelector(".reveal-notes")!;
+
+  for (const name of ["effort-definition", "blocked-count", "ended-count", "long-run-note"]) {
+    expect(notes.querySelector(`li.${name}`)).not.toBeNull();
+  }
+  expect(notes.querySelector("cite")?.textContent).toMatch(/^出典：/);
 
   expect(host.querySelector(".effort-definition")?.textContent).toContain(
     "努力 ＝ どれを選ぼうとしたか",
