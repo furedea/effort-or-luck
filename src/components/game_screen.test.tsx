@@ -583,6 +583,17 @@ describe("the weekly timetable", () => {
     );
   });
 
+  it("cannot choose a paid tile the savings do not cover, and says why", () => {
+    const host = mountRaw();
+    chooseDifficulty(host, "きびしい");
+    startYear(host);
+
+    const course = tile(host, "就活講座");
+
+    expect(course.disabled).toBe(true);
+    expect(course.querySelector(".activity-cost")?.textContent).toBe("5,000円・お金が足りない");
+  });
+
   it("clears every tile at once", () => {
     const host = firstWeek();
     click(tile(host, "説明会"));
