@@ -6,7 +6,8 @@ import { liveThroughPeriod } from "./wellbeing";
 
 // One week: a booked one-off comes first, then the timetable in the order it was set. Hours
 // beyond the week's free hours come out of sleep and cost health; a routine the self cannot pay
-// for is dropped that week. Allowance and scholarship minus living costs move savings at the start
+// for is dropped that week. While a booking lasts, its own timetable replaces the usual one when
+// the player set one. Allowance and scholarship minus living costs move savings at the start
 // of each month, so savings grow only through part-time work.
 
 export interface WeekOutcome {
@@ -32,7 +33,8 @@ export function planWeek(life: Life, week: number, timetable: readonly RoutineKe
   let paid = 0;
   const taken: RoutineSpec[] = [];
   const dropped: RoutineKey[] = [];
-  for (const key of new Set(timetable)) {
+  const followed = life.oneOff.weeks > 0 ? (life.oneOff.timetable ?? timetable) : timetable;
+  for (const key of new Set(followed)) {
     const spec = routineOf(key);
     if (!isAvailable(spec, week, life)) continue;
     if (taken.some((other) => areAlternatives(spec, other))) continue;
@@ -94,7 +96,11 @@ export function liveWeek(
     spareHours: Math.max(0, outcome.budget - outcome.hours),
   });
   if (life.oneOff.weeks > 0) {
-    life.oneOff = { hours: life.oneOff.hours - oneOffHours, weeks: life.oneOff.weeks - 1 };
+    life.oneOff = {
+      ...life.oneOff,
+      hours: life.oneOff.hours - oneOffHours,
+      weeks: life.oneOff.weeks - 1,
+    };
   }
   if (life.lostWeeks > 0) life.lostWeeks -= 1;
   return outcome;

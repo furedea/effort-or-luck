@@ -1,6 +1,6 @@
 import { choose, isOver, setTimetable, startCohort, step, type Cohort } from "../engine/cohort";
 import { RULES_VERSION } from "../engine/parameters";
-import { leastPolicy, middlePolicy, mostPolicy, type Policy } from "../engine/year";
+import { leastPolicy, middlePolicy, mostPolicy, type Decision, type Policy } from "../engine/year";
 import { encode, parse, replay, type ShareParams } from "./result_link";
 
 /** Plays a year as `player`, switching to the next of `policies` at every event. */
@@ -41,6 +41,21 @@ describe("a share link", () => {
     const { params } = play(123_456, 42, [mostPolicy, leastPolicy, middlePolicy]);
 
     expect(parse(encode(params))).toEqual({ ok: true, value: params });
+  });
+
+  it("carries the timetable set for a booking and replays with it", () => {
+    const { params: played } = play(7, 3, [middlePolicy]);
+    const params = {
+      ...played,
+      decisions: played.decisions.flatMap((d): Decision[] =>
+        d.kind === "choice"
+          ? [d, { week: d.week, kind: "booking", timetable: ["friends", "sns"] }]
+          : [d],
+      ),
+    };
+
+    expect(parse(encode(params))).toEqual({ ok: true, value: params });
+    expect(replay(params).ok).toBe(true);
   });
 
   it("carries the difficulty, reading a link without one as normal", () => {

@@ -70,27 +70,23 @@ export const LINK_ERRORS = {
 export const SECTION = { job: "就活", study: "学業", life: "自分のこと", work: "お金" } as const;
 export const STEP = "次の週へ";
 /** Why the game took auto play back to one week per press. */
-export type PauseReason =
-  | { readonly kind: "limited"; readonly tile: string; readonly weeks: number }
-  | { readonly kind: "over"; readonly hours: number }
-  | { readonly kind: "bookingEnded"; readonly hours: number };
+export type PauseReason = {
+  readonly kind: "limited";
+  readonly tile: string;
+  readonly weeks: number;
+};
 
 export const PAUSE_HEAD = "一時停止";
 
 /** What made auto play pause and what the player can do now. */
 export function pauseLines(reason: PauseReason): string[] {
-  if (reason.kind === "limited") {
-    return [`${reason.tile}が出た．`, `入れるなら今（あと${reason.weeks}週）`];
-  }
-  const hours = Number(reason.hours.toFixed(1));
-  if (reason.kind === "bookingEnded")
-    return [`予定が終わり，週${hours}時間あいた．`, "活動を入れ直せる"];
-  return [`今週の予定が${hours}時間オーバーした．`, "活動を外すか，睡眠を削って進む"];
+  return [`${reason.tile}が出た．`, `入れるなら今（あと${reason.weeks}週）`];
 }
 export const SPEED_LABELS = { step: "1週ずつ", normal: "▶ 自動", double: "▶▶ 2倍" } as const;
 export const TIMETABLE_TITLE = "毎週の過ごし方";
 export const CARD_TITLES = { event: "出来事" } as const;
 export const CLEAR_ALL = "全部外す";
+export const RESET_TO_USUAL = "いつもの時間割に戻す";
 
 const LOST_REASONS = { sick: "熱", family: "帰省" } as const satisfies Record<LostReason, string>;
 
@@ -144,24 +140,38 @@ export function weekStatusLine(used: number, budget: number, money: number): str
   return `${budgetLine(used, budget)}・貯金 ${yen(Math.round(money))}`;
 }
 
-/** The hours an option leaves in the week, or runs over it by, for a badge beside the option. */
-export function optionRoom(hoursLeft: number): {
+/**
+ * What an option leaves of the week in two lines: what happens to the hours, then what it costs
+ * or what taking it leads to.
+ */
+export function optionRoom(plan: { spare: number; short: number; need: number }): {
   over: boolean;
-  caption: string;
-  hours: string;
-  /** What running over costs; the option can still be chosen. */
-  cost: string | null;
+  head: string;
+  sub: string | null;
 } {
-  const hours = `${Number(Math.abs(hoursLeft).toFixed(1))}時間`;
-  return hoursLeft >= 0
-    ? { over: false, caption: "今週の残り", hours, cost: null }
-    : { over: true, caption: "今週オーバー", hours, cost: "睡眠を削る・健康↓・心↓" };
+  const hours = (n: number) => `${Number(n.toFixed(1))}時間`;
+  if (plan.need > 0) {
+    return { over: true, head: `週${hours(plan.need)}たりない`, sub: "予定の間の時間割を組む ›" };
+  }
+  if (plan.short > 0)
+    return { over: true, head: `睡眠を削る ${hours(plan.short)}`, sub: "健康↓・心↓" };
+  return { over: false, head: `あと${hours(plan.spare)}`, sub: null };
 }
 
-/** Savings after an option that costs or pays money. */
-export function savingsAfterLine(money: number): string {
-  return `貯金 ${yen(Math.max(0, money))}`;
+/** The title of the timetable followed while a booking lasts, e.g. "予定の間の時間割（あと3週）". */
+export function bookingTitle(weeks: number): string {
+  return `予定の間の時間割（あと${weeks}週）`;
 }
+export const BOOKING_NOTE = "予定が終わると，いつもの時間割に戻る";
+
+/** Whether the week fits, or the sleep the hours over cost. */
+export function restStatusLine(shortHours: number): string {
+  if (shortHours <= 0) return "時間内に収まる";
+  return `${Number(shortHours.toFixed(1))}時間オーバー：睡眠を削る・健康↓・心↓`;
+}
+
+export const REST_PICK_CONFIRM = "この時間割で進む";
+export const REST_PICK_BACK = "選択肢に戻る";
 
 /** What the week's slack does: hours over cost health and mind, hours left over help them. */
 export function slackLine(shortHours: number, spareHours: number): string | null {

@@ -158,7 +158,7 @@ export function resolve(
   wanted: OptionKey | null,
 ): void {
   life.money -= option.money;
-  life.oneOff = { hours: option.hours, weeks: option.weeks };
+  life.oneOff = { hours: option.hours, weeks: option.weeks, timetable: null };
   option.apply?.(life);
   if (wanted && wanted !== option.key && event.options.some((o) => o.key === wanted)) {
     life.log.push({ kind: "missed", event: event.facts.id, option: wanted });

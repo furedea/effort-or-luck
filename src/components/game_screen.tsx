@@ -17,6 +17,7 @@ import {
   pickPlayer,
   isOver,
   replayYear,
+  setBookingTimetable,
   setTimetable,
   startCohort,
   step,
@@ -28,7 +29,6 @@ import type { OptionKey, RoutineKey, Stat } from "../engine/facts";
 import { isActive, type Life } from "../engine/life";
 import type { Difficulty } from "../engine/parameters";
 import { isLimited, isOpen, ROUTINES, routineOf } from "../engine/routine";
-import { planWeek } from "../engine/week";
 import { encode } from "../share/result_link";
 import { DifficultyPicker } from "./difficulty_picker";
 import { PlayView, type FeedEntry, type Speed } from "./play_view";
@@ -117,7 +117,10 @@ export function GameScreen() {
           pausedFor={game.pausedFor}
           onSpeed={(speed) => setGame({ ...game, speed, pausedFor: null })}
           onStep={() => setGame(advance(game))}
-          onChoose={(option: OptionKey) => setGame(decide(game, option))}
+          onChoose={(option, booking) => setGame(decide(game, option, booking))}
+          onBooking={(timetable) =>
+            setGame({ ...game, cohort: setBookingTimetable(cohort, timetable) })
+          }
           onNext={() => setGame(acknowledge(game))}
         />
       ) : null}
@@ -147,8 +150,6 @@ function newGame(difficulty: Difficulty): Game {
  * the player's choices and the end of the year; anything else goes into the feed.
  */
 function advance(game: Game): Game {
-  // Lives change in place, so the booking is read before the week is lived.
-  const booked = game.cohort.lives[game.player]?.oneOff ?? { hours: 0, weeks: 0 };
   let cohort = step(withTimetable(game.cohort, game.timetable));
   const life = cohort.lives[game.player];
   while (life && !isActive(life) && cohort.week < WEEKS && !cohort.events[game.player]) {
@@ -172,18 +173,13 @@ function advance(game: Game): Game {
   const timetable = game.timetable.filter(
     (key) => !isLimited(routineOf(key)) || isOpen(routineOf(key), cohort.week),
   );
-  // When an event's hours end, the week has room again, so time waits for the player to refill it.
-  const freedPause: PauseReason | null =
-    living && booked.weeks === 1 && booked.hours > 0
-      ? { kind: "bookingEnded", hours: booked.hours }
-      : null;
   return {
     ...game,
     cohort,
     timetable,
     // Limited-time preparation would pass within seconds at speed, so time waits for the player.
-    speed: appeared.length || freedPause ? "step" : game.speed,
-    pausedFor: game.speed === "step" ? null : (freedPause ?? limitedPause),
+    speed: appeared.length ? "step" : game.speed,
+    pausedFor: game.speed === "step" ? null : limitedPause,
     feed: [...appeared, ...warnings, ...noticeEntries(cohort, game.player), ...game.feed],
     warned: falling ? [...game.warned, falling] : game.warned,
   };
@@ -194,14 +190,10 @@ function openedLimited(week: number) {
   return ROUTINES.filter((spec) => isLimited(spec) && spec.from === week);
 }
 
-/**
- * Takes an option. When an option that takes hours runs the week over the free hours, time waits
- * on the timetable so the player can drop something or accept losing sleep.
- */
-function decide(game: Game, option: OptionKey): Game {
+/** Takes an option, following `booking` instead of the usual timetable while its hours last. */
+function decide(game: Game, option: OptionKey, booking: readonly RoutineKey[] | null): Game {
   const event = stopAt(game);
   const taken = event?.options.find((o) => o.key === option);
-  const takesHours = Boolean(taken?.hours);
   const choice =
     event && taken
       ? [
@@ -211,18 +203,9 @@ function decide(game: Game, option: OptionKey): Game {
           },
         ]
       : [];
-  const cohort = choose(withTimetable(game.cohort, game.timetable), option);
-  const life = cohort.lives[game.player];
-  const shortHours =
-    takesHours && life ? planWeek(life, cohort.week, game.timetable).shortHours : 0;
-  const over = shortHours > 0;
-  return {
-    ...game,
-    cohort,
-    speed: over ? "step" : game.speed,
-    pausedFor: over && game.speed !== "step" ? { kind: "over", hours: shortHours } : game.pausedFor,
-    feed: [...choice, ...game.feed],
-  };
+  const chosen = choose(withTimetable(game.cohort, game.timetable), option);
+  const cohort = booking ? setBookingTimetable(chosen, booking) : chosen;
+  return { ...game, cohort, feed: [...choice, ...game.feed] };
 }
 
 /** Moves on from a stopping notice; after the results, the year is over. */

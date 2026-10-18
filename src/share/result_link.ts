@@ -3,6 +3,7 @@ import {
   COHORT_SIZE,
   isOver,
   replayYear,
+  setBookingTimetable,
   setTimetable,
   startCohort,
   step,
@@ -34,6 +35,7 @@ type Result<T> =
 const DECISION_SEPARATOR = ".";
 const TIMETABLE_MARK = "t";
 const CHOICE_MARK = "o";
+const BOOKING_MARK = "b";
 /** Options outnumber one base-36 digit, so each takes two. */
 const OPTION_DIGITS = 2;
 // Links name routines and options by position, so reordering them needs a RULES_VERSION bump.
@@ -106,6 +108,10 @@ export function replay({
       cohort = setTimetable(cohort, decision.timetable);
       continue;
     }
+    if (decision.kind === "booking") {
+      cohort = setBookingTimetable(cohort, decision.timetable);
+      continue;
+    }
     const offered = cohort.events[player]?.options.find((o) => o.key === decision.option);
     if (!offered || offered.shortfall) return failure("unreadable");
     cohort = choose(cohort, decision.option);
@@ -125,18 +131,19 @@ function awaitsChoice(cohort: Cohort, player: number): boolean {
   return Boolean(cohort.events[player]?.options.length);
 }
 
-/** A decision as its week, a mark, and base-36 indices, e.g. "12t0156" or "9o02". */
+/** A decision as its week, a mark, and base-36 indices, e.g. "12t0156", "9o02", or "9b15". */
 function encodeDecision(decision: Decision): string {
   if (decision.kind === "choice") {
     const index = OPTION_KEYS.indexOf(decision.option).toString(36).padStart(OPTION_DIGITS, "0");
     return `${decision.week}${CHOICE_MARK}${index}`;
   }
   const routines = decision.timetable.map((key) => ROUTINE_KEYS.indexOf(key).toString(36));
-  return `${decision.week}${TIMETABLE_MARK}${routines.join("")}`;
+  const mark = decision.kind === "booking" ? BOOKING_MARK : TIMETABLE_MARK;
+  return `${decision.week}${mark}${routines.join("")}`;
 }
 
 function decodeDecision(text: string): Decision | null {
-  const match = text.match(/^(\d{1,2})([to])([0-9a-z]*)$/);
+  const match = text.match(/^(\d{1,2})([tob])([0-9a-z]*)$/);
   if (!match) return null;
   const [, weekText = "", mark, indices = ""] = match;
   const week = Number(weekText);
@@ -149,7 +156,8 @@ function decodeDecision(text: string): Decision | null {
   const timetable = digits.map((digit) => ROUTINE_KEYS[digit]);
   if (timetable.some((key) => key === undefined)) return null;
   if (new Set(timetable).size !== timetable.length) return null;
-  return { week, kind: "timetable", timetable: timetable.filter((key) => key !== undefined) };
+  const kind = mark === BOOKING_MARK ? "booking" : "timetable";
+  return { week, kind, timetable: timetable.filter((key) => key !== undefined) };
 }
 
 function failure(error: LinkError): { ok: false; error: LinkError } {
