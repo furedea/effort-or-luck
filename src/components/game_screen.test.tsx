@@ -216,7 +216,17 @@ test("stops on the timetable after a choice that runs the week over", () => {
     }
   });
 
-  click(host.querySelector<HTMLButtonElement>(".event .opt:not([disabled])")!);
+  // Some events offer nothing that takes hours to this self, such as a trip it cannot pay for.
+  const takesHours = () =>
+    [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")].find((button) =>
+      /\d+時間/.test(button.querySelector(".cost")?.textContent ?? ""),
+    );
+  for (let guard = 0; guard < 100 && !takesHours(); guard++) {
+    const options = [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")];
+    if (options.length) click(options.at(-1)!);
+    else keepFlowing(host);
+  }
+  click(takesHours()!);
 
   expect(host.querySelector(".event")).toBeNull();
   expect(stepButton(host)).not.toBeNull();
