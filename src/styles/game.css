@@ -479,19 +479,6 @@ main {
 .time-left {
   color: var(--sub);
 }
-.rest-picker {
-  display: grid;
-  gap: 8px;
-}
-.rest-picker-title {
-  margin: 0;
-  font-weight: 700;
-}
-.rest-tiles {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
 .rest-status {
   margin: 0;
   font-size: 13px;

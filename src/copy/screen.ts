@@ -167,6 +167,7 @@ export function restStatusLine(shortHours: number): string {
 }
 
 export const REST_PICK_CONFIRM = "これで決める";
+export const REST_MARK = "休む";
 export const REST_PICK_BACK = "戻る";
 
 /** A tile resting for a booking, with the weeks it has left, e.g. "休み・あと2週". */

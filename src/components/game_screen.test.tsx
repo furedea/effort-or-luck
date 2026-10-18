@@ -331,17 +331,23 @@ test("asks which tiles rest when an option's hours do not fit, and rests them me
   click(option);
 
   const picker = host.querySelector(".rest-picker")!;
+  // Like the timetable: a lit tile is one the week does; tapping it rests it.
   const pick = (name: string) =>
-    [...picker.querySelectorAll<HTMLButtonElement>(".rest-tiles button")].find((button) =>
-      button.textContent?.startsWith(name),
+    [...picker.querySelectorAll<HTMLButtonElement>(".activity")].find(
+      (button) => button.querySelector(".activity-name")?.textContent === name,
     )!;
-  expect(picker.querySelector(".rest-status")?.textContent).toMatch(/睡眠を削る/);
-  for (const name of ["SNS・動画", "ゆっくり休む"]) click(pick(name));
+  const total = () => picker.querySelector(".time-total")?.textContent;
   expect(pick("SNS・動画").getAttribute("aria-pressed")).toBe("true");
-  expect(picker.querySelector(".rest-status")?.textContent).toBe("これで収まる");
+  expect(total()).toMatch(/オーバー/);
+  expect(host.querySelector(".actions .rest-status")?.textContent).toMatch(/睡眠を削る/);
+  for (const name of ["SNS・動画", "ゆっくり休む"]) click(pick(name));
+  expect(pick("SNS・動画").getAttribute("aria-pressed")).toBe("false");
+  expect(pick("SNS・動画").querySelector(".activity-cost")?.textContent).toBe("休む");
+  expect(total()).not.toMatch(/オーバー/);
+  expect(host.querySelector(".actions .rest-status")?.textContent).toBe("これで収まる");
 
   click(
-    [...picker.querySelectorAll<HTMLButtonElement>("button")].find(
+    [...host.querySelectorAll<HTMLButtonElement>(".actions button")].find(
       (b) => b.textContent === "これで決める",
     )!,
   );
@@ -372,7 +378,7 @@ test("goes back from choosing tiles to rest to the event's options", () => {
   click(doesNotFit()!);
 
   click(
-    [...host.querySelectorAll<HTMLButtonElement>(".rest-picker button")].find(
+    [...host.querySelectorAll<HTMLButtonElement>(".actions button")].find(
       (b) => b.textContent === "戻る",
     )!,
   );

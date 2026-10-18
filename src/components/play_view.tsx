@@ -32,6 +32,7 @@ import {
   PAUSE_HEAD,
   pauseLines,
   REST_PICK_BACK,
+  REST_MARK,
   REST_PICK_CONFIRM,
   restingTile,
   restPickTitle,
@@ -261,6 +262,7 @@ function EventPanel({
   const preview = planWeek(life, week, timetable);
   const bookedHours = life.oneOff.weeks > 0 ? life.oneOff.hours / life.oneOff.weeks : 0;
   const [picking, setPicking] = useState<PricedOption | null>(null);
+  const [resting, setResting] = useState<readonly RoutineKey[]>([]);
   // An option's hours replace any one-off booked before; the hours it adds beyond the sleep the
   // timetable already cuts are the hours short, for which the player picks tiles to rest.
   const unbooked = planWeek(withBooking(life, 0, 0), week, timetable);
@@ -275,9 +277,13 @@ function EventPanel({
     });
   };
   const take = (option: PricedOption) => {
-    if (planOf(option).shortHours > unbooked.shortHours) setPicking(option);
-    else onChoose(option.key, []);
+    if (planOf(option).shortHours <= unbooked.shortHours) return onChoose(option.key, []);
+    setResting([]);
+    setPicking(option);
   };
+  const restPlan = picking
+    ? planWeek(withBooking(life, picking.hours, picking.weeks, resting), week, timetable)
+    : null;
   return (
     <div className="event">
       <div className="card">
@@ -299,7 +305,7 @@ function EventPanel({
             ))}
           </dl>
         ) : null}
-        {event.options.length ? (
+        {event.options.length && !picking ? (
           <div className="week-status-block">
             <p className="week-status">
               {weekStatusLine(preview.hours, preview.budget, life.money)}
@@ -308,16 +314,37 @@ function EventPanel({
           </div>
         ) : null}
       </div>
+      {picking && restPlan ? (
+        <RestPicker
+          weeks={picking.weeks}
+          bookedHours={picking.hours / picking.weeks}
+          tiles={unbooked.taken}
+          plan={restPlan}
+          resting={resting}
+          onChange={setResting}
+        />
+      ) : null}
       <div className="actions">
-        {picking ? (
-          <RestPicker
-            option={picking}
-            life={life}
-            week={week}
-            timetable={timetable}
-            onConfirm={(resting) => onChoose(picking.key, resting)}
-            onBack={() => setPicking(null)}
-          />
+        {picking && restPlan ? (
+          <>
+            <p
+              className={
+                restPlan.shortHours > unbooked.shortHours ? "rest-status over" : "rest-status"
+              }
+            >
+              {restStatusLine(restPlan.shortHours - unbooked.shortHours)}
+            </p>
+            <button
+              type="button"
+              className="rest-confirm"
+              onClick={() => onChoose(picking.key, resting)}
+            >
+              {REST_PICK_CONFIRM}
+            </button>
+            <button type="button" className="toggle" onClick={() => setPicking(null)}>
+              {REST_PICK_BACK}
+            </button>
+          </>
         ) : event.options.length ? (
           event.options.map((option) => (
             <button
@@ -612,54 +639,49 @@ function OptionRoom({
 }
 
 /**
- * Tiles to rest while `option`'s hours last, picked from those the week takes; hours still short
- * come out of sleep.
+ * The week's tiles as on the timetable, for picking what rests while a booking lasts: a lit tile
+ * is one the week does, and tapping it rests it. The bar shows the week with the booking.
  */
 function RestPicker({
-  option,
-  life,
-  week,
-  timetable,
-  onConfirm,
-  onBack,
+  weeks,
+  bookedHours,
+  tiles,
+  plan,
+  resting,
+  onChange,
 }: {
-  option: PricedOption;
-  life: Life;
-  week: number;
-  timetable: readonly RoutineKey[];
-  onConfirm: (resting: readonly RoutineKey[]) => void;
-  onBack: () => void;
+  weeks: number;
+  bookedHours: number;
+  tiles: readonly RoutineSpec[];
+  plan: ReturnType<typeof planWeek>;
+  resting: readonly RoutineKey[];
+  onChange: (resting: readonly RoutineKey[]) => void;
 }) {
-  const [resting, setResting] = useState<readonly RoutineKey[]>([]);
-  const unbooked = planWeek(withBooking(life, 0, 0), week, timetable);
-  const plan = planWeek(withBooking(life, option.hours, option.weeks, resting), week, timetable);
   const toggle = (key: RoutineKey) =>
-    setResting(resting.includes(key) ? resting.filter((k) => k !== key) : [...resting, key]);
+    onChange(resting.includes(key) ? resting.filter((k) => k !== key) : [...resting, key]);
   return (
-    <div className="rest-picker">
-      <p className="rest-picker-title">{restPickTitle(option.weeks)}</p>
-      <div className="rest-tiles" role="group" aria-label={restPickTitle(option.weeks)}>
-        {unbooked.taken.map((spec) => (
-          <button
-            key={spec.key}
-            type="button"
-            className="toggle"
-            aria-pressed={resting.includes(spec.key)}
-            onClick={() => toggle(spec.key)}
-          >
-            {routineTileLabel(spec.key)} {spec.weeklyHours}時間
-          </button>
-        ))}
+    <div className="card timetable rest-picker">
+      <h3 className="activity-section">{restPickTitle(weeks)}</h3>
+      <WeekBar budget={plan.budget} preview={plan} oneOffHours={bookedHours} lost={null} />
+      <div className="tiles">
+        {tiles.map((spec) => {
+          const rests = resting.includes(spec.key);
+          return (
+            <button
+              key={spec.key}
+              type="button"
+              className={rests ? "activity" : "activity chosen"}
+              aria-pressed={!rests}
+              onClick={() => toggle(spec.key)}
+            >
+              <span className="activity-name">{routineTileLabel(spec.key)}</span>
+              <span className="activity-cost">
+                {rests ? REST_MARK : `週${spec.weeklyHours}時間`}
+              </span>
+            </button>
+          );
+        })}
       </div>
-      <p className={plan.shortHours > unbooked.shortHours ? "rest-status over" : "rest-status"}>
-        {restStatusLine(plan.shortHours - unbooked.shortHours)}
-      </p>
-      <button type="button" className="rest-confirm" onClick={() => onConfirm(resting)}>
-        {REST_PICK_CONFIRM}
-      </button>
-      <button type="button" className="toggle" onClick={onBack}>
-        {REST_PICK_BACK}
-      </button>
     </div>
   );
 }
