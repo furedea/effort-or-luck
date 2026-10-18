@@ -1,7 +1,7 @@
 import {
   DIFFICULTY_LABELS,
   DIFFICULTY_TITLE,
-  difficultyDetail,
+  DIFFICULTY_NOTES,
   TITLE,
   TITLE_LEAD,
 } from "../copy/screen";
@@ -28,7 +28,9 @@ export function DifficultyPicker({ onPick }: { onPick: (difficulty: Difficulty) 
               onClick={() => onPick(difficulty)}
             >
               <span className="label">{DIFFICULTY_LABELS[difficulty]}</span>
-              <span className="cost">{difficultyDetail(difficulty)}</span>
+              {DIFFICULTY_NOTES[difficulty] ? (
+                <span className="cost">{DIFFICULTY_NOTES[difficulty]}</span>
+              ) : null}
             </button>
           ))}
         </div>
