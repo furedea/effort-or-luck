@@ -100,9 +100,9 @@ test("asks for a difficulty before the year starts", () => {
     (n) => n.querySelector(".cost")?.textContent ?? null,
   );
   expect(notes).toEqual([
-    "首都圏・仕送り多め・体も心も丈夫",
+    "首都圏・仕送り多め・丈夫・運のいい年",
     "境遇は運しだい",
-    "地方・仕送り少なめ・疲れやすい",
+    "地方・仕送りなし・疲れやすい・運の悪い年",
   ]);
 });
 
@@ -120,7 +120,7 @@ test("starts the stats from the chosen difficulty", () => {
   chooseDifficulty(host, "きびしい");
 
   const health = host.querySelector(".stat-bar .meter-value")?.textContent;
-  expect(health).toBe("55");
+  expect(health).toBe("50");
 });
 
 test("groups the situation and the event into cards, with buttons below them", () => {

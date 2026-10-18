@@ -4,6 +4,7 @@ import { EVENT_WEEKS, weekOfMonthStart, WEEKS } from "./calendar";
 import type { AutumnEvent, Effort, EventFacts, OptionKey, Shortfall, Stat } from "./facts";
 import { isActive, loseHours, neededWorkHours, tripYen, monthlyIncomeYen, type Life } from "./life";
 import {
+  ACADEMIC,
   ALLOWANCE_CUT_YEN,
   APPLICATION_FOCUS,
   AUTUMN_EVENT,
@@ -458,6 +459,7 @@ function finals(life: Life) {
     life.rng,
     firstRound,
     passChance(PASS.toFinal, PASS.toFinalPerPrep, life) *
+      academicFactor(life) *
       applicationQuality(life.entries, APPLICATION_FOCUS.entries),
   );
   const reimbursed =
@@ -502,6 +504,7 @@ function june(life: Life) {
   if (life.over) return { facts: { id: "over", stat: life.over } as const, options: [] };
   const chance =
     passChance(PASS.final + life.boosts.final, PASS.finalPerPrep, life) *
+    academicFactor(life) *
     (life.metro ? 1 : PASS.regionalFinalFactor);
   const won =
     countSuccesses(life.rng, life.finals.face, chance) +
@@ -517,6 +520,12 @@ function june(life: Life) {
     scholarshipTotal: life.scholarship * SCHOLARSHIP_MONTHS,
   };
   return { facts, options: [] };
+}
+
+/** How much interviews credit what the self has to talk about from research and study. */
+export function academicFactor(life: Life): number {
+  const worked = (life.stats.research + life.stats.study) / 2;
+  return ACADEMIC.floor + (1 - ACADEMIC.floor) * Math.min(1, worked / ACADEMIC.full);
 }
 
 /** How much of each application's chance survives spreading preparation over `count`. */

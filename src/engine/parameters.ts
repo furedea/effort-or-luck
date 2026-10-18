@@ -2,7 +2,7 @@
 // that always choosing the middle option lands near the surveyed June 1st offer rate.
 
 /** Bump whenever a change alters results, so shared links from older rules are reported as old. */
-export const RULES_VERSION = 19;
+export const RULES_VERSION = 20;
 
 export const WAGE_YEN_PER_HOUR = 1100;
 export const MONTHLY_EXPENSE_YEN = 130_000;
@@ -34,6 +34,11 @@ export const MAX_PASS_PROBABILITY = 0.9;
  * Applying to more companies than the middle way spreads preparation thin: beyond the focused
  * count, each application's pass chance shrinks by (focused / count) ^ exponent.
  */
+/**
+ * Interviews ask what the self has worked on: research and study, averaged against `full`, scale
+ * the step to finals and the finals between `floor` and 1.
+ */
+export const ACADEMIC = { full: 60, floor: 0.45 } as const;
 export const APPLICATION_FOCUS = { internEs: 2, entries: 8, exponent: 0.45 } as const;
 export const PASS = {
   internEs: 0.3,
@@ -102,7 +107,7 @@ export const STARTING_STATS = {
 export const DIFFICULTY = {
   easy: { statShift: 15, driftFactor: 0.7 },
   normal: { statShift: 0, driftFactor: 1 },
-  hard: { statShift: -15, driftFactor: 1.3 },
+  hard: { statShift: -20, driftFactor: 1.4 },
 } as const;
 export type Difficulty = keyof typeof DIFFICULTY;
 /** Weekly drift when nothing is done for a stat; research drifts faster in the final year. */

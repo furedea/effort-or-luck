@@ -1,8 +1,16 @@
 import { dateOf, EVENT_WEEKS, WEEKS, weekOfMonthStart } from "./calendar";
-import { applicationQuality, eventAt, pickOption, resolve, type Event } from "./events";
+import {
+  academicFactor,
+  applicationQuality,
+  eventAt,
+  pickOption,
+  resolve,
+  type Event,
+} from "./events";
 import type { EventFacts, EventId, Stat } from "./facts";
 import { makeLife, tripYen, weekBudget, type Life } from "./life";
 import {
+  ACADEMIC,
   FAMILY_TRIP_HOURS,
   FAMILY_TRIP_YEN,
   LAPTOP_REPAIR_YEN,
@@ -297,4 +305,15 @@ describe("the year's luck by difficulty", () => {
     expect(new Set(autumnOf("hard")).size).toBeGreaterThan(2);
     expect(new Set(seniorOf("hard"))).toEqual(new Set([null]));
   });
+});
+
+test("interviews go better for a self with something to talk about from research and study", () => {
+  const life = makeLife(1);
+  life.stats.research = 100;
+  life.stats.study = 100;
+  expect(academicFactor(life)).toBe(1);
+
+  life.stats.research = 0;
+  life.stats.study = 0;
+  expect(academicFactor(life)).toBeCloseTo(ACADEMIC.floor);
 });

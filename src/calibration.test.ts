@@ -1,5 +1,6 @@
 import { JUNE_OFFER_RATE, JUNE_OFFER_RATE_BY_REGION } from "./data/statistics";
 import type { Life } from "./engine/life";
+import type { Difficulty } from "./engine/parameters";
 import { autoLive, middlePolicy, mostPolicy, type Policy } from "./engine/year";
 
 const LIVES = 20_000;
@@ -82,3 +83,59 @@ test(
   },
   SIMULATION_TIMEOUT_MS,
 );
+
+/** A fixed set of tiles left as is all year, with the middle option at every event. */
+const careless: Policy = {
+  timetable: () => ["selfAnalysis", "infoSessions", "friends", "sns", "rest"],
+  choose: () => ({ key: null, want: 1 }),
+};
+
+/** Offer rate of `policy` among selves in the circumstances `difficulty` gives the player. */
+function playerRate(policy: Policy, difficulty: Difficulty, sample = 1000): number {
+  let lived = 0;
+  let offered = 0;
+  for (let i = 0; lived < sample; i++) {
+    const life = autoLive((1 + i * 7919) >>> 0, policy, difficulty);
+    const start = life.log[0];
+    if (start?.kind !== "profile") continue;
+    const circumstances = { metro: life.metro, allowance: start.allowance };
+    if (difficulty === "easy" && !(circumstances.metro && circumstances.allowance === 120_000))
+      continue;
+    if (difficulty === "hard" && !(!circumstances.metro && circumstances.allowance === 0)) continue;
+    lived++;
+    if (life.offers.length) offered++;
+  }
+  return offered / lived;
+}
+
+describe("difficulty as the luck the player draws", () => {
+  test(
+    "easy forgives careless play",
+    () => {
+      expect(playerRate(careless, "easy")).toBeGreaterThan(0.8);
+    },
+    SIMULATION_TIMEOUT_MS,
+  );
+
+  test(
+    "normal rewards thought over carelessness",
+    () => {
+      expect(playerRate(careless, "normal")).toBeLessThan(0.75);
+      expect(playerRate(middlePolicy, "normal") - playerRate(careless, "normal")).toBeGreaterThan(
+        0.08,
+      );
+    },
+    SIMULATION_TIMEOUT_MS,
+  );
+
+  test(
+    "hard leaves even thoughtful play near a coin toss",
+    () => {
+      const thoughtful = playerRate(middlePolicy, "hard");
+      expect(thoughtful).toBeGreaterThan(0.4);
+      expect(thoughtful).toBeLessThan(0.65);
+      expect(playerRate(careless, "hard")).toBeLessThan(0.4);
+    },
+    SIMULATION_TIMEOUT_MS,
+  );
+});
