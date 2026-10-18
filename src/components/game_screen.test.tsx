@@ -249,7 +249,8 @@ test("shows this week's hours and what each option leaves at an event", () => {
   expect(host.querySelector(".event .week-status")?.textContent).toMatch(/^週.+時間（.+）・貯金 /);
   const rooms = [...host.querySelectorAll(".event .opt .room")].map((n) => n.textContent);
   expect(rooms.length).toBeGreaterThan(0);
-  for (const room of rooms) expect(room).toMatch(/^(あと\d+(\.\d)?時間|オーバー\d+(\.\d)?時間)$/);
+  for (const room of rooms)
+    expect(room).toMatch(/^(今週の残り\d+(\.\d)?時間|今週オーバー\d+(\.\d)?時間)$/);
 });
 
 /** Plays at double speed until the first event with options, after `setUp` on the first week. */

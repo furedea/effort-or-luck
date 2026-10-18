@@ -53,11 +53,11 @@ test("a falling stat is warned about with its value", () => {
 
 describe("the room an option leaves in the week", () => {
   it("gives the hours left", () => {
-    expect(optionRoom(1)).toEqual({ over: false, caption: "あと", hours: "1時間" });
+    expect(optionRoom(1)).toEqual({ over: false, caption: "今週の残り", hours: "1時間" });
   });
 
   it("marks hours over the week", () => {
-    expect(optionRoom(-4.5)).toEqual({ over: true, caption: "オーバー", hours: "4.5時間" });
+    expect(optionRoom(-4.5)).toEqual({ over: true, caption: "今週オーバー", hours: "4.5時間" });
   });
 });
 

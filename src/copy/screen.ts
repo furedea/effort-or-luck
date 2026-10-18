@@ -124,8 +124,8 @@ export function weekStatusLine(used: number, budget: number, money: number): str
 export function optionRoom(hoursLeft: number): { over: boolean; caption: string; hours: string } {
   const hours = `${Number(Math.abs(hoursLeft).toFixed(1))}時間`;
   return hoursLeft >= 0
-    ? { over: false, caption: "あと", hours }
-    : { over: true, caption: "オーバー", hours };
+    ? { over: false, caption: "今週の残り", hours }
+    : { over: true, caption: "今週オーバー", hours };
 }
 
 /** Savings after an option that costs or pays money. */
