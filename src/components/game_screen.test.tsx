@@ -46,10 +46,25 @@ function startYear(host: HTMLElement) {
 }
 
 const when = (host: HTMLElement) => host.querySelector(".when")?.textContent;
-const tileNamed = (host: HTMLElement, name: string) =>
-  [...host.querySelectorAll<HTMLButtonElement>(".activity")].find(
-    (button) => button.querySelector(".activity-name")?.textContent === name,
+/** The tile named `name`, switching tabs until its group is shown. */
+function tileNamed(host: HTMLElement, name: string): HTMLButtonElement {
+  const visible = () =>
+    [...host.querySelectorAll<HTMLButtonElement>(".activity")].find(
+      (button) => button.querySelector(".activity-name")?.textContent === name,
+    );
+  for (const tab of [null, ...host.querySelectorAll<HTMLButtonElement>(".tab")]) {
+    if (tab) click(tab);
+    const found = visible();
+    if (found) return found;
+  }
+  throw new Error(`no tile named ${name}`);
+}
+
+function tabNamed(host: HTMLElement, name: string): HTMLButtonElement {
+  return [...host.querySelectorAll<HTMLButtonElement>(".tab")].find(
+    (tab) => tab.textContent === name,
   )!;
+}
 const stepButton = (host: HTMLElement) => host.querySelector<HTMLButtonElement>(".actions .step");
 const speedButton = (host: HTMLElement, label: string) =>
   [...host.querySelectorAll<HTMLButtonElement>(".speeds button")].find(
@@ -399,10 +414,7 @@ describe("the weekly timetable", () => {
     return host;
   }
   const total = (host: HTMLElement) => host.querySelector(".time-total")?.textContent;
-  const tile = (host: HTMLElement, name: string) =>
-    [...host.querySelectorAll<HTMLButtonElement>(".activity")].find(
-      (button) => button.querySelector(".activity-name")?.textContent === name,
-    )!;
+  const tile = tileNamed;
 
   it("adds a chosen routine's weekly hours to the bar and removes them when chosen again", () => {
     const host = firstWeek();
@@ -422,20 +434,43 @@ describe("the weekly timetable", () => {
     for (let i = 0; i < 4; i++) click(stepButton(host)!);
 
     expect(when(host)).toBe("5月 第1週");
-    const tile = host.querySelector(".limited .activity");
+    click(tabNamed(host, "★ 今だけ"));
+    const tile = host.querySelector(".tiles .activity");
     expect(tile?.querySelector(".activity-name")?.textContent).toBe("夏インターンのES対策");
     expect(tile?.querySelector(".activity-cost")?.textContent).toBe("週4時間・あと4週");
   });
 
-  it("groups the tiles into job hunting, study, oneself, and money", () => {
+  it("shows one group of tiles at a time, chosen by tabs", () => {
     const host = firstWeek();
-    const groups = [...host.querySelectorAll(".activity-group")].map((group) => ({
-      title: group.querySelector(".activity-section")?.textContent,
-      tiles: [...group.querySelectorAll(".activity-name")].map((n) => n.textContent),
-    }));
+    const names = () => [...host.querySelectorAll(".activity-name")].map((n) => n.textContent);
 
-    expect(groups.map((g) => g.title)).toEqual(["就活", "学業", "自分のこと", "お金"]);
-    expect(groups[1]?.tiles).toEqual(["資格の勉強", "研究・ゼミ"]);
+    expect([...host.querySelectorAll(".tab")].map((n) => n.textContent)).toEqual([
+      "就活",
+      "学業",
+      "自分のこと",
+      "お金",
+    ]);
+    click(tabNamed(host, "学業"));
+    expect(names()).toEqual(["資格の勉強", "研究・ゼミ"]);
+  });
+
+  it("lists the chosen tiles under the bar, from every group", () => {
+    const host = firstWeek();
+    click(tile(host, "説明会"));
+    click(tile(host, "友達と遊ぶ"));
+
+    expect(host.querySelector(".chosen-list")?.textContent).toBe("選んだ札：説明会・友達と遊ぶ");
+  });
+
+  it("gives the price of tiles that cost or pay money", () => {
+    const host = firstWeek();
+
+    expect(tile(host, "就活講座").querySelector(".activity-cost")?.textContent).toBe(
+      "週4時間・5,000円",
+    );
+    expect(tile(host, "バイト").querySelector(".activity-cost")?.textContent).toBe(
+      "週8時間・+9,000円",
+    );
   });
 
   it("clears every tile at once", () => {

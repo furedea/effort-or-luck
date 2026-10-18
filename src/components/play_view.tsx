@@ -1,5 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
+import { yen } from "../copy/format";
 import {
   describeEvent,
   optionCost,
@@ -15,6 +16,7 @@ import {
   barLegendItem,
   budgetLine,
   CANNOT_PAY,
+  chosenLine,
   CARD_TITLES,
   CLEAR_ALL,
   FEED_TITLE,
@@ -288,6 +290,9 @@ function Timetable({
     );
   };
   const oneOffHours = life.oneOff.weeks > 0 ? life.oneOff.hours / life.oneOff.weeks : 0;
+  const [tab, setTab] = useState<string>("job");
+  const shown = groups(week);
+  const group = shown.find((g) => g.key === tab) ?? shown[0];
   return (
     <div className="card timetable">
       <div className="timetable-head">
@@ -302,39 +307,56 @@ function Timetable({
         </button>
       </div>
       <WeekBar budget={preview.budget} preview={preview} oneOffHours={oneOffHours} />
-      {groups(week).map(({ key, title, specs }) => (
-        <div className={key === "limited" ? "activity-group limited" : "activity-group"} key={key}>
-          <h4 className="activity-section">{title}</h4>
-          <div className="tiles">
-            {specs.map((spec) => {
-              const chosen = timetable.includes(spec.key);
-              const dropped = preview.dropped.includes(spec.key);
-              const hours = `週${spec.weeklyHours}時間`;
-              const cost = isLimited(spec)
-                ? `${hours}・${weeksLeftLine(spec.until - week)}`
-                : hours;
-              return (
-                <button
-                  key={spec.key}
-                  type="button"
-                  className={["activity", chosen ? "chosen" : "", dropped ? "dropped" : ""]
-                    .filter(Boolean)
-                    .join(" ")}
-                  aria-pressed={chosen}
-                  aria-label={routineDetail(spec)}
-                  onClick={() => toggle(spec)}
-                >
-                  <span className="activity-name">{routineTileLabel(spec.key)}</span>
-                  <span className="activity-cost">{dropped ? CANNOT_PAY : cost}</span>
-                  <span className="activity-effects">{routineEffects(spec)}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ))}
+      {timetable.length ? (
+        <p className="chosen-list">{chosenLine(timetable.map((key) => routineTileLabel(key)))}</p>
+      ) : null}
+      <div className="tabs" role="tablist">
+        {shown.map(({ key, title }) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            className={key === "limited" ? "tab limited" : "tab"}
+            aria-selected={key === group?.key}
+            onClick={() => setTab(key)}
+          >
+            {title}
+          </button>
+        ))}
+      </div>
+      <div className="tiles" role="tabpanel">
+        {group?.specs.map((spec) => {
+          const chosen = timetable.includes(spec.key);
+          const dropped = preview.dropped.includes(spec.key);
+          return (
+            <button
+              key={spec.key}
+              type="button"
+              className={["activity", chosen ? "chosen" : "", dropped ? "dropped" : ""]
+                .filter(Boolean)
+                .join(" ")}
+              aria-pressed={chosen}
+              aria-label={routineDetail(spec)}
+              onClick={() => toggle(spec)}
+            >
+              <span className="activity-name">{routineTileLabel(spec.key)}</span>
+              <span className="activity-cost">{dropped ? CANNOT_PAY : tileCost(spec, week)}</span>
+              <span className="activity-effects">{routineEffects(spec)}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
+}
+
+/** A tile's hours, then its weeks left or its price, e.g. "週4時間・5,000円". */
+function tileCost(spec: RoutineSpec, week: number): string {
+  const hours = `週${spec.weeklyHours}時間`;
+  if (isLimited(spec)) return `${hours}・${weeksLeftLine(spec.until - week)}`;
+  if (spec.weeklyMoney) return `${hours}・${yen(spec.weeklyMoney)}`;
+  if (spec.weeklyPay) return `${hours}・+${yen(spec.weeklyPay)}`;
+  return hours;
 }
 
 /** Open routines grouped for the tiles: limited-time preparation first, when there is any. */

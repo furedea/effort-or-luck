@@ -470,9 +470,40 @@ main {
 .opt:disabled .cost {
   color: var(--shu);
 }
-.activity-group {
-  display: grid;
-  row-gap: 6px;
+.tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--rule);
+}
+.tab {
+  flex: none;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sub);
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+.tab[aria-selected="true"] {
+  color: var(--ink);
+  border-bottom-color: var(--suit);
+}
+.tab.limited {
+  color: var(--shu);
+}
+.tab:focus-visible {
+  outline: 2px solid var(--suit);
+  outline-offset: -2px;
+}
+.chosen-list {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--sub);
 }
 .activity-section {
   margin: 6px 0 0;
@@ -748,7 +779,4 @@ main {
   .dots i {
     transition: none;
   }
-}
-.limited .activity-section {
-  color: var(--shu);
 }
