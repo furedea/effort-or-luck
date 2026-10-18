@@ -305,7 +305,7 @@ function Timetable({
             key={key}
             type="button"
             role="tab"
-            className={key === "limited" ? "tab limited" : "tab"}
+            className={key === "limited" ? "tab limited" : `tab tab-${key}`}
             aria-selected={key === group?.key}
             onClick={() => setTab(key)}
           >

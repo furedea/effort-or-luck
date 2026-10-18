@@ -9,6 +9,10 @@
   --suit-soft: #8ea6dc;
   --shu: #b2442d;
   --field: #ffffff;
+  --c-job: #3b5bdb;
+  --c-study: #2b8a3e;
+  --c-life: #e5a50a;
+  --c-work: #868e96;
   --display: "BIZ UDPMincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
   --body: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
 }
@@ -22,6 +26,10 @@
     --suit-soft: #5470ad;
     --shu: #e58b73;
     --field: #181c24;
+    --c-job: #7b93f5;
+    --c-study: #5fc675;
+    --c-life: #f2c94c;
+    --c-work: #9aa1ad;
     color-scheme: dark;
   }
 }
@@ -34,6 +42,10 @@
   --suit-soft: #5470ad;
   --shu: #e58b73;
   --field: #181c24;
+  --c-job: #7b93f5;
+  --c-study: #5fc675;
+  --c-life: #f2c94c;
+  --c-work: #9aa1ad;
   color-scheme: dark;
 }
 
@@ -335,17 +347,22 @@ main {
 .bar-oneOff {
   background: var(--ink);
 }
-.bar-job {
-  background: var(--suit);
+/* Each kind of time has its own hue, told apart in both themes; tabs carry the same dot. */
+.bar-job,
+.tab-job::before {
+  background: var(--c-job);
 }
-.bar-study {
-  background: color-mix(in srgb, var(--suit) 55%, var(--suit-soft));
+.bar-study,
+.tab-study::before {
+  background: var(--c-study);
 }
-.bar-life {
-  background: var(--suit-soft);
+.bar-life,
+.tab-life::before {
+  background: var(--c-life);
 }
-.bar-work {
-  background: var(--sub);
+.bar-work,
+.tab-work::before {
+  background: var(--c-work);
 }
 /* Stripes keep over hours apart from the blues, not only by color. */
 .bar-over {
@@ -483,6 +500,17 @@ main {
 .tab[aria-selected="true"] {
   color: var(--ink);
   border-bottom-color: var(--suit);
+}
+.tab-job::before,
+.tab-study::before,
+.tab-life::before,
+.tab-work::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 2px;
 }
 .tab.limited {
   color: var(--shu);
