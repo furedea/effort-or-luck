@@ -100,16 +100,14 @@ function intro(extra: { neededWorkHours?: number; monthlyGapYen?: number } = {})
 }
 
 describe("the opening notice", () => {
-  it("says where the self lives and what a living-cost gap means, then sets out the figures", () => {
-    expect(intro().lines.slice(2)).toEqual([
-      "地方で一人暮らし．",
-      "生活費は月13万円．仕送りと奨学金は合わせて月12万円．",
-      "毎月の初めに1万円ずつ貯金が減る．",
-      "バイトは時給1,100円．週3時間働けば埋まる．",
+  it("says in two lines when the year ends, where the self lives, and the monthly gap", () => {
+    expect(intro().lines).toEqual([
+      "翌年6月1日までの，就活の1年が始まる．",
+      "地方で一人暮らし．仕送りと奨学金では，生活費が毎月1万円足りない．",
     ]);
     expect(intro().table).toEqual([
       { label: "自由な時間", value: "週 40 時間" },
-      { label: "毎月の不足", value: "1万円" },
+      { label: "バイトの時給", value: "1,100円" },
       { label: "必要なバイト", value: "週 3 時間" },
     ]);
   });
@@ -118,18 +116,11 @@ describe("the opening notice", () => {
     const covered = intro({ neededWorkHours: 0, monthlyGapYen: 0 });
 
     expect(covered.lines.at(-1)).toBe("地方で一人暮らし．");
-    expect(covered.table?.slice(1)).toEqual([{ label: "毎月の不足", value: "なし" }]);
+    expect(covered.table?.at(-1)).toEqual({ label: "必要なバイト", value: "なし" });
   });
 });
 
 describe("why the year ends on June 1st", () => {
-  it("is said at the start in two short lines, with the share holding an offer by then", () => {
-    expect(intro().lines.slice(0, 2)).toEqual([
-      "就活の1年が始まる．",
-      "6月1日（面接解禁）までに，同級生の8割が内定を持つ．",
-    ]);
-  });
-
   it("is recalled with the result: job hunting goes on after it", () => {
     const june = describeEvent({
       facts: { id: "june", done: false, won: 0, finalsTaken: 0, offers: 0, scholarshipTotal: 0 },
