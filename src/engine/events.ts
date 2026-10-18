@@ -18,6 +18,7 @@ import {
   SICK_HOURS,
   TERM_EXAM,
   TRAVEL_REIMBURSED_CHANCE,
+  YEAR_LUCK,
   WEEKLY_HOURS,
 } from "./parameters";
 import { countSuccesses } from "./random";
@@ -318,7 +319,12 @@ function autumn(life: Life) {
 }
 
 function drawAutumnEvent(life: Life): AutumnEvent {
-  const roll = life.rng();
+  // Difficulty sets how likely any misfortune is; which one it is keeps its usual odds.
+  const anyMisfortune = Object.values(AUTUMN_EVENT).reduce((sum, chance) => sum + chance, 0);
+  const share = YEAR_LUCK[life.difficulty]?.misfortune ?? anyMisfortune;
+  const drawn = life.rng();
+  if (drawn >= share) return { kind: "calm" };
+  const roll = (drawn / share) * anyMisfortune;
   let threshold = AUTUMN_EVENT.allowanceCut;
   if (roll < threshold) {
     if (life.allowance > 0) {
@@ -391,7 +397,9 @@ function earlySelection(life: Life) {
 
 function seniorTalk(life: Life) {
   if (!isActive(life)) return null;
-  const chance = life.metro ? SENIOR_TALK_CHANCE.metro : SENIOR_TALK_CHANCE.regional;
+  const chance =
+    YEAR_LUCK[life.difficulty]?.seniorTalk ??
+    (life.metro ? SENIOR_TALK_CHANCE.metro : SENIOR_TALK_CHANCE.regional);
   if (life.rng() >= chance) return null;
   return {
     facts: { id: "seniorTalk" } as const,

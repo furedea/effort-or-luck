@@ -2,7 +2,7 @@
 // that always choosing the middle option lands near the surveyed June 1st offer rate.
 
 /** Bump whenever a change alters results, so shared links from older rules are reported as old. */
-export const RULES_VERSION = 18;
+export const RULES_VERSION = 19;
 
 export const WAGE_YEN_PER_HOUR = 1100;
 export const MONTHLY_EXPENSE_YEN = 130_000;
@@ -78,6 +78,15 @@ export const TERM_EXAM = {
  */
 export const TRAVEL_REIMBURSED_CHANCE = 0.5;
 export const SENIOR_TALK_CHANCE = { metro: 0.5, regional: 0.25 } as const;
+/**
+ * The year's luck by difficulty: the chance of any October misfortune and of a senior's talk.
+ * Normal keeps the chances above; what each event does is never changed.
+ */
+export const YEAR_LUCK = {
+  easy: { misfortune: 0, seniorTalk: 1 },
+  normal: null,
+  hard: { misfortune: 1, seniorTalk: 0 },
+} as const satisfies Record<Difficulty, { misfortune: number; seniorTalk: number } | null>;
 
 // Wellbeing: each stat runs 0–100 and the year ends when one reaches zero. All assumptions.
 export const STARTING_STATS = {
