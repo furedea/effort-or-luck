@@ -3,6 +3,8 @@ import type { Life } from "./engine/life";
 import { autoLive, middlePolicy, mostPolicy, type Policy } from "./engine/year";
 
 const LIVES = 20_000;
+/** Simulating thousands of years takes several seconds on slower CI runners. */
+const SIMULATION_TIMEOUT_MS = 60_000;
 const TOLERANCE = 0.02;
 const MIDDLE_ENDED_EARLY_LIMIT = 0.05;
 const MOST_ENDED_EARLY_LIMIT = 0.8;
@@ -48,12 +50,16 @@ test("few selves who take the middle way end the year early", () => {
   expect(middle.endedEarly).toBeLessThanOrEqual(MIDDLE_ENDED_EARLY_LIMIT);
 });
 
-test("putting everything into job hunting ends the year early for more selves, but not all", () => {
-  const most = year(mostPolicy);
+test(
+  "putting everything into job hunting ends the year early for more selves, but not all",
+  () => {
+    const most = year(mostPolicy);
 
-  expect(most.endedEarly).toBeGreaterThan(middle.endedEarly);
-  expect(most.endedEarly).toBeLessThan(MOST_ENDED_EARLY_LIMIT);
-});
+    expect(most.endedEarly).toBeGreaterThan(middle.endedEarly);
+    expect(most.endedEarly).toBeLessThan(MOST_ENDED_EARLY_LIMIT);
+  },
+  SIMULATION_TIMEOUT_MS,
+);
 
 /** A balanced timetable with the most effortful option at every event. */
 const effortful: Policy = {
@@ -61,14 +67,18 @@ const effortful: Policy = {
   choose: () => ({ key: null, want: 2 }),
 };
 
-test("effortful play cannot make luck vanish: allowance still shows and not everyone succeeds", () => {
-  const lives: Life[] = Array.from({ length: 6000 }, (_, i) =>
-    autoLive((1 + i * 7919) >>> 0, effortful),
-  );
-  const rate = (group: Life[]) => group.filter((l) => l.offers.length).length / group.length;
-  const poorest = lives.filter((l) => l.allowance === 0);
-  const richest = lives.filter((l) => l.allowance === 120_000);
+test(
+  "effortful play cannot make luck vanish: allowance still shows and not everyone succeeds",
+  () => {
+    const lives: Life[] = Array.from({ length: 6000 }, (_, i) =>
+      autoLive((1 + i * 7919) >>> 0, effortful),
+    );
+    const rate = (group: Life[]) => group.filter((l) => l.offers.length).length / group.length;
+    const poorest = lives.filter((l) => l.allowance === 0);
+    const richest = lives.filter((l) => l.allowance === 120_000);
 
-  expect(rate(lives)).toBeLessThan(0.93);
-  expect(rate(richest) - rate(poorest)).toBeGreaterThan(0.06);
-});
+    expect(rate(lives)).toBeLessThan(0.93);
+    expect(rate(richest) - rate(poorest)).toBeGreaterThan(0.06);
+  },
+  SIMULATION_TIMEOUT_MS,
+);
