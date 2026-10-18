@@ -265,14 +265,16 @@ function EventPanel({
 }) {
   const text = describeEvent(event);
   const preview = planWeek(life, week, timetable, cutsSleep);
-  // An option's hours replace any one-off booked before, so they are added to the routines alone.
   const bookedHours = life.oneOff.weeks > 0 ? life.oneOff.hours / life.oneOff.weeks : 0;
-  const routineHours = preview.hours - bookedHours;
+  // An option's hours replace any one-off booked before.
   const roomOf = (option: PricedOption) => {
-    const left = preview.budget - routineHours - option.hours / option.weeks;
-    if (left >= 0 || cutsSleep) return optionRoom(left);
     const booked = { ...life, oneOff: { hours: option.hours, weeks: option.weeks } };
-    return optionRoom(left, planWeek(booked, week, timetable).skipped.map(routineTileLabel));
+    const plan = planWeek(booked, week, timetable, cutsSleep);
+    return optionRoom({
+      spare: plan.budget - plan.hours,
+      short: plan.shortHours,
+      resting: plan.skipped.map(routineTileLabel),
+    });
   };
   return (
     <div className="event">
@@ -615,7 +617,7 @@ function OptionRoom({
     <span className={room.over ? "room-block over" : "room-block"}>
       <span className="room">
         <span className="room-caption">{room.caption}</span>
-        <span className="room-hours">{room.hours}</span>
+        <span className="room-hours">{room.value}</span>
       </span>
       {room.cost ? <span className="room-cost">{room.cost}</span> : null}
       {savings ? <span className="room-savings">{savings}</span> : null}

@@ -137,21 +137,22 @@ export function weekStatusLine(used: number, budget: number, money: number): str
   return `${budgetLine(used, budget)}・貯金 ${yen(Math.round(money))}`;
 }
 
-/** The hours an option leaves in the week, or runs over it by, for a badge beside the option. */
-export function optionRoom(
-  hoursLeft: number,
-  resting: readonly string[] = [],
-): {
+/** What an option leaves of the week: hours to spare, the tiles that rest, or the sleep cut. */
+export function optionRoom(plan: { spare: number; short: number; resting: readonly string[] }): {
   over: boolean;
   caption: string;
-  hours: string;
-  /** What running over costs, sleep or the tiles resting this week; the option can still be chosen. */
+  value: string;
   cost: string | null;
 } {
-  const hours = `${Number(Math.abs(hoursLeft).toFixed(1))}時間`;
-  if (hoursLeft >= 0) return { over: false, caption: "今週の残り", hours, cost: null };
-  const cost = resting.length ? `${resting.join("・")} を今週休む` : "睡眠を削る・健康↓・心↓";
-  return { over: true, caption: "今週オーバー", hours, cost };
+  const hours = (n: number) => `${Number(n.toFixed(1))}時間`;
+  if (plan.resting.length) {
+    const cost = plan.short > 0 ? `睡眠も${hours(plan.short)}削る・健康↓・心↓` : null;
+    return { over: true, caption: "今週は休み", value: plan.resting.join("・"), cost };
+  }
+  if (plan.short > 0) {
+    return { over: true, caption: "睡眠を削る", value: hours(plan.short), cost: "健康↓・心↓" };
+  }
+  return { over: false, caption: "今週の残り", value: hours(plan.spare), cost: null };
 }
 
 /** Booked hours that do not fit: rest the last tiles this week, or take them out of sleep. */

@@ -322,7 +322,8 @@ test("rests the last tiles in a week its booking runs over, unless the player cu
     else keepFlowing(host);
   }
   const option = runsOver()!;
-  expect(option.querySelector(".room-cost")?.textContent).toMatch(/SNS・動画 を今週休む$/);
+  expect(option.querySelector(".room-caption")?.textContent).toBe("今週は休み");
+  expect(option.querySelector(".room-hours")?.textContent).toMatch(/SNS・動画$/);
 
   click(option);
 

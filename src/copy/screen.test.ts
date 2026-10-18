@@ -61,27 +61,35 @@ test("a falling stat is warned about with its value", () => {
   expect(warningLine("health", 18.4)).toBe("健康が 18 まで下がった．このままだと危ない．");
 });
 
-describe("the room an option leaves in the week", () => {
-  it("gives the hours left", () => {
-    expect(optionRoom(1)).toEqual({
+describe("what an option leaves of the week", () => {
+  it("gives the hours left when it fits", () => {
+    expect(optionRoom({ spare: 1, short: 0, resting: [] })).toEqual({
       over: false,
       caption: "今週の残り",
-      hours: "1時間",
+      value: "1時間",
       cost: null,
     });
   });
 
-  it("marks hours over the week", () => {
-    expect(optionRoom(-4.5)).toEqual({
+  it("names the tiles that rest this week when they make room", () => {
+    expect(optionRoom({ spare: 3, short: 0, resting: ["説明会", "SNS・動画"] })).toEqual({
       over: true,
-      caption: "今週オーバー",
-      hours: "4.5時間",
-      cost: "睡眠を削る・健康↓・心↓",
+      caption: "今週は休み",
+      value: "説明会・SNS・動画",
+      cost: null,
     });
   });
 
-  it("names the tiles that rest this week instead, when the week rests them", () => {
-    expect(optionRoom(-4.5, ["説明会", "SNS・動画"]).cost).toBe("説明会・SNS・動画 を今週休む");
+  it("gives the sleep cut when hours still run over", () => {
+    expect(optionRoom({ spare: 0, short: 4.5, resting: [] })).toEqual({
+      over: true,
+      caption: "睡眠を削る",
+      value: "4.5時間",
+      cost: "健康↓・心↓",
+    });
+    expect(optionRoom({ spare: 0, short: 2, resting: ["説明会"] }).cost).toBe(
+      "睡眠も2時間削る・健康↓・心↓",
+    );
   });
 });
 
