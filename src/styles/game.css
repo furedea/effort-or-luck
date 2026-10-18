@@ -819,6 +819,43 @@ main {
   font-family: var(--display);
   font-size: 22px;
 }
+.reveal-summary {
+  display: grid;
+  row-gap: 8px;
+  padding: 16px;
+  background: var(--field);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+}
+.reveal-summary p {
+  margin: 0;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.gap-label {
+  display: inline-block;
+  min-width: 5em;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sub);
+}
+.gap-verdict {
+  font-family: var(--display);
+  font-weight: 700;
+}
+.reveal-details {
+  display: grid;
+  row-gap: 18px;
+}
+.reveal-details > summary {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--suit);
+  cursor: pointer;
+}
+.reveal-details[open] > summary {
+  margin-bottom: 18px;
+}
 .profile {
   margin: 0;
   font-size: 13px;
