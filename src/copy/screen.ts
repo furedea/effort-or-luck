@@ -1,5 +1,5 @@
 import { JUNE_OFFER_RATE, JUNE_OFFER_RATE_BY_REGION } from "../data/statistics";
-import type { LogFact, Stat } from "../engine/facts";
+import type { LogFact, LostReason, Stat } from "../engine/facts";
 import {
   METRO_SHARE,
   MONTHLY_EXPENSE_YEN,
@@ -73,6 +73,14 @@ export const SPEED_LABELS = { step: "1週ずつ", normal: "▶ 自動", double: 
 export const TIMETABLE_TITLE = "毎週の過ごし方";
 export const CARD_TITLES = { event: "出来事" } as const;
 export const CLEAR_ALL = "全部外す";
+
+const LOST_REASONS = { sick: "熱", family: "帰省" } as const satisfies Record<LostReason, string>;
+
+/** Hours lost this week, with why and for how long, e.g. "熱で −12.5時間・あと2週". */
+export function lostHoursLine(reason: LostReason, weekly: number, weeks: number): string {
+  const span = weeks > 1 ? `あと${weeks}週` : "今週だけ";
+  return `${LOST_REASONS[reason]}で −${Number(weekly.toFixed(1))}時間・${span}`;
+}
 
 export const CHOSEN_LABEL = "選んだ札";
 

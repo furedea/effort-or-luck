@@ -23,6 +23,7 @@ import {
   LIMITED_TITLE,
   HISTORY_TITLE,
   LOW_NOTE,
+  lostHoursLine,
   monthlyBreakdown,
   NEXT,
   optionRoom,
@@ -43,7 +44,7 @@ import {
 } from "../copy/screen";
 import { WEEKS } from "../engine/calendar";
 import type { Event, PricedOption } from "../engine/events";
-import type { OptionKey, RoutineKey } from "../engine/facts";
+import type { LostReason, OptionKey, RoutineKey } from "../engine/facts";
 import type { Life } from "../engine/life";
 import { isAvailable, isLimited, ROUTINES, type RoutineSpec } from "../engine/routine";
 import { planWeek } from "../engine/week";
@@ -359,7 +360,16 @@ function Timetable({
       </div>
       {/* The bar, its legend, and the chosen tiles read as one block, so they sit close. */}
       <div className="week-summary">
-        <WeekBar budget={preview.budget} preview={preview} oneOffHours={oneOffHours} />
+        <WeekBar
+          budget={preview.budget}
+          preview={preview}
+          oneOffHours={oneOffHours}
+          lost={
+            life.lostWeeks > 0 && life.lostReason
+              ? { reason: life.lostReason, weekly: life.lostWeekly, weeks: life.lostWeeks }
+              : null
+          }
+        />
         {timetable.length ? (
           <ul className="chosen-chips" aria-label={CHOSEN_LABEL}>
             {timetable.map((key) => (
@@ -457,16 +467,22 @@ function WeekBar({
   budget,
   preview,
   oneOffHours,
+  lost,
 }: {
   budget: number;
   preview: ReturnType<typeof planWeek>;
   oneOffHours: number;
+  /** Hours lost this week and why, when any are. */
+  lost: { reason: LostReason; weekly: number; weeks: number } | null;
 }) {
   const slack = slackLine(preview.shortHours, Math.max(0, budget - preview.hours));
   return (
     <div className="time-bar">
       <p className="time-total">{budgetLine(preview.hours, budget)}</p>
       <HourBar budget={budget} preview={preview} oneOffHours={oneOffHours} />
+      {lost ? (
+        <p className="time-left">{lostHoursLine(lost.reason, lost.weekly, lost.weeks)}</p>
+      ) : null}
       {oneOffHours ? <p className="time-left">{oneOffLine(oneOffHours)}</p> : null}
       {slack ? <p className={preview.shortHours ? "time-over" : "time-spare"}>{slack}</p> : null}
     </div>

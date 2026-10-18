@@ -3,6 +3,7 @@ import {
   endedCount,
   optionRoom,
   pauseLines,
+  lostHoursLine,
   monthlyBreakdown,
   slackLine,
   statBars,
@@ -122,4 +123,9 @@ test("a self who ran out of study repeats the year, and one out of research lose
   expect(endedCount({ study: 2, research: 1 })).toBe(
     "途中で終わった人：ゼミに居場所がなくなった 1 人・留年 2 人",
   );
+});
+
+test("hours lost this week say why and for how long", () => {
+  expect(lostHoursLine("sick", 12.5, 2)).toBe("熱で −12.5時間・あと2週");
+  expect(lostHoursLine("family", 15, 1)).toBe("帰省で −15時間・今週だけ");
 });
