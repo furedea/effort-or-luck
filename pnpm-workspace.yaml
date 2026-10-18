@@ -17,3 +17,8 @@ minimumReleaseAgeExclude:
 # platform packages, so its postinstall stays disabled as it was under pnpm 10.
 allowBuilds:
   esbuild: false
+
+# pnpm 11 links packages from a global virtual store by default outside CI. Astro's container
+# API then cannot resolve @astrojs/react from inside the store, so the page tests fail locally;
+# keep the project-local store that CI already uses.
+enableGlobalVirtualStore: false
