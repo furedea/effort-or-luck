@@ -1,4 +1,5 @@
 import { JUNE_OFFER_RATE, JUNE_OFFER_RATE_BY_REGION } from "./data/statistics";
+import type { Life } from "./engine/life";
 import { autoLive, middlePolicy, mostPolicy, type Policy } from "./engine/year";
 
 const LIVES = 20_000;
@@ -52,4 +53,22 @@ test("putting everything into job hunting ends the year early for more selves, b
 
   expect(most.endedEarly).toBeGreaterThan(middle.endedEarly);
   expect(most.endedEarly).toBeLessThan(MOST_ENDED_EARLY_LIMIT);
+});
+
+/** A balanced timetable with the most effortful option at every event. */
+const effortful: Policy = {
+  timetable: (life, week) => middlePolicy.timetable(life, week),
+  choose: () => ({ key: null, want: 2 }),
+};
+
+test("effortful play cannot make luck vanish: allowance still shows and not everyone succeeds", () => {
+  const lives: Life[] = Array.from({ length: 6000 }, (_, i) =>
+    autoLive((1 + i * 7919) >>> 0, effortful),
+  );
+  const rate = (group: Life[]) => group.filter((l) => l.offers.length).length / group.length;
+  const poorest = lives.filter((l) => l.allowance === 0);
+  const richest = lives.filter((l) => l.allowance === 120_000);
+
+  expect(rate(lives)).toBeLessThan(0.93);
+  expect(rate(richest) - rate(poorest)).toBeGreaterThan(0.06);
 });
