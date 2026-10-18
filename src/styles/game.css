@@ -403,7 +403,7 @@ main {
   font-size: 12px;
 }
 .time-over {
-  color: var(--shu);
+  color: var(--warn);
 }
 .time-left {
   color: var(--sub);
