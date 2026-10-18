@@ -1,15 +1,7 @@
 // Events that stop the weeks for a choice or a notice. Each may draw from the life's RNG, so the
 // order of draws here is part of what makes a seed reproducible.
 import { EVENT_WEEKS, weekOfMonthStart, WEEKS } from "./calendar";
-import type {
-  AutumnEvent,
-  Effort,
-  EventFacts,
-  OptionKey,
-  RoutineKey,
-  Shortfall,
-  Stat,
-} from "./facts";
+import type { AutumnEvent, Effort, EventFacts, OptionKey, Shortfall, Stat } from "./facts";
 import { isActive, loseHours, neededWorkHours, tripYen, monthlyIncomeYen, type Life } from "./life";
 import {
   ACADEMIC,
@@ -158,19 +150,15 @@ export function pickOption(event: Event, key: OptionKey | null, want: Effort): P
   return picked;
 }
 
-/**
- * Takes `option`: pays its money, books its hours for the coming weeks with the tiles `resting`
- * meanwhile, and applies it.
- */
+/** Takes `option`: pays its money, books its hours for the coming weeks, and applies it. */
 export function resolve(
   life: Life,
   event: Event,
   option: PricedOption,
   wanted: OptionKey | null,
-  resting: readonly RoutineKey[] = [],
 ): void {
   life.money -= option.money;
-  life.oneOff = { hours: option.hours, weeks: option.weeks, resting };
+  life.oneOff = { hours: option.hours, weeks: option.weeks, timetable: null };
   option.apply?.(life);
   if (wanted && wanted !== option.key && event.options.some((o) => o.key === wanted)) {
     life.log.push({ kind: "missed", event: event.facts.id, option: wanted });

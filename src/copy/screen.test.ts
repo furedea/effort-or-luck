@@ -3,8 +3,7 @@ import {
   endedCount,
   optionRoom,
   pauseLines,
-  restingTile,
-  restPickTitle,
+  bookingTitle,
   restStatusLine,
   lostHoursLine,
   monthlyBreakdown,
@@ -72,11 +71,11 @@ describe("what an option leaves of the week", () => {
     });
   });
 
-  it("gives the hours short and leads on to picking tiles to rest when it does not fit", () => {
+  it("gives the hours short and leads on to a timetable for the booking when it does not fit", () => {
     expect(optionRoom({ spare: 0, short: 7, need: 7 })).toEqual({
       over: true,
       head: "週7時間たりない",
-      sub: "休む活動を選ぶ ›",
+      sub: "予定の間の時間割を組む ›",
     });
   });
 
@@ -89,19 +88,14 @@ describe("what an option leaves of the week", () => {
   });
 });
 
-describe("choosing tiles to rest for an option", () => {
-  it("says for how long they rest", () => {
-    expect(restPickTitle(3)).toBe("予定の3週，休む活動を選ぶ");
-    expect(restPickTitle(1)).toBe("今週休む活動を選ぶ");
+describe("the timetable followed while a booking lasts", () => {
+  it("is titled with the weeks left", () => {
+    expect(bookingTitle(3)).toBe("予定の間の時間割（あと3週）");
   });
 
-  it("says whether the week fits or what sleep the rest costs", () => {
+  it("says whether the week fits or what sleep the hours over cost", () => {
     expect(restStatusLine(0)).toBe("これで収まる");
     expect(restStatusLine(2.5)).toBe("あと2.5時間は睡眠を削る・健康↓・心↓");
-  });
-
-  it("marks a resting tile with the weeks left", () => {
-    expect(restingTile(2)).toBe("休み・あと2週");
   });
 });
 

@@ -479,6 +479,11 @@ main {
 .time-left {
   color: var(--sub);
 }
+.booking-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--sub);
+}
 .rest-status {
   margin: 0;
   font-size: 13px;

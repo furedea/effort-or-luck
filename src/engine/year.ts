@@ -11,12 +11,12 @@ import { liveWeek } from "./week";
 /** A player's input at a point in the year, recorded so the year can be replayed. */
 export type Decision =
   | { readonly week: number; readonly kind: "timetable"; readonly timetable: readonly RoutineKey[] }
+  | { readonly week: number; readonly kind: "choice"; readonly option: OptionKey }
   | {
       readonly week: number;
-      readonly kind: "choice";
-      readonly option: OptionKey;
-      /** Tiles rested while the option's hours last. */
-      readonly resting: readonly RoutineKey[];
+      readonly kind: "booking";
+      /** The timetable followed instead of the usual one while the current booking lasts. */
+      readonly timetable: readonly RoutineKey[];
     };
 
 export interface Choice {
@@ -24,13 +24,13 @@ export interface Choice {
   readonly key: OptionKey | null;
   /** Effort to fall back to when the wanted option cannot be taken. */
   readonly want: Effort;
-  /** Tiles to rest while the option's hours last. */
-  readonly resting?: readonly RoutineKey[];
 }
 
 export interface Policy {
   timetable(life: Life, week: number): readonly RoutineKey[];
   choose(life: Life, event: Event, week: number): Choice;
+  /** A timetable to follow while the current booking lasts, set this week; null for none. */
+  bookingTimetable?(week: number): readonly RoutineKey[] | null;
 }
 
 const JOB_ROUTINES = ROUTINES.filter((spec) => spec.kind === "job").map((spec) => spec.key);
@@ -107,11 +107,11 @@ export function followDecisions(decisions: readonly Decision[]): Policy {
     choose: (_, __, week) => {
       const recorded = decisions.find((d) => d.kind === "choice" && d.week === week);
       if (recorded?.kind !== "choice") return MIDDLE_CHOICE;
-      return {
-        key: recorded.option,
-        want: OPTION_EFFORT[recorded.option],
-        resting: recorded.resting,
-      };
+      return { key: recorded.option, want: OPTION_EFFORT[recorded.option] };
+    },
+    bookingTimetable: (week) => {
+      const set = decisions.filter((d) => d.kind === "booking" && d.week === week).at(-1);
+      return set?.kind === "booking" ? set.timetable : null;
     },
   };
 }
@@ -131,10 +131,15 @@ function withinBudget(priorities: readonly RoutineKey[], life: Life, week: numbe
   });
 }
 
+/** Follows `timetable` instead of the usual one while the life's current booking lasts. */
+export function setBooking(life: Life, timetable: readonly RoutineKey[]): void {
+  if (life.oneOff.weeks > 0) life.oneOff = { ...life.oneOff, timetable };
+}
+
 /** Meets an event with options by `choice`, falling back to what the life can afford. */
 export function meet(life: Life, event: Event, choice: Choice): void {
   const picked = pickOption(event, choice.key, choice.want);
-  resolve(life, event, picked, choice.key, choice.resting);
+  resolve(life, event, picked, choice.key);
 }
 
 /** Lives a whole year from `seed` by `policy`. */
@@ -143,6 +148,8 @@ export function autoLive(seed: number, policy: Policy, difficulty: Difficulty = 
   for (let week = 0; week < WEEKS; week++) {
     const event = eventAt(life, week);
     if (event?.options.length) meet(life, event, policy.choose(life, event, week));
+    const booking = policy.bookingTimetable?.(week);
+    if (booking) setBooking(life, booking);
     liveWeek(life, week, policy.timetable(life, week));
   }
   eventAt(life, WEEKS);

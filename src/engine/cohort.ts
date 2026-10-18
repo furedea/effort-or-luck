@@ -7,7 +7,15 @@ import type { OptionKey, RoutineKey } from "./facts";
 import { makeLife, type Life } from "./life";
 import { ALLOWANCE_DISTRIBUTION, type Difficulty } from "./parameters";
 import { liveWeek, type WeekOutcome } from "./week";
-import { autoLive, leastPolicy, meet, mostPolicy, type Choice, type Decision } from "./year";
+import {
+  autoLive,
+  leastPolicy,
+  meet,
+  mostPolicy,
+  setBooking,
+  type Choice,
+  type Decision,
+} from "./year";
 
 export const COHORT_SIZE = 100;
 const SEED_STRIDE = 7919;
@@ -95,21 +103,23 @@ export function setTimetable(cohort: Cohort, timetable: readonly RoutineKey[]): 
   };
 }
 
-/**
- * The player takes `option` at this week's event, resting the tiles `resting` while its hours last;
- * everyone else with an event attempts the same.
- */
-export function choose(
-  cohort: Cohort,
-  option: OptionKey,
-  resting: readonly RoutineKey[] = [],
-): Cohort {
-  const others: Choice = { key: option, want: OPTION_EFFORT[option], resting };
+/** Sets the timetable everyone with a booking follows instead of the usual one while it lasts. */
+export function setBookingTimetable(cohort: Cohort, timetable: readonly RoutineKey[]): Cohort {
+  for (const life of cohort.lives) setBooking(life, timetable);
+  return {
+    ...cohort,
+    decisions: [...cohort.decisions, { week: cohort.week, kind: "booking", timetable }],
+  };
+}
+
+/** The player takes `option` at this week's event; everyone else with an event attempts it too. */
+export function choose(cohort: Cohort, option: OptionKey): Cohort {
+  const others: Choice = { key: option, want: OPTION_EFFORT[option] };
   meetAll(cohort, others);
   return {
     ...cohort,
     events: cohort.events.map(() => null),
-    decisions: [...cohort.decisions, { week: cohort.week, kind: "choice", option, resting }],
+    decisions: [...cohort.decisions, { week: cohort.week, kind: "choice", option }],
   };
 }
 

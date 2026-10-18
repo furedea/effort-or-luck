@@ -55,32 +55,29 @@ describe("a week's timetable", () => {
 
   it("counts a booked one-off before the timetable", () => {
     const life = richLife();
-    life.oneOff = { hours: 30, weeks: 3, resting: [] };
+    life.oneOff = { hours: 30, weeks: 3, timetable: null };
 
     expect(planWeek(life, 0, ["friends"]).hours).toBe(10 + routineOf("friends").weeklyHours);
   });
 
-  it("rests the tiles chosen for a booking while it lasts, then takes them again", () => {
+  it("follows the booking's own timetable while it lasts, then the usual one again", () => {
     const life = richLife();
-    life.oneOff = { hours: 20, weeks: 2, resting: ["sns"] };
+    life.oneOff = { hours: 20, weeks: 2, timetable: ["sns"] };
+    const usual = ["friends", "rest"] as const;
 
-    const booked = planWeek(life, 0, ["friends", "sns"]);
-    liveWeek(life, 0, ["friends", "sns"]);
-    liveWeek(life, 1, ["friends", "sns"]);
+    const booked = planWeek(life, 0, usual);
+    liveWeek(life, 0, usual);
+    liveWeek(life, 1, usual);
 
-    expect(booked.taken.map((spec) => spec.key)).toEqual(["friends"]);
-    expect(booked.skipped).toEqual(["sns"]);
-    expect(planWeek(life, 2, ["friends", "sns"]).taken.map((spec) => spec.key)).toEqual([
-      "friends",
-      "sns",
-    ]);
+    expect(booked.taken.map((spec) => spec.key)).toEqual(["sns"]);
+    expect(planWeek(life, 2, usual).taken.map((spec) => spec.key)).toEqual(["friends", "rest"]);
   });
 });
 
 describe("living a week", () => {
   it("earns what paid routines pay and uses up one-offs and lost hours", () => {
     const life = richLife();
-    life.oneOff = { hours: 30, weeks: 3, resting: [] };
+    life.oneOff = { hours: 30, weeks: 3, timetable: null };
     life.lostWeekly = 5;
     life.lostWeeks = 2;
     const before = life.money;
@@ -91,7 +88,7 @@ describe("living a week", () => {
     expect(life.money).toBe(
       before + monthlyIncomeYen(life) + (outcome?.earned ?? 0) - (outcome?.paid ?? 0),
     );
-    expect(life.oneOff).toEqual({ hours: 20, weeks: 2, resting: [] });
+    expect(life.oneOff).toEqual({ hours: 20, weeks: 2, timetable: null });
     expect(life.lostWeeks).toBe(1);
   });
 

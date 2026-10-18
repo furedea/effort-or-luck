@@ -17,6 +17,7 @@ import {
   pickPlayer,
   isOver,
   replayYear,
+  setBookingTimetable,
   setTimetable,
   startCohort,
   step,
@@ -116,7 +117,10 @@ export function GameScreen() {
           pausedFor={game.pausedFor}
           onSpeed={(speed) => setGame({ ...game, speed, pausedFor: null })}
           onStep={() => setGame(advance(game))}
-          onChoose={(option, resting) => setGame(decide(game, option, resting))}
+          onChoose={(option, booking) => setGame(decide(game, option, booking))}
+          onBooking={(timetable) =>
+            setGame({ ...game, cohort: setBookingTimetable(cohort, timetable) })
+          }
           onNext={() => setGame(acknowledge(game))}
         />
       ) : null}
@@ -186,8 +190,8 @@ function openedLimited(week: number) {
   return ROUTINES.filter((spec) => isLimited(spec) && spec.from === week);
 }
 
-/** Takes an option, resting the tiles `resting` while its hours last. */
-function decide(game: Game, option: OptionKey, resting: readonly RoutineKey[]): Game {
+/** Takes an option, following `booking` instead of the usual timetable while its hours last. */
+function decide(game: Game, option: OptionKey, booking: readonly RoutineKey[] | null): Game {
   const event = stopAt(game);
   const taken = event?.options.find((o) => o.key === option);
   const choice =
@@ -199,7 +203,8 @@ function decide(game: Game, option: OptionKey, resting: readonly RoutineKey[]): 
           },
         ]
       : [];
-  const cohort = choose(withTimetable(game.cohort, game.timetable), option, resting);
+  const chosen = choose(withTimetable(game.cohort, game.timetable), option);
+  const cohort = booking ? setBookingTimetable(chosen, booking) : chosen;
   return { ...game, cohort, feed: [...choice, ...game.feed] };
 }
 

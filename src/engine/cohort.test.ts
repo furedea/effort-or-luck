@@ -7,6 +7,7 @@ import {
   replayYear,
   revealByAllowance,
   revealGaps,
+  setBookingTimetable,
   setTimetable,
   startCohort,
   step,
@@ -22,7 +23,7 @@ function withoutRng({ rng: _, ...rest }: Life) {
 
 /**
  * Plays a year as `player`: sets `first` as the timetable, switches to `later` halfway, and
- * takes the first option offered at each event, resting friends for its hours.
+ * takes the first option offered at each event, doing only friends while its hours last.
  */
 function playYear(
   seed: number,
@@ -35,7 +36,7 @@ function playYear(
     if (cohort.week === WEEKS / 2) cohort = setTimetable(cohort, later);
     const event = cohort.events[player];
     const option: OptionKey | undefined = event?.options.find((o) => o.shortfall === null)?.key;
-    if (option) cohort = choose(cohort, option, ["friends"]);
+    if (option) cohort = setBookingTimetable(choose(cohort, option), ["friends"]);
     cohort = step(cohort);
   }
   return cohort;
@@ -107,9 +108,10 @@ describe("a shared year", () => {
       kind: "timetable",
       timetable: ["rest"],
     });
-    expect(cohort.decisions.find((d) => d.kind === "choice")).toMatchObject({
-      resting: ["friends"],
-    });
+    expect(cohort.decisions.some((d) => d.kind === "choice")).toBe(true);
+    expect(cohort.decisions).toContainEqual(
+      expect.objectContaining({ kind: "booking", timetable: ["friends"] }),
+    );
   });
 });
 

@@ -171,21 +171,6 @@ describe("choosing at an event", () => {
     expect(pickOption(broke, "esFive", 2).key).toBe("esTwo");
   });
 
-  it("books the tiles the player rests for an option's hours", () => {
-    const life = makeLife(1);
-    const event = internEs(life);
-
-    resolve(
-      life,
-      event,
-      event.options.find((o) => o.key === "esFive")!,
-      "esFive",
-      ["sns"],
-    );
-
-    expect(life.oneOff).toEqual({ hours: 15, weeks: 3, resting: ["sns"] });
-  });
-
   it("records an option the self wanted but could not take", () => {
     const life = makeLife(1);
     const event = internEs(life);
@@ -198,7 +183,7 @@ describe("choosing at an event", () => {
     );
 
     expect(life.log).toContainEqual({ kind: "missed", event: "internEs", option: "esFive" });
-    expect(life.oneOff).toEqual({ hours: 6, weeks: 3, resting: [] });
+    expect(life.oneOff).toEqual({ hours: 6, weeks: 3, timetable: null });
   });
 });
 
@@ -238,7 +223,7 @@ describe("small choices", () => {
     }
     expect(life.money).toBe(before.money - option.money);
     expect(life.prep).toBeCloseTo(before.prep + (option.prep ?? 0));
-    expect(life.oneOff).toEqual({ hours: option.hours, weeks: option.weeks, resting: [] });
+    expect(life.oneOff).toEqual({ hours: option.hours, weeks: option.weeks, timetable: null });
   });
 });
 

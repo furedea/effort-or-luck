@@ -6,7 +6,8 @@ import { liveThroughPeriod } from "./wellbeing";
 
 // One week: a booked one-off comes first, then the timetable in the order it was set. Hours
 // beyond the week's free hours come out of sleep and cost health; a routine the self cannot pay
-// for is dropped that week, and a tile the player rests for a booking is skipped while it lasts. Allowance and scholarship minus living costs move savings at the start
+// for is dropped that week. While a booking lasts, its own timetable replaces the usual one when
+// the player set one. Allowance and scholarship minus living costs move savings at the start
 // of each month, so savings grow only through part-time work.
 
 export interface WeekOutcome {
@@ -32,15 +33,10 @@ export function planWeek(life: Life, week: number, timetable: readonly RoutineKe
   let paid = 0;
   const taken: RoutineSpec[] = [];
   const dropped: RoutineKey[] = [];
-  const resting = life.oneOff.weeks > 0 ? life.oneOff.resting : [];
-  const rested: RoutineKey[] = [];
-  for (const key of new Set(timetable)) {
+  const followed = life.oneOff.weeks > 0 ? (life.oneOff.timetable ?? timetable) : timetable;
+  for (const key of new Set(followed)) {
     const spec = routineOf(key);
     if (!isAvailable(spec, week, life)) continue;
-    if (resting.includes(key)) {
-      rested.push(key);
-      continue;
-    }
     if (taken.some((other) => areAlternatives(spec, other))) continue;
     if (paid + spec.weeklyMoney > life.money) {
       dropped.push(key);
@@ -52,7 +48,7 @@ export function planWeek(life: Life, week: number, timetable: readonly RoutineKe
   }
   // Hours lost to illness or family leave no time for the last routines; they are skipped rather
   // than squeezed out of sleep.
-  const skipped: RoutineKey[] = [...rested];
+  const skipped: RoutineKey[] = [];
   if (life.lostWeeks > 0) {
     while (hours > budget && taken.length) {
       const last = taken.pop()!;

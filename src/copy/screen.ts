@@ -148,32 +148,27 @@ export function optionRoom(plan: { spare: number; short: number; need: number })
 } {
   const hours = (n: number) => `${Number(n.toFixed(1))}時間`;
   if (plan.need > 0) {
-    return { over: true, head: `週${hours(plan.need)}たりない`, sub: "休む活動を選ぶ ›" };
+    return { over: true, head: `週${hours(plan.need)}たりない`, sub: "予定の間の時間割を組む ›" };
   }
   if (plan.short > 0)
     return { over: true, head: `睡眠を削る ${hours(plan.short)}`, sub: "健康↓・心↓" };
   return { over: false, head: `あと${hours(plan.spare)}`, sub: null };
 }
 
-/** The prompt for tiles to rest while an option's hours last. */
-export function restPickTitle(weeks: number): string {
-  return weeks > 1 ? `予定の${weeks}週，休む活動を選ぶ` : "今週休む活動を選ぶ";
+/** The title of the timetable followed while a booking lasts, e.g. "予定の間の時間割（あと3週）". */
+export function bookingTitle(weeks: number): string {
+  return `予定の間の時間割（あと${weeks}週）`;
 }
+export const BOOKING_NOTE = "予定が終わると，いつもの時間割に戻る";
 
-/** Whether the rested tiles make room, or the sleep the rest of the hours costs. */
+/** Whether the week fits, or the sleep the hours over cost. */
 export function restStatusLine(shortHours: number): string {
   if (shortHours <= 0) return "これで収まる";
   return `あと${Number(shortHours.toFixed(1))}時間は睡眠を削る・健康↓・心↓`;
 }
 
 export const REST_PICK_CONFIRM = "これで決める";
-export const REST_MARK = "休む";
 export const REST_PICK_BACK = "戻る";
-
-/** A tile resting for a booking, with the weeks it has left, e.g. "休み・あと2週". */
-export function restingTile(weeks: number): string {
-  return `休み・あと${weeks}週`;
-}
 
 /** What the week's slack does: hours over cost health and mind, hours left over help them. */
 export function slackLine(shortHours: number, spareHours: number): string | null {
