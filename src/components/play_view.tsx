@@ -17,15 +17,13 @@ import {
   budgetLine,
   CANNOT_PAY,
   CHOSEN_LABEL,
-  resumeLabel,
-  PAUSED_CHIP,
-  PAUSED_TILE,
   removeLabel,
   CARD_TITLES,
   CLEAR_ALL,
   LIMITED_TITLE,
   HISTORY_TITLE,
   LOW_NOTE,
+  lostHoursLine,
   monthlyBreakdown,
   NEXT,
   optionRoom,
@@ -46,7 +44,7 @@ import {
 } from "../copy/screen";
 import { WEEKS } from "../engine/calendar";
 import type { Event, PricedOption } from "../engine/events";
-import type { OptionKey, RoutineKey } from "../engine/facts";
+import type { LostReason, OptionKey, RoutineKey } from "../engine/facts";
 import type { Life } from "../engine/life";
 import {
   areAlternatives,
@@ -76,9 +74,6 @@ interface Props {
   readonly pausedFor: PauseReason | null;
   readonly feed: readonly FeedEntry[];
   readonly onTimetable: (timetable: readonly RoutineKey[]) => void;
-  readonly paused: readonly RoutineKey[];
-  readonly temporary: boolean;
-  readonly onPause: (key: RoutineKey) => void;
   readonly onSpeed: (speed: Speed) => void;
   readonly onStep: () => void;
   readonly onChoose: (option: OptionKey) => void;
@@ -121,10 +116,7 @@ export function PlayView(props: Props) {
             life={life}
             week={week}
             timetable={props.timetable}
-            paused={props.paused}
-            temporary={props.temporary}
             onChange={props.onTimetable}
-            onPause={props.onPause}
           />
           <div className="actions">
             {props.pausedFor ? (
@@ -229,12 +221,12 @@ function Status({ life }: { life: Life }) {
           <div key={stat} className={low ? "stat-bar low" : "stat-bar"}>
             <dt>{label}</dt>
             <dd>
-              <span className="meter" aria-hidden="true">
-                <span style={{ width: `${value}%` }} />
-              </span>
               <span className="meter-value">
                 {value}
                 {low ? <span className="sr-only">{LOW_NOTE}</span> : null}
+              </span>
+              <span className="meter" aria-hidden="true">
+                <span style={{ width: `${value}%` }} />
               </span>
             </dd>
           </div>
@@ -334,27 +326,15 @@ function Timetable({
   life,
   week,
   timetable,
-  paused,
-  temporary,
   onChange,
-  onPause,
 }: {
   life: Life;
   week: number;
   timetable: readonly RoutineKey[];
-  /** Tiles resting while something temporary needs room; they come back afterwards. */
-  paused: readonly RoutineKey[];
-  /** Whether an event's hours or a limited-time window need room now. */
-  temporary: boolean;
   onChange: (timetable: readonly RoutineKey[]) => void;
-  onPause: (key: RoutineKey) => void;
 }) {
   const preview = planWeek(life, week, timetable);
-  // While an event needs room, a tile taken out rests and comes back afterwards by default.
-  const takeOut = (key: RoutineKey) => {
-    if (temporary) onPause(key);
-    else onChange(timetable.filter((k) => k !== key));
-  };
+  const takeOut = (key: RoutineKey) => onChange(timetable.filter((k) => k !== key));
   const toggle = (spec: RoutineSpec) => {
     if (timetable.includes(spec.key)) takeOut(spec.key);
     // Part-time amounts are one choice: picking one replaces the other.
@@ -386,8 +366,17 @@ function Timetable({
       </div>
       {/* The bar, its legend, and the chosen tiles read as one block, so they sit close. */}
       <div className="week-summary">
-        <WeekBar budget={preview.budget} preview={preview} oneOffHours={oneOffHours} />
-        {timetable.length || paused.length ? (
+        <WeekBar
+          budget={preview.budget}
+          preview={preview}
+          oneOffHours={oneOffHours}
+          lost={
+            life.lostWeeks > 0 && life.lostReason
+              ? { reason: life.lostReason, weekly: life.lostWeekly, weeks: life.lostWeeks }
+              : null
+          }
+        />
+        {timetable.length ? (
           <ul className="chosen-chips" aria-label={CHOSEN_LABEL}>
             {timetable.map((key) => (
               <li key={key}>
@@ -398,18 +387,6 @@ function Timetable({
                   onClick={() => takeOut(key)}
                 >
                   {routineTileLabel(key)} <span aria-hidden="true">×</span>
-                </button>
-              </li>
-            ))}
-            {paused.map((key) => (
-              <li key={key}>
-                <button
-                  type="button"
-                  className="chip paused"
-                  aria-label={resumeLabel(routineTileLabel(key))}
-                  onClick={() => onChange([...timetable, key])}
-                >
-                  {routineTileLabel(key)} <span aria-hidden="true">{PAUSED_CHIP}</span>
                 </button>
               </li>
             ))}
@@ -443,17 +420,11 @@ function Timetable({
             {specs.map((spec) => {
               const chosen = timetable.includes(spec.key);
               const dropped = preview.dropped.includes(spec.key);
-              const isPaused = paused.includes(spec.key);
               return (
                 <button
                   key={spec.key}
                   type="button"
-                  className={[
-                    "activity",
-                    chosen ? "chosen" : "",
-                    dropped ? "dropped" : "",
-                    isPaused ? "paused" : "",
-                  ]
+                  className={["activity", chosen ? "chosen" : "", dropped ? "dropped" : ""]
                     .filter(Boolean)
                     .join(" ")}
                   aria-pressed={chosen}
@@ -462,7 +433,7 @@ function Timetable({
                 >
                   <span className="activity-name">{routineTileLabel(spec.key)}</span>
                   <span className="activity-cost">
-                    {dropped ? CANNOT_PAY : isPaused ? PAUSED_TILE : tileCost(spec, week)}
+                    {dropped ? CANNOT_PAY : tileCost(spec, week)}
                   </span>
                   <span className="activity-effects">{routineEffects(spec)}</span>
                 </button>
@@ -502,16 +473,22 @@ function WeekBar({
   budget,
   preview,
   oneOffHours,
+  lost,
 }: {
   budget: number;
   preview: ReturnType<typeof planWeek>;
   oneOffHours: number;
+  /** Hours lost this week and why, when any are. */
+  lost: { reason: LostReason; weekly: number; weeks: number } | null;
 }) {
   const slack = slackLine(preview.shortHours, Math.max(0, budget - preview.hours));
   return (
     <div className="time-bar">
       <p className="time-total">{budgetLine(preview.hours, budget)}</p>
       <HourBar budget={budget} preview={preview} oneOffHours={oneOffHours} />
+      {lost ? (
+        <p className="time-left">{lostHoursLine(lost.reason, lost.weekly, lost.weeks)}</p>
+      ) : null}
       {oneOffHours ? <p className="time-left">{oneOffLine(oneOffHours)}</p> : null}
       {slack ? <p className={preview.shortHours ? "time-over" : "time-spare"}>{slack}</p> : null}
     </div>

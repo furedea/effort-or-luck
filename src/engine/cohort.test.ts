@@ -6,6 +6,7 @@ import {
   pickPlayer,
   replayYear,
   revealByAllowance,
+  revealGaps,
   setTimetable,
   startCohort,
   step,
@@ -171,5 +172,26 @@ describe("choosing whom the player lives as", () => {
   it("is anyone when normal", () => {
     expect(pickPlayer(cohort, "normal", 0)).toBe(0);
     expect(pickPlayer(cohort, "normal", 0.999)).toBe(COHORT_SIZE - 1);
+  });
+});
+
+test("the reveal's two gaps: across allowances for the same choices, and across choices for the same luck", () => {
+  const cohort = playYear(
+    13,
+    0,
+    ["selfAnalysis", "friends", "rest"],
+    ["interviewPractice", "research"],
+  );
+  const { most, least } = replayYear(cohort);
+  const rate = (lives: readonly Life[]) =>
+    lives.filter((l) => l.offers.length).length / lives.length;
+  const rows = revealByAllowance(cohort.lives, cohort.allowanceRanks).filter(
+    (r) => r.members.length,
+  );
+  const rowRates = rows.map((r) => r.offered / r.members.length);
+
+  expect(revealGaps(cohort.lives, cohort.allowanceRanks, { most, least })).toEqual({
+    luck: Math.max(...rowRates) - Math.min(...rowRates),
+    effort: rate(most) - rate(least),
   });
 });

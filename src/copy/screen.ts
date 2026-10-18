@@ -1,5 +1,5 @@
 import { JUNE_OFFER_RATE, JUNE_OFFER_RATE_BY_REGION } from "../data/statistics";
-import type { LogFact, Stat } from "../engine/facts";
+import type { LogFact, LostReason, Stat } from "../engine/facts";
 import {
   METRO_SHARE,
   MONTHLY_EXPENSE_YEN,
@@ -24,6 +24,18 @@ export const EFFORT_DEFINITION =
 export const LUCK_PART = "① 努力をそろえて，運だけ変えると";
 export const EFFORT_PART = "② 運をそろえて，努力だけ変えると";
 export const ALLOWANCE_HEADER = "仕送り";
+export const DETAILS_TITLE = "詳しく見る";
+
+/** The reveal's conclusion: the luck gap, the effort gap, and which was larger. */
+export function gapSummary(gaps: { luck: number; effort: number }) {
+  const percent = (rate: number) => `${Math.round(Math.abs(rate) * 100)}%`;
+  return {
+    luck: { label: "運の差", text: `仕送りで内定率が ${percent(gaps.luck)} 違う` },
+    effort: { label: "努力の差", text: `選び方で内定率が ${percent(gaps.effort)} 違う` },
+    verdict: `→ この1年は，${gaps.luck > gaps.effort ? "運" : "努力"}の差のほうが大きかった`,
+  };
+}
+
 export const SOURCES_LINK = "数字の出典と仮定について";
 export const SOURCES_TITLE = "数字の出典と仮定";
 export const BACK_TO_GAME = "ゲームに戻る";
@@ -59,7 +71,7 @@ export const STEP = "次の週へ";
 export type PauseReason =
   | { readonly kind: "limited"; readonly tile: string; readonly weeks: number }
   | { readonly kind: "over"; readonly hours: number }
-  | { readonly kind: "restoredOver"; readonly hours: number };
+  | { readonly kind: "bookingEnded"; readonly hours: number };
 
 export const PAUSE_HEAD = "一時停止";
 
@@ -68,14 +80,23 @@ export function pauseLines(reason: PauseReason): string[] {
   if (reason.kind === "limited") {
     return [`${reason.tile}が出た．`, `入れるなら今（あと${reason.weeks}週）`];
   }
-  const over = `今週の予定が${Number(reason.hours.toFixed(1))}時間オーバーした．`;
-  if (reason.kind === "restoredOver") return ["予定が終わり，休んでいた活動を戻した．", over];
-  return [over, "活動を外すか，睡眠を削って進む"];
+  const hours = Number(reason.hours.toFixed(1));
+  if (reason.kind === "bookingEnded")
+    return [`予定が終わり，週${hours}時間あいた．`, "活動を入れ直せる"];
+  return [`今週の予定が${hours}時間オーバーした．`, "活動を外すか，睡眠を削って進む"];
 }
 export const SPEED_LABELS = { step: "1週ずつ", normal: "▶ 自動", double: "▶▶ 2倍" } as const;
 export const TIMETABLE_TITLE = "毎週の過ごし方";
 export const CARD_TITLES = { event: "出来事" } as const;
 export const CLEAR_ALL = "全部外す";
+
+const LOST_REASONS = { sick: "熱", family: "帰省" } as const satisfies Record<LostReason, string>;
+
+/** Hours lost this week, with why and for how long, e.g. "熱で −12.5時間・あと2週". */
+export function lostHoursLine(reason: LostReason, weekly: number, weeks: number): string {
+  const span = weeks > 1 ? `あと${weeks}週` : "今週だけ";
+  return `${LOST_REASONS[reason]}で −${Number(weekly.toFixed(1))}時間・${span}`;
+}
 
 export const CHOSEN_LABEL = "選んだ活動";
 
@@ -83,15 +104,6 @@ export const CHOSEN_LABEL = "選んだ活動";
 export function removeLabel(tile: string): string {
   return `${tile}を外す`;
 }
-export const PAUSED_CHIP = "⏸ 休み中";
-export const PAUSED_TILE = "休み中・予定が終わったら戻る";
-
-/** What tapping a paused chip does, for screen readers, e.g. "研究・ゼミを今すぐ戻す". */
-export function resumeLabel(tile: string): string {
-  return `${tile}を今すぐ戻す`;
-}
-
-export const TIMETABLE_RESTORED = "予定が終わったので，時間割を元に戻した";
 export const LIMITED_TITLE = "★ 今だけ";
 
 export function weeksLeftLine(weeks: number): string {

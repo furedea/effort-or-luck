@@ -370,91 +370,33 @@ test("keeps the chosen speed after a choice that fits the week", () => {
   expect(stepButton(host)).toBeNull();
 });
 
-describe("tiles taken out while an event's hours need room", () => {
-  /** Starts with 説明会 planned and takes the first option that books hours. */
-  function bookHours() {
-    const host = mount();
-    startYear(host);
-    click(tileNamed(host, "説明会"));
-    click(speedButton(host, "▶▶ 2倍"));
-    const takesHours = () =>
-      [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")].find((b) =>
-        /\d+時間/.test(b.querySelector(".cost")?.textContent ?? ""),
-      );
-    for (let guard = 0; guard < 100 && !takesHours(); guard++) {
-      const options = [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")];
-      if (options.length) click(options.at(-1)!);
-      else keepFlowing(host);
-    }
-    click(takesHours()!);
-    return host;
-  }
-  const pressed = (host: HTMLElement, name: string) =>
-    tileNamed(host, name).getAttribute("aria-pressed");
-  const pausedChips = (host: HTMLElement) =>
-    [...host.querySelectorAll(".chosen-chips .chip.paused")].map((c) => c.textContent);
-  /** Lives on, declining events, for up to `weeks` weeks or until `done`. */
-  function liveOn(host: HTMLElement, done: () => boolean, weeks = 40) {
-    for (let guard = 0; guard < weeks * 3 && !done(); guard++) {
-      const options = [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")];
-      if (options.length) click(options.at(-1)!);
-      else keepFlowing(host);
-    }
-    const options = [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")];
-    if (options.length) click(options.at(-1)!);
-  }
-
-  it("rest as paused and come back afterwards, while tiles added meanwhile stay", () => {
-    const host = bookHours();
-
-    click(tileNamed(host, "説明会"));
-    click(tileNamed(host, "ゆっくり休む"));
-    expect(pausedChips(host)).toEqual(["説明会 ⏸ 休み中"]);
-    expect(tileNamed(host, "説明会").querySelector(".activity-cost")?.textContent).toBe(
-      "休み中・予定が終わったら戻る",
-    );
-
-    // The chips show only with the timetable, not while an event is on screen.
-    liveOn(host, () => Boolean(host.querySelector(".timetable")) && pausedChips(host).length === 0);
-
-    expect(pressed(host, "説明会")).toBe("true");
-    expect(pressed(host, "ゆっくり休む")).toBe("true");
-  });
-
-  it("come back at once when their paused chip is tapped", () => {
-    const host = bookHours();
-    click(tileNamed(host, "説明会"));
-
-    click(host.querySelector<HTMLButtonElement>(".chosen-chips .chip.paused")!);
-
-    expect(pausedChips(host)).toEqual([]);
-    expect(pressed(host, "説明会")).toBe("true");
-  });
-});
-
-test("puts back tiles dropped for a limited-time tile once it closes, and keeps tiles added", () => {
+test("stops auto play once an event's booked hours end, saying the hours are free again", () => {
   const host = mount();
   startYear(host);
-  click(tileNamed(host, "説明会"));
-  click(tileNamed(host, "研究・ゼミ"));
-  for (let i = 0; i < 4; i++) click(stepButton(host)!);
-  expect(when(host)).toBe("5月 第1週");
-
-  click(tileNamed(host, "説明会"));
-  click(tileNamed(host, "夏インターンのES対策"));
-  click(tileNamed(host, "ゆっくり休む"));
-  const pressed = (name: string) => tileNamed(host, name).getAttribute("aria-pressed");
-  expect(pressed("説明会")).toBe("false");
-
-  // Declining events on the way, live until the limited-time tile has closed in June.
-  for (let guard = 0; guard < 12 && when(host) !== "6月 第2週"; guard++) {
+  click(speedButton(host, "▶▶ 2倍"));
+  const takesHours = () =>
+    [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")].find((b) =>
+      /\d+時間/.test(b.querySelector(".cost")?.textContent ?? ""),
+    );
+  for (let guard = 0; guard < 100 && !takesHours(); guard++) {
     const options = [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")];
-    click(options.at(-1) ?? stepButton(host)!);
+    if (options.length) click(options.at(-1)!);
+    else keepFlowing(host);
+  }
+  click(takesHours()!);
+  const lines = () =>
+    [...host.querySelectorAll(".actions .paused-line")].map((n) => n.textContent ?? "");
+
+  // Declining events on the way, live until the booked hours have ended.
+  for (let guard = 0; guard < 120 && !lines()[0]?.startsWith("予定が終わり"); guard++) {
+    const options = [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")];
+    if (options.length) click(options.at(-1)!);
+    else keepFlowing(host);
   }
 
-  expect(pressed("説明会")).toBe("true");
-  expect(pressed("ゆっくり休む")).toBe("true");
-  expect(host.querySelector(".chosen-chips")?.textContent).not.toContain("夏インターンのES対策");
+  expect(lines()[0]).toMatch(/^予定が終わり，週[\d.]+時間あいた．$/);
+  expect(lines()[1]).toBe("活動を入れ直せる");
+  expect(stepButton(host)).not.toBeNull();
 });
 
 test("moves focus to an event when time stops for it", () => {
@@ -466,6 +408,23 @@ test("moves focus to an event when time stops for it", () => {
 
   expect(host.querySelector(".event")).not.toBeNull();
   expect(document.activeElement).toBe(host.querySelector(".when"));
+});
+
+test("the reveal opens with the offers, the luck and effort gaps, and which was larger", () => {
+  const host = mount();
+  playToReveal(host);
+
+  const summary = host.querySelector(".reveal-summary");
+  expect(summary?.querySelector(".gap-luck")?.textContent).toMatch(
+    /^運の差仕送りで内定率が \d+% 違う$/,
+  );
+  expect(summary?.querySelector(".gap-effort")?.textContent).toMatch(
+    /^努力の差選び方で内定率が \d+% 違う$/,
+  );
+  expect(summary?.querySelector(".gap-verdict")?.textContent).toMatch(
+    /^→ この1年は，(運|努力)の差のほうが大きかった$/,
+  );
+  expect(host.querySelector(".reveal-details summary")?.textContent).toBe("詳しく見る");
 });
 
 test("describes each allowance row in words for screen readers", () => {
@@ -679,6 +638,10 @@ describe("the weekly timetable", () => {
     const host = firstWeek();
 
     const labels = [...host.querySelectorAll(".stat-bar dt")].map((node) => node.textContent);
+    // Each value sits beside its own label, before the gauge, so it is never read with the next stat.
+    for (const bar of host.querySelectorAll(".stat-bar dd")) {
+      expect([...bar.children].map((child) => child.className)).toEqual(["meter-value", "meter"]);
+    }
     expect(labels).toEqual(["健康", "心の余裕", "人間関係", "研究", "勉強"]);
   });
 });

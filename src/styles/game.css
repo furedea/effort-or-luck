@@ -347,8 +347,11 @@ main {
   gap: 0 10px;
   margin: 0;
 }
+/* Label and value share the top line, the gauge sits below, so each value reads with its stat. */
 .stat-bar {
   display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
   row-gap: 4px;
   font-size: 12px;
 }
@@ -356,11 +359,10 @@ main {
   color: var(--sub);
 }
 .stat-bar dd {
-  display: grid;
-  grid-template-columns: 1fr 1.8em;
-  align-items: center;
-  column-gap: 6px;
-  margin: 0;
+  display: contents;
+}
+.stat-bar .meter {
+  grid-column: 1 / -1;
 }
 .meter {
   height: 6px;
@@ -669,11 +671,6 @@ main {
   border-radius: 999px;
   cursor: pointer;
 }
-.chip.paused,
-.activity.paused {
-  opacity: 0.55;
-  border-style: dashed;
-}
 .chip span {
   color: var(--sub);
 }
@@ -823,6 +820,43 @@ main {
   margin: 0;
   font-family: var(--display);
   font-size: 22px;
+}
+.reveal-summary {
+  display: grid;
+  row-gap: 8px;
+  padding: 16px;
+  background: var(--field);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+}
+.reveal-summary p {
+  margin: 0;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.gap-label {
+  display: inline-block;
+  min-width: 5em;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sub);
+}
+.gap-verdict {
+  font-family: var(--display);
+  font-weight: 700;
+}
+.reveal-details {
+  display: grid;
+  row-gap: 18px;
+}
+.reveal-details > summary {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--suit);
+  cursor: pointer;
+}
+.reveal-details[open] > summary {
+  margin-bottom: 18px;
 }
 .profile {
   margin: 0;

@@ -3,6 +3,7 @@ import {
   endedCount,
   optionRoom,
   pauseLines,
+  lostHoursLine,
   monthlyBreakdown,
   slackLine,
   statBars,
@@ -93,6 +94,13 @@ describe("why auto play paused", () => {
       "活動を外すか，睡眠を削って進む",
     ]);
   });
+
+  it("says how many hours an event's end frees", () => {
+    expect(pauseLines({ kind: "bookingEnded", hours: 15 })).toEqual([
+      "予定が終わり，週15時間あいた．",
+      "活動を入れ直せる",
+    ]);
+  });
 });
 
 describe("the monthly money flow", () => {
@@ -122,4 +130,9 @@ test("a self who ran out of study repeats the year, and one out of research lose
   expect(endedCount({ study: 2, research: 1 })).toBe(
     "途中で終わった人：ゼミに居場所がなくなった 1 人・留年 2 人",
   );
+});
+
+test("hours lost this week say why and for how long", () => {
+  expect(lostHoursLine("sick", 12.5, 2)).toBe("熱で −12.5時間・あと2週");
+  expect(lostHoursLine("family", 15, 1)).toBe("帰省で −15時間・今週だけ");
 });

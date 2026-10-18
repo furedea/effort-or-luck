@@ -3,6 +3,9 @@
 export type OfferMonth = "december" | "may";
 
 /** The four things a self must keep above zero; reaching zero ends the year. */
+/** Why hours are lost for a while. */
+export type LostReason = "sick" | "family";
+
 export type Stat = "health" | "mind" | "social" | "research" | "study";
 
 /** How hard an event option pushes: 2 is the most effortful, -1 means stepping out. */

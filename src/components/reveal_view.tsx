@@ -7,7 +7,9 @@ import {
   bandSummary,
   blockedCount,
   endedCount,
+  DETAILS_TITLE,
   EFFORT_DEFINITION,
+  gapSummary,
   EFFORT_PART,
   effortLead,
   LONG_RUN_NOTE,
@@ -27,7 +29,7 @@ import {
   type Subject,
 } from "../copy/screen";
 import { STATISTICS } from "../data/statistics";
-import { revealByAllowance } from "../engine/cohort";
+import { revealByAllowance, revealGaps } from "../engine/cohort";
 import type { Stat } from "../engine/facts";
 import type { Life } from "../engine/life";
 import type { Difficulty } from "../engine/parameters";
@@ -52,6 +54,30 @@ interface Props {
   readonly actions: ReactNode;
 }
 
+/** The conclusion first: how much luck and effort each moved the offer rate this year. */
+function GapSummary({
+  paths,
+  ranks,
+}: {
+  paths: Readonly<Record<Path, readonly Life[]>>;
+  ranks: readonly number[];
+}) {
+  const { luck, effort, verdict } = gapSummary(revealGaps(paths.same, ranks, paths));
+  return (
+    <div className="reveal-summary">
+      <p className="gap-luck">
+        <span className="gap-label">{luck.label}</span>
+        {luck.text}
+      </p>
+      <p className="gap-effort">
+        <span className="gap-label">{effort.label}</span>
+        {effort.text}
+      </p>
+      <p className="gap-verdict">{verdict}</p>
+    </div>
+  );
+}
+
 export function RevealView(props: Props) {
   const { paths, ranks, player, blocked, decisions, difficulty, subject, actions } = props;
   const you = paths.same[player];
@@ -68,21 +94,25 @@ export function RevealView(props: Props) {
         <p className="you">{resultLine(subject, you?.offers.length ?? 0)}</p>
         <p className="profile">{you ? profileText(you.log) : ""}</p>
       </header>
-      <p className="effort-definition">{EFFORT_DEFINITION}</p>
-      <LuckPart
-        lives={paths.same}
-        ranks={ranks}
-        player={player}
-        blocked={blocked}
-        decisions={decisions}
-        difficulty={difficulty}
-        subject={subject}
-      />
-      <EffortPart paths={paths} ranks={ranks} subject={subject} />
-      <aside className="stat">
-        <p>{actualRate()}</p>
-        <cite>{sourceCredit(STATISTICS.offersJuneActual.source)}</cite>
-      </aside>
+      <GapSummary paths={paths} ranks={ranks} />
+      <details className="reveal-details">
+        <summary>{DETAILS_TITLE}</summary>
+        <p className="effort-definition">{EFFORT_DEFINITION}</p>
+        <LuckPart
+          lives={paths.same}
+          ranks={ranks}
+          player={player}
+          blocked={blocked}
+          decisions={decisions}
+          difficulty={difficulty}
+          subject={subject}
+        />
+        <EffortPart paths={paths} ranks={ranks} subject={subject} />
+        <aside className="stat">
+          <p>{actualRate()}</p>
+          <cite>{sourceCredit(STATISTICS.offersJuneActual.source)}</cite>
+        </aside>
+      </details>
       <div className="reveal-actions">
         {actions}
         <a className="sources-link" href="/sources">

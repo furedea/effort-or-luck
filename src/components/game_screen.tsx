@@ -8,7 +8,6 @@ import {
   type PauseReason,
   PLAY_AGAIN,
   shareText,
-  TIMETABLE_RESTORED,
   TITLE,
   warningLine,
 } from "../copy/screen";
@@ -59,11 +58,6 @@ interface Game {
   readonly feed: readonly FeedEntry[];
   /** Stats already warned about, so each warning comes once. */
   readonly warned: readonly Stat[];
-  /**
-   * Tiles taken out while something temporary needs room (an event's booked hours or a
-   * limited-time window). They come back once nothing temporary is left.
-   */
-  readonly paused: readonly RoutineKey[];
   readonly yearEnd: YearEnd | null;
 }
 
@@ -120,9 +114,6 @@ export function GameScreen() {
           speed={game.speed}
           feed={game.feed}
           onTimetable={(timetable) => setGame(edit(game, timetable))}
-          paused={game.paused}
-          temporary={Boolean(life && isTemporary(life, cohort.week))}
-          onPause={(key) => setGame(pause(game, key))}
           pausedFor={game.pausedFor}
           onSpeed={(speed) => setGame({ ...game, speed, pausedFor: null })}
           onStep={() => setGame(advance(game))}
@@ -147,7 +138,6 @@ function newGame(difficulty: Difficulty): Game {
     pausedFor: null,
     feed: [],
     warned: [],
-    paused: [],
     yearEnd: null,
   };
 }
@@ -157,6 +147,8 @@ function newGame(difficulty: Difficulty): Game {
  * the player's choices and the end of the year; anything else goes into the feed.
  */
 function advance(game: Game): Game {
+  // Lives change in place, so the booking is read before the week is lived.
+  const booked = game.cohort.lives[game.player]?.oneOff ?? { hours: 0, weeks: 0 };
   let cohort = step(withTimetable(game.cohort, game.timetable));
   const life = cohort.lives[game.player];
   while (life && !isActive(life) && cohort.week < WEEKS && !cohort.events[game.player]) {
@@ -176,33 +168,21 @@ function advance(game: Game): Game {
   const limitedPause: PauseReason | null = first
     ? { kind: "limited", tile: routineTileLabel(first.key), weeks: first.until - cohort.week }
     : null;
-  // Closed limited-time tiles leave the timetable. Once nothing temporary is left, paused tiles
-  // come back; if they run the week over, time waits for the player.
-  const current = game.timetable.filter(
+  // Closed limited-time tiles leave the timetable.
+  const timetable = game.timetable.filter(
     (key) => !isLimited(routineOf(key)) || isOpen(routineOf(key), cohort.week),
   );
-  const ending = living && life && !isTemporary(life, cohort.week) && game.paused.length > 0;
-  const back = ending ? game.paused.filter((key) => !current.includes(key)) : [];
-  const timetable = [...current, ...back];
-  const overAfter = back.length && life ? planWeek(life, cohort.week, timetable).shortHours : 0;
-  const restoredPause: PauseReason | null = overAfter
-    ? { kind: "restoredOver", hours: overAfter }
-    : null;
+  // When an event's hours end, the week has room again, so time waits for the player to refill it.
+  const freedPause: PauseReason | null =
+    living && booked.weeks === 1 ? { kind: "bookingEnded", hours: booked.hours } : null;
   return {
     ...game,
     cohort,
     timetable,
-    paused: ending ? [] : game.paused,
     // Limited-time preparation would pass within seconds at speed, so time waits for the player.
-    speed: appeared.length || restoredPause ? "step" : game.speed,
-    pausedFor: restoredPause ?? (game.speed !== "step" ? limitedPause : null),
-    feed: [
-      ...appeared,
-      ...(back.length ? [{ week: cohort.week, text: TIMETABLE_RESTORED }] : []),
-      ...warnings,
-      ...noticeEntries(cohort, game.player),
-      ...game.feed,
-    ],
+    speed: appeared.length || freedPause ? "step" : game.speed,
+    pausedFor: game.speed === "step" ? null : (freedPause ?? limitedPause),
+    feed: [...appeared, ...warnings, ...noticeEntries(cohort, game.player), ...game.feed],
     warned: falling ? [...game.warned, falling] : game.warned,
   };
 }
@@ -263,20 +243,9 @@ function noticeEntries(cohort: Cohort, player: number): FeedEntry[] {
   return [{ week: cohort.week, text: describeEvent(event).lines.join("") }];
 }
 
-/** A timetable edit; adding a paused tile back resumes it. */
+/** A timetable edit. */
 function edit(game: Game, timetable: readonly RoutineKey[]): Game {
-  return { ...game, timetable, paused: game.paused.filter((key) => !timetable.includes(key)) };
-}
-
-/** Takes a tile out until nothing temporary needs room, when it comes back. */
-function pause(game: Game, key: RoutineKey): Game {
-  const paused = game.paused.includes(key) ? game.paused : [...game.paused, key];
-  return { ...game, timetable: game.timetable.filter((k) => k !== key), paused };
-}
-
-/** Whether an event's hours are booked or a limited-time window is open, so room is temporary. */
-function isTemporary(life: Life, week: number): boolean {
-  return life.oneOff.weeks > 0 || ROUTINES.some((spec) => isLimited(spec) && isOpen(spec, week));
+  return { ...game, timetable };
 }
 
 function withTimetable(cohort: Cohort, timetable: readonly RoutineKey[]): Cohort {
