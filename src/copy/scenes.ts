@@ -133,6 +133,43 @@ export function routineTileLabel(key: RoutineKey): string {
 }
 
 /** What a routine takes and gives each week, in numbers. */
+/**
+ * What a routine raises and lowers, in short, e.g. "通過率↑・心↓". Job hunting wears the mind down,
+ * so it lowers 心 as well.
+ */
+export function routineEffects(spec: RoutineSpec): string {
+  const signed = (label: string, value: number) => (value > 0 ? `${label}↑` : `${label}↓`);
+  const statChange = (stat: Stat) =>
+    (spec.statsPerWeek[stat] ?? 0) - (stat === "mind" && spec.kind === "job" ? 1 : 0);
+  return [
+    spec.prepPerWeek ? "通過率↑" : "",
+    spec.inviteBonusPerWeek ? "早期選考↑" : "",
+    spec.documentPrepPerWeek ? "書類↑" : "",
+    ...(Object.keys(spec.boostsPerWeek) as Boost[]).map((boost) => `${BOOST_SHORT[boost]}↑`),
+    ...(Object.keys(STAT_SHORT) as Stat[])
+      .filter((stat) => statChange(stat) !== 0)
+      .map((stat) => signed(STAT_SHORT[stat], statChange(stat))),
+    spec.weeklyPay ? "お金↑" : "",
+    spec.weeklyMoney ? "お金↓" : "",
+  ]
+    .filter(Boolean)
+    .join("・");
+}
+
+const STAT_SHORT = {
+  health: "健康",
+  mind: "心",
+  social: "人間関係",
+  research: "研究",
+} as const satisfies Record<Stat, string>;
+
+const BOOST_SHORT = {
+  internEs: "夏インターン",
+  early: "早期選考",
+  entryEs: "本選考の ES",
+  final: "最終面接",
+} as const satisfies Record<Boost, string>;
+
 export function routineDetail(spec: RoutineSpec): string {
   const percent = (value: number) => `${Number((value * 100).toFixed(2))}%`;
   const effects = [

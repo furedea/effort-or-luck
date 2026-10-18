@@ -383,6 +383,14 @@ describe("the weekly timetable", () => {
     expect(groups[1]?.tiles).toEqual(["資格の勉強", "研究・ゼミ"]);
   });
 
+  it("says on each tile what it raises and lowers", () => {
+    const host = firstWeek();
+
+    expect(tile(host, "ゆっくり休む").querySelector(".activity-effects")?.textContent).toBe(
+      "健康↑・心↑",
+    );
+  });
+
   it("names the bar's colors with their hours", () => {
     const host = firstWeek();
 

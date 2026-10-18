@@ -454,6 +454,14 @@ main {
   color: var(--sub);
   font-variant-numeric: tabular-nums;
 }
+.activity-effects {
+  font-size: 11px;
+  color: var(--sub);
+}
+.activity.chosen .activity-effects {
+  color: var(--paper);
+  opacity: 0.85;
+}
 .activity-detail {
   min-height: 1.6em;
   margin: 0;

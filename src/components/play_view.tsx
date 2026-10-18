@@ -5,6 +5,7 @@ import {
   optionCost,
   optionLabel,
   routineDetail,
+  routineEffects,
   routineTileLabel,
   shortfallReason,
   weekLabel,
@@ -310,6 +311,7 @@ function Timetable({
                 >
                   <span className="activity-name">{routineTileLabel(spec.key)}</span>
                   <span className="activity-cost">{dropped ? CANNOT_PAY : cost}</span>
+                  <span className="activity-effects">{routineEffects(spec)}</span>
                 </button>
               );
             })}

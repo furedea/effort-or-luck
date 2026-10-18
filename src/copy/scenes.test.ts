@@ -9,6 +9,7 @@ import {
   optionCost,
   optionLabel,
   routineDetail,
+  routineEffects,
   weekLabel,
 } from "./scenes";
 
@@ -145,4 +146,20 @@ test("every small choice has its own lines and option labels", () => {
     expect(describeEvent(event).lines.length).toBeGreaterThan(0);
     for (const option of event.options) expect(optionLabel(option, event.facts)).toBeTruthy();
   }
+});
+
+describe("what a tile raises and lowers, in short", () => {
+  it.each([
+    ["selfAnalysis", "通過率↑・心↓"],
+    ["infoSessions", "通過率↑・早期選考↑・心↓"],
+    ["jobCourse", "通過率↑・心↓・お金↓"],
+    ["certification", "書類↑・お金↓"],
+    ["friends", "通過率↑・心↑・人間関係↑"],
+    ["research", "研究↑"],
+    ["rest", "健康↑・心↑"],
+    ["extraWork", "お金↑"],
+    ["summerEsPrep", "夏インターン↑・心↓"],
+  ] as const)("%s: %s", (key, effects) => {
+    expect(routineEffects(routineOf(key))).toBe(effects);
+  });
 });
