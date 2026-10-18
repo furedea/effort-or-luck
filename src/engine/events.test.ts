@@ -320,3 +320,22 @@ test("interviews go better for a self with something to talk about from research
   life.stats.study = 0;
   expect(academicFactor(life)).toBeCloseTo(ACADEMIC.floor);
 });
+
+test("declining a small choice costs a little, except where nothing is lost but the chance", () => {
+  const declines = Object.fromEntries(
+    SMALL_EVENTS.map((event) => {
+      const [, decline] = event.options(makeLife(1));
+      return [decline.key, decline.stats ?? {}];
+    }),
+  );
+
+  expect(declines).toEqual({
+    tripSkip: { social: -2 },
+    seminarDecline: { research: -3 },
+    campSkip: { social: -2 },
+    shiftNo: { mind: -1 },
+    obSkip: {},
+    homeStay: { mind: -2 },
+    studySkip: {},
+  });
+});
