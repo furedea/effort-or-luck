@@ -8,22 +8,14 @@ import {
   warningLine,
 } from "./screen";
 
-const base = { allowance: 70_000, scholarship: 50_000, money: 20_000, offers: 0 };
+const base = { money: 20_000, offers: 0 };
 
 describe("the status panel", () => {
-  it("lists each figure with its label", () => {
+  it("shows only what changes during play: savings and offers", () => {
     expect(statusItems(base).map(({ label, value }) => [label, value])).toEqual([
-      ["仕送り", "7万円"],
-      ["奨学金", "5万円"],
       ["貯金", "2万円"],
       ["内定", "なし"],
     ]);
-  });
-
-  it("leaves out the scholarship when none is borrowed", () => {
-    expect(statusItems({ ...base, scholarship: 0 }).map(({ label }) => label)).not.toContain(
-      "奨学金",
-    );
   });
 
   it("flags savings under 10,000 yen but not at 10,000 yen", () => {

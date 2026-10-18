@@ -111,13 +111,25 @@ test("starts the stats from the chosen difficulty", () => {
   expect(health).toBe("55");
 });
 
-test("groups the situation and the event into titled cards, with buttons below them", () => {
+test("groups the situation and the event into cards, with buttons below them", () => {
   const host = mount();
 
   const titles = [...host.querySelectorAll(".card > .card-title")].map((n) => n.textContent);
-  expect(titles).toEqual(["いまの状況", "出来事"]);
+  expect(titles).toEqual(["出来事"]);
   expect(host.querySelector(".card .stat-bars")).not.toBeNull();
   expect(host.querySelector(".card .next")).toBeNull();
+});
+
+test("keeps the top slim: the date beside the progress, and only the latest happening", () => {
+  const host = mount();
+  startYear(host);
+  click(speedButton(host, "▶▶ 2倍"));
+  for (let guard = 0; guard < 40 && host.querySelectorAll(".feed-entry").length === 0; guard++) {
+    keepFlowing(host);
+  }
+
+  expect(host.querySelector(".play-head .progress-bar")).not.toBeNull();
+  expect(host.querySelectorAll(".feed-entry")).toHaveLength(1);
 });
 
 test("opens on the first week with the opening notice", () => {
@@ -167,7 +179,7 @@ test("returns to one week per press when limited-time preparation appears", () =
 
   expect(when(host)).toBe("5月 第1週");
   expect(stepButton(host)).not.toBeNull();
-  expect(host.querySelector(".feed li")?.textContent).toContain(
+  expect(host.querySelector(".feed-entry")?.textContent).toContain(
     "★ 今だけ：夏インターンのES対策（あと4週）",
   );
 });
@@ -192,7 +204,7 @@ test("stops only for choices, listing other happenings while time flows", () => 
 
   expect(stopsWithoutChoice).toEqual([]);
   expect(when(host)).toBe("6月1日");
-  expect(host.querySelectorAll(".feed li").length).toBeGreaterThan(0);
+  expect(host.querySelectorAll(".feed-entry").length).toBeGreaterThan(0);
 });
 
 test("can be played from the first week to the reveal", () => {
@@ -319,7 +331,7 @@ test("puts back the tiles dropped for an event's hours when they end, without st
   click(tileNamed(host, "説明会"));
   expect(tileNamed(host, "説明会").getAttribute("aria-pressed")).toBe("false");
 
-  const restored = () => host.querySelector(".feed li")?.textContent?.includes("元に戻した");
+  const restored = () => host.querySelector(".feed-entry")?.textContent?.includes("元に戻した");
   for (let guard = 0; guard < 6 && !restored(); guard++) passMs(300);
 
   expect(restored()).toBe(true);

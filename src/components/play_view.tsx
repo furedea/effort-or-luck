@@ -19,7 +19,6 @@ import {
   chosenLine,
   CARD_TITLES,
   CLEAR_ALL,
-  FEED_TITLE,
   LIMITED_TITLE,
   LOW_NOTE,
   NEXT,
@@ -74,16 +73,15 @@ export function PlayView(props: Props) {
   }, [event]);
   return (
     <section className="play">
-      <div className="progress-bar" aria-hidden="true">
-        <span style={{ width: `${(Math.min(week, WEEKS) / WEEKS) * 100}%` }} />
-      </div>
       <header className="play-head">
         <h2 className="when" ref={heading} tabIndex={-1}>
           {weekLabel(week)}
         </h2>
+        <div className="progress-bar" aria-hidden="true">
+          <span style={{ width: `${(Math.min(week, WEEKS) / WEEKS) * 100}%` }} />
+        </div>
       </header>
-      <div className="card">
-        <h3 className="card-title">{CARD_TITLES.status}</h3>
+      <div className="card status-card">
         <Status life={life} />
       </div>
       <Feed entries={feed} />
@@ -130,32 +128,20 @@ export function PlayView(props: Props) {
   );
 }
 
-const FEED_SHOWN = 3;
-
+/** The latest happening that did not stop time, in one line. */
 function Feed({ entries }: { entries: readonly FeedEntry[] }) {
-  if (!entries.length) return null;
+  const [latest] = entries;
+  if (!latest) return null;
   return (
-    <section className="feed-block">
-      <h3 className="activity-section">{FEED_TITLE}</h3>
-      <ul className="feed" aria-live="polite">
-        {entries.slice(0, FEED_SHOWN).map(({ week, text }) => (
-          <li key={`${week}${text}`}>
-            <span className="feed-when">{weekLabel(week)}</span>
-            {text}
-          </li>
-        ))}
-      </ul>
-    </section>
+    <p className="feed-entry" aria-live="polite">
+      <span className="feed-when">{weekLabel(latest.week)}</span>
+      {latest.text}
+    </p>
   );
 }
 
 function Status({ life }: { life: Life }) {
-  const items = statusItems({
-    allowance: life.allowance,
-    scholarship: life.scholarship,
-    money: life.money,
-    offers: life.offers.length,
-  });
+  const items = statusItems({ money: life.money, offers: life.offers.length });
   return (
     <div className="status-block">
       <dl className="status">

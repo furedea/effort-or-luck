@@ -57,9 +57,8 @@ export const LINK_ERRORS = {
 export const SECTION = { job: "就活", study: "学業", life: "自分のこと", work: "お金" } as const;
 export const STEP = "次の週へ";
 export const SPEED_LABELS = { step: "1週ずつ", normal: "▶ 自動", double: "▶▶ 2倍" } as const;
-export const FEED_TITLE = "これまで";
 export const TIMETABLE_TITLE = "毎週の過ごし方";
-export const CARD_TITLES = { status: "いまの状況", event: "出来事" } as const;
+export const CARD_TITLES = { event: "出来事" } as const;
 export const CLEAR_ALL = "全部外す";
 
 /** The tiles in the timetable, e.g. "選んだ札：説明会・友達と遊ぶ". */
@@ -151,17 +150,9 @@ export const LOW_NOTE = "（少ない）";
 const LOW_SAVINGS_YEN = 10_000;
 
 /** The self's situation as labeled figures, shown under the period. */
-export function statusItems(status: {
-  allowance: number;
-  scholarship: number;
-  money: number;
-  offers: number;
-}): StatusItem[] {
+/** What changes during play; allowance and scholarship stay as the opening says. */
+export function statusItems(status: { money: number; offers: number }): StatusItem[] {
   return [
-    { label: "仕送り", value: yen(status.allowance), low: false },
-    ...(status.scholarship
-      ? [{ label: "奨学金", value: yen(status.scholarship), low: false }]
-      : []),
     { label: "貯金", value: yen(status.money), low: status.money < LOW_SAVINGS_YEN },
     { label: "内定", value: status.offers ? `${status.offers} 社` : "なし", low: false },
   ];
