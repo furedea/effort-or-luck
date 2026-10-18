@@ -101,7 +101,7 @@ export const WEEKLY_DRIFT = {
   health: -0.5,
   mind: -0.6,
   social: -0.8,
-  research: -0.4,
+  research: -0.7,
   study: -0.3,
 } as const;
 export const FINAL_YEAR_RESEARCH_DRIFT = -1.2;
@@ -121,7 +121,7 @@ export const SLEEP_LOSS = {
   healthPerHeavyHour: 0.8,
   mindPerHour: 0.1,
 } as const;
-export const MIND_PER_JOB_HOUR = 0.025;
+export const MIND_PER_JOB_HOUR = 0.07;
 export const MIND_WHEN_BROKE_WEEKLY = 0.8;
 export const BROKE_BELOW_YEN = 10_000;
 export const STAT_SHOCK = {
