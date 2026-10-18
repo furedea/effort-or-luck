@@ -336,6 +336,12 @@ main {
   display: grid;
   row-gap: 12px;
 }
+.timetable-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.timetable-head .activity-section,
 .timetable > .activity-section {
   margin: 0;
   font-size: 14px;

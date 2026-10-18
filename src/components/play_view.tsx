@@ -15,6 +15,7 @@ import {
   barLegendItem,
   budgetLine,
   CANNOT_PAY,
+  CLEAR_ALL,
   FEED_TITLE,
   LIMITED_TITLE,
   LOW_NOTE,
@@ -280,7 +281,17 @@ function Timetable({
   const oneOffHours = life.oneOff.weeks > 0 ? life.oneOff.hours / life.oneOff.weeks : 0;
   return (
     <div className="timetable">
-      <h3 className="activity-section">{TIMETABLE_TITLE}</h3>
+      <div className="timetable-head">
+        <h3 className="activity-section">{TIMETABLE_TITLE}</h3>
+        <button
+          type="button"
+          className="toggle clear-all"
+          disabled={timetable.length === 0}
+          onClick={() => onChange([])}
+        >
+          {CLEAR_ALL}
+        </button>
+      </div>
       <WeekBar budget={preview.budget} preview={preview} oneOffHours={oneOffHours} />
       {groups(week).map(({ key, title, specs }) => (
         <div className={key === "limited" ? "activity-group limited" : "activity-group"} key={key}>

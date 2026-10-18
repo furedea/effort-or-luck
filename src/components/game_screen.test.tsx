@@ -415,6 +415,17 @@ describe("the weekly timetable", () => {
     expect(groups[1]?.tiles).toEqual(["資格の勉強", "研究・ゼミ"]);
   });
 
+  it("clears every tile at once", () => {
+    const host = firstWeek();
+    click(tile(host, "説明会"));
+    click(tile(host, "友達と遊ぶ"));
+
+    click(host.querySelector<HTMLButtonElement>(".clear-all")!);
+
+    expect(host.querySelectorAll(".activity[aria-pressed='true']")).toHaveLength(0);
+    expect(host.querySelector<HTMLButtonElement>(".clear-all")?.disabled).toBe(true);
+  });
+
   it("says on each tile what it raises and lowers", () => {
     const host = firstWeek();
 
