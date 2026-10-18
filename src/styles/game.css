@@ -656,7 +656,7 @@ main {
 .week-summary .time-bar {
   padding-bottom: 0;
 }
-/* Chosen tiles as small chips that wrap; tapping one takes it out of the timetable. */
+/* Chosen tiles as small chips that wrap; the name opens its tab and the × takes it out. */
 .chosen-chips {
   display: flex;
   flex-wrap: wrap;
@@ -666,22 +666,37 @@ main {
   list-style: none;
 }
 .chip {
-  padding: 2px 8px;
-  font: inherit;
+  display: flex;
+  align-items: center;
   font-size: 12px;
   line-height: 1.6;
-  color: var(--ink);
   background: var(--paper);
   border: 1px solid var(--rule);
   border-radius: 999px;
+}
+.chip-name,
+.chip-remove {
+  font: inherit;
+  color: var(--ink);
+  background: none;
+  border: none;
   cursor: pointer;
 }
-.chip span {
+.chip-name {
+  padding: 2px 4px 2px 8px;
+}
+.chip-remove {
+  padding: 2px 8px 2px 4px;
   color: var(--sub);
 }
-.chip:hover,
-.chip:focus-visible {
-  border-color: var(--shu);
+.chip-name:hover,
+.chip-name:focus-visible {
+  text-decoration: underline;
+  outline: none;
+}
+.chip-remove:hover,
+.chip-remove:focus-visible {
+  color: var(--shu);
   outline: none;
 }
 .activity-section {

@@ -589,21 +589,33 @@ describe("the weekly timetable", () => {
     }
   });
 
-  it("lists the chosen tiles under the bar as small chips that remove them", () => {
+  it("lists the chosen tiles under the bar as small chips, each removed by its ×", () => {
     const host = firstWeek();
     click(tile(host, "説明会"));
     click(tile(host, "友達と遊ぶ"));
     const chips = () =>
-      [...host.querySelectorAll<HTMLButtonElement>(".chosen-chips .chip")].map(
-        (c) => c.textContent,
-      );
+      [...host.querySelectorAll(".chosen-chips .chip-name")].map((c) => c.textContent);
 
-    expect(chips()).toEqual(["説明会 ×", "友達と遊ぶ ×"]);
+    expect(chips()).toEqual(["説明会", "友達と遊ぶ"]);
 
-    click(host.querySelector<HTMLButtonElement>(".chosen-chips .chip")!);
+    click(host.querySelector<HTMLButtonElement>(".chosen-chips .chip-remove")!);
 
-    expect(chips()).toEqual(["友達と遊ぶ ×"]);
+    expect(chips()).toEqual(["友達と遊ぶ"]);
     expect(tile(host, "説明会").getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("opens the tab of a chosen tile when its chip is tapped", () => {
+    const host = firstWeek();
+    click(tile(host, "友達と遊ぶ"));
+    click(tabNamed(host, "就活"));
+
+    click(host.querySelector<HTMLButtonElement>(".chosen-chips .chip-name")!);
+
+    expect(host.querySelector(".tab[aria-selected='true']")?.textContent).toBe("自分のこと");
+    const shown = [...host.querySelectorAll(".tiles.active .activity-name")].map(
+      (n) => n.textContent,
+    );
+    expect(shown).toContain("友達と遊ぶ");
   });
 
   it("gives the price of tiles that cost or pay money", () => {

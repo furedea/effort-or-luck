@@ -447,14 +447,17 @@ function Timetable({
         {timetable.length ? (
           <ul className="chosen-chips" aria-label={CHOSEN_LABEL}>
             {timetable.map((key) => (
-              <li key={key}>
+              <li key={key} className="chip">
+                <button type="button" className="chip-name" onClick={() => setTab(tabOf(key))}>
+                  {routineTileLabel(key)}
+                </button>
                 <button
                   type="button"
-                  className="chip"
+                  className="chip-remove"
                   aria-label={removeLabel(routineTileLabel(key))}
                   onClick={() => takeOut(key)}
                 >
-                  {routineTileLabel(key)} <span aria-hidden="true">×</span>
+                  ×
                 </button>
               </li>
             ))}
@@ -521,6 +524,12 @@ function tileCost(spec: RoutineSpec, week: number): string {
   if (spec.weeklyMoney) return `${hours}・${yen(spec.weeklyMoney)}`;
   if (spec.weeklyPay) return `${hours}・+${yen(spec.weeklyPay)}`;
   return hours;
+}
+
+/** The tab a routine's tile is on. */
+function tabOf(key: RoutineKey): string {
+  const spec = routineOf(key);
+  return isLimited(spec) ? "limited" : spec.kind;
 }
 
 /** Open routines grouped for the tiles: limited-time preparation first, when there is any. */
