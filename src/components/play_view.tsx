@@ -19,6 +19,7 @@ import {
   CHOSEN_LABEL,
   dropPausedLabel,
   PAUSED_CHIP,
+  PAUSED_TILE,
   removeLabel,
   CARD_TITLES,
   CLEAR_ALL,
@@ -446,7 +447,7 @@ function Timetable({
                 >
                   <span className="activity-name">{routineTileLabel(spec.key)}</span>
                   <span className="activity-cost">
-                    {dropped ? CANNOT_PAY : isPaused ? PAUSED_CHIP : tileCost(spec, week)}
+                    {dropped ? CANNOT_PAY : isPaused ? PAUSED_TILE : tileCost(spec, week)}
                   </span>
                   <span className="activity-effects">{routineEffects(spec)}</span>
                 </button>

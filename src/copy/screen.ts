@@ -83,7 +83,10 @@ export const CHOSEN_LABEL = "選んだ札";
 export function removeLabel(tile: string): string {
   return `${tile}を外す`;
 }
-export const PAUSED_CHIP = "⏸ 予定後に戻る";
+/** On a paused chip: it rests until the event is over, and × removes it for good. */
+export const PAUSED_CHIP = "⏸ 予定後に戻る ×";
+/** On a paused tile in the tabs: tapping it brings it back now. */
+export const PAUSED_TILE = "休み中・押すと今すぐ戻す";
 
 /** What a paused chip does, for screen readers, e.g. "研究・ゼミを完全に外す". */
 export function dropPausedLabel(tile: string): string {
