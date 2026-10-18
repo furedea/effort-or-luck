@@ -17,6 +17,8 @@ import {
   budgetLine,
   CANNOT_PAY,
   CHOSEN_LABEL,
+  dropPausedLabel,
+  PAUSED_CHIP,
   removeLabel,
   CARD_TITLES,
   CLEAR_ALL,
@@ -66,6 +68,8 @@ interface Props {
   readonly pausedFor: PauseReason | null;
   readonly feed: readonly FeedEntry[];
   readonly onTimetable: (timetable: readonly RoutineKey[]) => void;
+  readonly paused: readonly RoutineKey[];
+  readonly onDropPaused: (key: RoutineKey) => void;
   readonly onSpeed: (speed: Speed) => void;
   readonly onStep: () => void;
   readonly onChoose: (option: OptionKey) => void;
@@ -108,7 +112,9 @@ export function PlayView(props: Props) {
             life={life}
             week={week}
             timetable={props.timetable}
+            paused={props.paused}
             onChange={props.onTimetable}
+            onDropPaused={props.onDropPaused}
           />
           <div className="actions">
             {props.pausedFor ? (
@@ -318,12 +324,17 @@ function Timetable({
   life,
   week,
   timetable,
+  paused,
   onChange,
+  onDropPaused,
 }: {
   life: Life;
   week: number;
   timetable: readonly RoutineKey[];
+  /** Tiles resting while something temporary needs room; they come back afterwards. */
+  paused: readonly RoutineKey[];
   onChange: (timetable: readonly RoutineKey[]) => void;
+  onDropPaused: (key: RoutineKey) => void;
 }) {
   const preview = planWeek(life, week, timetable);
   const toggle = (spec: RoutineSpec) => {
@@ -360,7 +371,7 @@ function Timetable({
       {/* The bar, its legend, and the chosen tiles read as one block, so they sit close. */}
       <div className="week-summary">
         <WeekBar budget={preview.budget} preview={preview} oneOffHours={oneOffHours} />
-        {timetable.length ? (
+        {timetable.length || paused.length ? (
           <ul className="chosen-chips" aria-label={CHOSEN_LABEL}>
             {timetable.map((key) => (
               <li key={key}>
@@ -371,6 +382,18 @@ function Timetable({
                   onClick={() => onChange(timetable.filter((k) => k !== key))}
                 >
                   {routineTileLabel(key)} <span aria-hidden="true">×</span>
+                </button>
+              </li>
+            ))}
+            {paused.map((key) => (
+              <li key={key}>
+                <button
+                  type="button"
+                  className="chip paused"
+                  aria-label={dropPausedLabel(routineTileLabel(key))}
+                  onClick={() => onDropPaused(key)}
+                >
+                  {routineTileLabel(key)} <span aria-hidden="true">{PAUSED_CHIP}</span>
                 </button>
               </li>
             ))}
@@ -404,11 +427,17 @@ function Timetable({
             {specs.map((spec) => {
               const chosen = timetable.includes(spec.key);
               const dropped = preview.dropped.includes(spec.key);
+              const isPaused = paused.includes(spec.key);
               return (
                 <button
                   key={spec.key}
                   type="button"
-                  className={["activity", chosen ? "chosen" : "", dropped ? "dropped" : ""]
+                  className={[
+                    "activity",
+                    chosen ? "chosen" : "",
+                    dropped ? "dropped" : "",
+                    isPaused ? "paused" : "",
+                  ]
                     .filter(Boolean)
                     .join(" ")}
                   aria-pressed={chosen}
@@ -417,7 +446,7 @@ function Timetable({
                 >
                   <span className="activity-name">{routineTileLabel(spec.key)}</span>
                   <span className="activity-cost">
-                    {dropped ? CANNOT_PAY : tileCost(spec, week)}
+                    {dropped ? CANNOT_PAY : isPaused ? PAUSED_CHIP : tileCost(spec, week)}
                   </span>
                   <span className="activity-effects">{routineEffects(spec)}</span>
                 </button>

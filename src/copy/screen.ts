@@ -58,7 +58,8 @@ export const STEP = "次の週へ";
 /** Why the game took auto play back to one week per press. */
 export type PauseReason =
   | { readonly kind: "limited"; readonly tile: string; readonly weeks: number }
-  | { readonly kind: "over"; readonly hours: number };
+  | { readonly kind: "over"; readonly hours: number }
+  | { readonly kind: "restoredOver"; readonly hours: number };
 
 export const PAUSE_HEAD = "一時停止";
 
@@ -67,7 +68,9 @@ export function pauseLines(reason: PauseReason): string[] {
   if (reason.kind === "limited") {
     return [`${reason.tile}が出た．`, `入れるなら今（あと${reason.weeks}週）`];
   }
-  return [`今週が${Number(reason.hours.toFixed(1))}時間はみ出た．`, "札を外すか，そのまま進む"];
+  const over = `今週の予定が${Number(reason.hours.toFixed(1))}時間オーバーした．`;
+  if (reason.kind === "restoredOver") return ["予定が終わり，休んでいた札を戻した．", over];
+  return [over, "札を外すか，睡眠を削って進む"];
 }
 export const SPEED_LABELS = { step: "1週ずつ", normal: "▶ 自動", double: "▶▶ 2倍" } as const;
 export const TIMETABLE_TITLE = "毎週の過ごし方";
@@ -80,6 +83,13 @@ export const CHOSEN_LABEL = "選んだ札";
 export function removeLabel(tile: string): string {
   return `${tile}を外す`;
 }
+export const PAUSED_CHIP = "⏸ 予定後に戻る";
+
+/** What a paused chip does, for screen readers, e.g. "研究・ゼミを完全に外す". */
+export function dropPausedLabel(tile: string): string {
+  return `${tile}を完全に外す`;
+}
+
 export const TIMETABLE_RESTORED = "予定が終わったので，時間割を元に戻した";
 export const LIMITED_TITLE = "★ 今だけ";
 

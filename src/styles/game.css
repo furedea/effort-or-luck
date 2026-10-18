@@ -669,6 +669,11 @@ main {
   border-radius: 999px;
   cursor: pointer;
 }
+.chip.paused,
+.activity.paused {
+  opacity: 0.55;
+  border-style: dashed;
+}
 .chip span {
   color: var(--sub);
 }

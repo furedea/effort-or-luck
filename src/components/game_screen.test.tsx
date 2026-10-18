@@ -370,33 +370,64 @@ test("keeps the chosen speed after a choice that fits the week", () => {
   expect(stepButton(host)).toBeNull();
 });
 
-test("puts back the tiles dropped for an event's hours when they end, without stopping", () => {
-  const host = mount();
-  startYear(host);
-  click(tileNamed(host, "説明会"));
-  click(speedButton(host, "▶▶ 2倍"));
-  const takesHours = () =>
-    [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")].find((button) =>
-      /\d+時間/.test(button.querySelector(".cost")?.textContent ?? ""),
-    );
-  for (let guard = 0; guard < 100 && !takesHours(); guard++) {
+describe("tiles taken out while an event's hours need room", () => {
+  /** Starts with 説明会 planned and takes the first option that books hours. */
+  function bookHours() {
+    const host = mount();
+    startYear(host);
+    click(tileNamed(host, "説明会"));
+    click(speedButton(host, "▶▶ 2倍"));
+    const takesHours = () =>
+      [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")].find((b) =>
+        /\d+時間/.test(b.querySelector(".cost")?.textContent ?? ""),
+      );
+    for (let guard = 0; guard < 100 && !takesHours(); guard++) {
+      const options = [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")];
+      if (options.length) click(options.at(-1)!);
+      else keepFlowing(host);
+    }
+    click(takesHours()!);
+    return host;
+  }
+  const pressed = (host: HTMLElement, name: string) =>
+    tileNamed(host, name).getAttribute("aria-pressed");
+  const pausedChips = (host: HTMLElement) =>
+    [...host.querySelectorAll(".chosen-chips .chip.paused")].map((c) => c.textContent);
+  /** Lives on, declining events, for up to `weeks` weeks or until `done`. */
+  function liveOn(host: HTMLElement, done: () => boolean, weeks = 40) {
+    for (let guard = 0; guard < weeks * 3 && !done(); guard++) {
+      const options = [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")];
+      if (options.length) click(options.at(-1)!);
+      else keepFlowing(host);
+    }
     const options = [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")];
     if (options.length) click(options.at(-1)!);
-    else keepFlowing(host);
   }
-  click(takesHours()!);
-  click(tileNamed(host, "説明会"));
-  expect(tileNamed(host, "説明会").getAttribute("aria-pressed")).toBe("false");
 
-  const restored = () => host.querySelector(".feed-entry")?.textContent?.includes("元に戻した");
-  for (let guard = 0; guard < 6 && !restored(); guard++) passMs(300);
+  it("rest as paused and come back afterwards, while tiles added meanwhile stay", () => {
+    const host = bookHours();
 
-  expect(restored()).toBe(true);
-  expect(stepButton(host)).toBeNull();
-  // The next event may already be on screen; declining it shows the timetable again.
-  const decline = () => host.querySelectorAll<HTMLButtonElement>(".event .opt").item(1);
-  if (decline()) click(decline());
-  expect(tileNamed(host, "説明会").getAttribute("aria-pressed")).toBe("true");
+    click(tileNamed(host, "説明会"));
+    click(tileNamed(host, "ゆっくり休む"));
+    expect(pausedChips(host)).toEqual(["説明会 ⏸ 予定後に戻る"]);
+
+    // The chips show only with the timetable, not while an event is on screen.
+    liveOn(host, () => Boolean(host.querySelector(".timetable")) && pausedChips(host).length === 0);
+
+    expect(pressed(host, "説明会")).toBe("true");
+    expect(pressed(host, "ゆっくり休む")).toBe("true");
+  });
+
+  it("are removed for good when their paused chip is tapped", () => {
+    const host = bookHours();
+    click(tileNamed(host, "説明会"));
+
+    click(host.querySelector<HTMLButtonElement>(".chosen-chips .chip.paused")!);
+    liveOn(host, () => false, 12);
+
+    expect(pausedChips(host)).toEqual([]);
+    expect(pressed(host, "説明会")).toBe("false");
+  });
 });
 
 test("puts back tiles dropped for a limited-time tile once it closes, and keeps tiles added", () => {
