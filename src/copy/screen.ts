@@ -84,6 +84,7 @@ export const SPEED_LABELS = { step: "1週ずつ", normal: "▶ 自動", double: 
 export const TIMETABLE_TITLE = "毎週の過ごし方";
 export const CARD_TITLES = { event: "出来事" } as const;
 export const CLEAR_ALL = "全部外す";
+export const RESET_TO_USUAL = "いつもの時間割に戻す";
 
 const LOST_REASONS = { sick: "熱", family: "帰省" } as const satisfies Record<LostReason, string>;
 

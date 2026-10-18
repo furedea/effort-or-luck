@@ -374,6 +374,24 @@ test("sets a timetable for the booking when an option's hours do not fit, then r
   expect(tileNamed(host, "自己分析").getAttribute("aria-pressed")).toBe("false");
 });
 
+test("puts the booking's timetable back to the usual one in one tap", () => {
+  const { host, option } = toOptionThatDoesNotFit();
+  click(option);
+  const reset = () =>
+    [...host.querySelectorAll<HTMLButtonElement>(".timetable.booking .timetable-head button")].find(
+      (button) => button.textContent === "いつもの時間割に戻す",
+    )!;
+  expect(reset().disabled).toBe(true);
+  click(tileNamed(host, "友達と遊ぶ"));
+  click(tileNamed(host, "自己分析"));
+
+  click(reset());
+
+  expect(tileNamed(host, "友達と遊ぶ").getAttribute("aria-pressed")).toBe("true");
+  expect(tileNamed(host, "自己分析").getAttribute("aria-pressed")).toBe("false");
+  expect(reset().disabled).toBe(true);
+});
+
 test("goes back from the booking's timetable to the event's options", () => {
   const { host, option } = toOptionThatDoesNotFit();
   click(option);

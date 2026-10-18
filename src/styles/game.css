@@ -499,8 +499,12 @@ main {
 }
 .timetable-head {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
   align-items: center;
+  gap: 6px;
+}
+.timetable-head .activity-section {
+  flex: 1;
 }
 .timetable-head .activity-section,
 .timetable > .activity-section {

@@ -34,6 +34,7 @@ import {
   REST_PICK_BACK,
   REST_PICK_CONFIRM,
   BOOKING_NOTE,
+  RESET_TO_USUAL,
   bookingTitle,
   restStatusLine,
   type PauseReason,
@@ -125,7 +126,7 @@ export function PlayView(props: Props) {
               week={week}
               timetable={life.oneOff.timetable}
               onChange={props.onBooking}
-              bookingWeeks={life.oneOff.weeks}
+              booking={{ weeks: life.oneOff.weeks, usual: props.timetable }}
             />
           ) : (
             <Timetable
@@ -329,7 +330,7 @@ function EventPanel({
           week={week}
           timetable={draft}
           onChange={setDraft}
-          bookingWeeks={picking.weeks}
+          booking={{ weeks: picking.weeks, usual: timetable }}
         />
       ) : null}
       <div className="actions">
@@ -378,14 +379,14 @@ function Timetable({
   week,
   timetable,
   onChange,
-  bookingWeeks = null,
+  booking = null,
 }: {
   life: Life;
   week: number;
   timetable: readonly RoutineKey[];
   onChange: (timetable: readonly RoutineKey[]) => void;
-  /** Weeks left of the booking this timetable is for, or null for the usual timetable. */
-  bookingWeeks?: number | null;
+  /** The booking this timetable is for, with the usual one to go back to; null for the usual. */
+  booking?: { weeks: number; usual: readonly RoutineKey[] } | null;
 }) {
   const preview = planWeek(life, week, timetable);
   const takeOut = (key: RoutineKey) => onChange(timetable.filter((k) => k !== key));
@@ -406,11 +407,21 @@ function Timetable({
   const tab = openedAt > chosen.week ? "limited" : chosen.key;
   const group = shown.find((g) => g.key === tab) ?? shown[0];
   return (
-    <div className={bookingWeeks ? "card timetable booking" : "card timetable"}>
+    <div className={booking ? "card timetable booking" : "card timetable"}>
       <div className="timetable-head">
         <h3 className="activity-section">
-          {bookingWeeks ? bookingTitle(bookingWeeks) : TIMETABLE_TITLE}
+          {booking ? bookingTitle(booking.weeks) : TIMETABLE_TITLE}
         </h3>
+        {booking ? (
+          <button
+            type="button"
+            className="toggle reset-usual"
+            disabled={sameKeys(timetable, booking.usual)}
+            onClick={() => onChange(booking.usual)}
+          >
+            {RESET_TO_USUAL}
+          </button>
+        ) : null}
         <button
           type="button"
           className="toggle clear-all"
@@ -420,7 +431,7 @@ function Timetable({
           {CLEAR_ALL}
         </button>
       </div>
-      {bookingWeeks ? <p className="booking-note">{BOOKING_NOTE}</p> : null}
+      {booking ? <p className="booking-note">{BOOKING_NOTE}</p> : null}
       {/* The bar, its legend, and the chosen tiles read as one block, so they sit close. */}
       <div className="week-summary">
         <WeekBar
@@ -625,6 +636,11 @@ function OptionRoom({ room }: { room: ReturnType<typeof optionRoom> }) {
       {room.sub ? <span className="room-sub">{room.sub}</span> : null}
     </span>
   );
+}
+
+/** Whether two timetables hold the same tiles, in any order. */
+function sameKeys(a: readonly RoutineKey[], b: readonly RoutineKey[]): boolean {
+  return a.length === b.length && a.every((key) => b.includes(key));
 }
 
 /** The life as if `hours` were booked over `weeks` on the usual timetable, for planning only. */
