@@ -1,5 +1,5 @@
-import { EVENT_WEEKS } from "./calendar";
-import { makeLife, weekBudget, weeklyIncomeYen, type Life } from "./life";
+import { EVENT_WEEKS, weekOfMonthStart } from "./calendar";
+import { makeLife, monthlyIncomeYen, weekBudget, type Life } from "./life";
 import { routineOf } from "./routine";
 import { liveWeek, planWeek } from "./week";
 
@@ -64,8 +64,8 @@ describe("living a week", () => {
     const outcome = liveWeek(life, 0, ["extraWork"]);
 
     expect(outcome?.earned).toBe(routineOf("extraWork").weeklyPay);
-    expect(life.money).toBeCloseTo(
-      before + weeklyIncomeYen(life) + (outcome?.earned ?? 0) - (outcome?.paid ?? 0),
+    expect(life.money).toBe(
+      before + monthlyIncomeYen(life) + (outcome?.earned ?? 0) - (outcome?.paid ?? 0),
     );
     expect(life.oneOff).toEqual({ hours: 20, weeks: 2 });
     expect(life.lostWeeks).toBe(1);
@@ -79,26 +79,30 @@ describe("living a week", () => {
   });
 });
 
-test("savings move by allowance and scholarship after living costs, plus part-time pay", () => {
+test("allowance and scholarship after living costs move savings once a month, at its start", () => {
   const life = richLife();
   const before = life.money;
-  const income = weeklyIncomeYen(life);
+  const income = monthlyIncomeYen(life);
+  const may = weekOfMonthStart(1);
 
-  liveWeek(life, 0, ["longIntern", "selfAnalysis"]);
-  expect(life.money).toBeCloseTo(before + income);
+  liveWeek(life, 0, ["longIntern"]);
+  expect(life.money).toBe(before + income);
 
-  liveWeek(life, 1, ["extraWork"]);
-  expect(life.money).toBeCloseTo(before + 2 * income + routineOf("extraWork").weeklyPay);
+  for (let week = 1; week < may; week++) liveWeek(life, week, ["longIntern"]);
+  expect(life.money).toBe(before + income);
+
+  liveWeek(life, may, ["extraWork"]);
+  expect(life.money).toBe(before + 2 * income + routineOf("extraWork").weeklyPay);
 });
 
-test("without part-time work, a self whose allowance falls short loses savings each week", () => {
+test("without part-time work, a self whose allowance falls short loses savings each month", () => {
   const life = makeLife(1);
   life.allowance = 0;
   const before = life.money;
 
   liveWeek(life, 0, ["friends"]);
 
-  expect(weeklyIncomeYen(life)).toBeLessThan(0);
+  expect(monthlyIncomeYen(life)).toBeLessThan(0);
   expect(life.money).toBeLessThan(before);
 });
 
@@ -117,6 +121,5 @@ test("savings stay in round thousands of yen week after week", () => {
 
   for (let week = 0; week < 10; week++) liveWeek(life, week, ["extraWork", "certification"]);
 
-  expect(Number.isInteger(weeklyIncomeYen(life) / 1_000)).toBe(true);
   expect(Number.isInteger(life.money / 1_000)).toBe(true);
 });

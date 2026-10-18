@@ -81,7 +81,7 @@ test("an option that could not be taken is logged with its name", () => {
   );
 });
 
-function intro(extra: { neededWorkHours?: number; weeklyGapYen?: number } = {}) {
+function intro(extra: { neededWorkHours?: number; monthlyGapYen?: number } = {}) {
   return describeEvent({
     facts: {
       id: "intro",
@@ -89,7 +89,7 @@ function intro(extra: { neededWorkHours?: number; weeklyGapYen?: number } = {}) 
       metro: false,
       scholarship: 50_000,
       neededWorkHours: 3,
-      weeklyGapYen: 2_308,
+      monthlyGapYen: 10_000,
       weeklyHours: 40,
       money: 0,
       ...extra,
@@ -99,19 +99,24 @@ function intro(extra: { neededWorkHours?: number; weeklyGapYen?: number } = {}) 
 }
 
 describe("the opening notice", () => {
-  it("says where the self lives in a line and sets the short figures out as a table", () => {
-    expect(intro().lines.at(-1)).toBe("地方で一人暮らし．");
+  it("says where the self lives and what a living-cost gap means, then sets out the figures", () => {
+    expect(intro().lines.slice(2)).toEqual([
+      "地方で一人暮らし．",
+      "生活費は月13万円．仕送りと奨学金は合わせて月12万円．",
+      "毎月の初めに1万円ずつ貯金が減る．",
+    ]);
     expect(intro().table).toEqual([
       { label: "自由な時間", value: "週 40 時間" },
-      { label: "生活費の不足", value: "週 2,308円" },
-      { label: "要るバイト", value: "週 3 時間" },
+      { label: "毎月の不足", value: "1万円" },
+      { label: "必要なバイト", value: "週 3 時間" },
     ]);
   });
 
   it("says when living costs are covered without part-time work", () => {
-    expect(intro({ neededWorkHours: 0, weeklyGapYen: 0 }).table?.slice(1)).toEqual([
-      { label: "生活費の不足", value: "なし" },
-    ]);
+    const covered = intro({ neededWorkHours: 0, monthlyGapYen: 0 });
+
+    expect(covered.lines.at(-1)).toBe("地方で一人暮らし．");
+    expect(covered.table?.slice(1)).toEqual([{ label: "毎月の不足", value: "なし" }]);
   });
 });
 
