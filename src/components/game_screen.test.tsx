@@ -653,6 +653,10 @@ describe("the weekly timetable", () => {
     const host = firstWeek();
 
     const labels = [...host.querySelectorAll(".stat-bar dt")].map((node) => node.textContent);
+    // Each value sits beside its own label, before the gauge, so it is never read with the next stat.
+    for (const bar of host.querySelectorAll(".stat-bar dd")) {
+      expect([...bar.children].map((child) => child.className)).toEqual(["meter-value", "meter"]);
+    }
     expect(labels).toEqual(["健康", "心の余裕", "人間関係", "研究", "勉強"]);
   });
 });
