@@ -68,22 +68,17 @@ export const LINK_ERRORS = {
 export const SECTION = { job: "就活", study: "学業", life: "自分のこと", work: "お金" } as const;
 export const STEP = "次の週へ";
 /** Why the game took auto play back to one week per press. */
-export type PauseReason =
-  | { readonly kind: "limited"; readonly tile: string; readonly weeks: number }
-  | { readonly kind: "over"; readonly hours: number }
-  | { readonly kind: "bookingEnded"; readonly hours: number };
+export type PauseReason = {
+  readonly kind: "limited";
+  readonly tile: string;
+  readonly weeks: number;
+};
 
 export const PAUSE_HEAD = "一時停止";
 
 /** What made auto play pause and what the player can do now. */
 export function pauseLines(reason: PauseReason): string[] {
-  if (reason.kind === "limited") {
-    return [`${reason.tile}が出た．`, `入れるなら今（あと${reason.weeks}週）`];
-  }
-  const hours = Number(reason.hours.toFixed(1));
-  if (reason.kind === "bookingEnded")
-    return [`予定が終わり，週${hours}時間あいた．`, "活動を入れ直せる"];
-  return [`今週の予定が${hours}時間オーバーした．`, "活動を外すか，睡眠を削って進む"];
+  return [`${reason.tile}が出た．`, `入れるなら今（あと${reason.weeks}週）`];
 }
 export const SPEED_LABELS = { step: "1週ずつ", normal: "▶ 自動", double: "▶▶ 2倍" } as const;
 export const TIMETABLE_TITLE = "毎週の過ごし方";
@@ -143,17 +138,30 @@ export function weekStatusLine(used: number, budget: number, money: number): str
 }
 
 /** The hours an option leaves in the week, or runs over it by, for a badge beside the option. */
-export function optionRoom(hoursLeft: number): {
+export function optionRoom(
+  hoursLeft: number,
+  resting: readonly string[] = [],
+): {
   over: boolean;
   caption: string;
   hours: string;
-  /** What running over costs; the option can still be chosen. */
+  /** What running over costs, sleep or the tiles resting this week; the option can still be chosen. */
   cost: string | null;
 } {
   const hours = `${Number(Math.abs(hoursLeft).toFixed(1))}時間`;
-  return hoursLeft >= 0
-    ? { over: false, caption: "今週の残り", hours, cost: null }
-    : { over: true, caption: "今週オーバー", hours, cost: "睡眠を削る・健康↓・心↓" };
+  if (hoursLeft >= 0) return { over: false, caption: "今週の残り", hours, cost: null };
+  const cost = resting.length ? `${resting.join("・")} を今週休む` : "睡眠を削る・健康↓・心↓";
+  return { over: true, caption: "今週オーバー", hours, cost };
+}
+
+/** Booked hours that do not fit: rest the last tiles this week, or take them out of sleep. */
+export const CUT_SLEEP_PROMPT = "予定で入りきらない活動は";
+export const CUT_SLEEP_LABELS = { rest: "今週は休む", cut: "睡眠を削ってやる" } as const;
+export const RESTING_TILE = "今週は休み";
+
+/** The tiles resting this week for booked hours, e.g. "今週休む：説明会・SNS・動画". */
+export function restingLine(tiles: readonly string[]): string {
+  return `今週休む：${tiles.join("・")}`;
 }
 
 /** Savings after an option that costs or pays money. */

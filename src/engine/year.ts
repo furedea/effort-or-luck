@@ -11,7 +11,8 @@ import { liveWeek } from "./week";
 /** A player's input at a point in the year, recorded so the year can be replayed. */
 export type Decision =
   | { readonly week: number; readonly kind: "timetable"; readonly timetable: readonly RoutineKey[] }
-  | { readonly week: number; readonly kind: "choice"; readonly option: OptionKey };
+  | { readonly week: number; readonly kind: "choice"; readonly option: OptionKey }
+  | { readonly week: number; readonly kind: "cutSleep"; readonly cutsSleep: boolean };
 
 export interface Choice {
   /** The option wanted, taken when offered and affordable; null to choose by effort alone. */
@@ -23,6 +24,8 @@ export interface Choice {
 export interface Policy {
   timetable(life: Life, week: number): readonly RoutineKey[];
   choose(life: Life, event: Event, week: number): Choice;
+  /** Whether booked hours that do not fit come out of sleep rather than resting routines. */
+  cutsSleep?(week: number): boolean;
 }
 
 const JOB_ROUTINES = ROUTINES.filter((spec) => spec.kind === "job").map((spec) => spec.key);
@@ -101,6 +104,14 @@ export function followDecisions(decisions: readonly Decision[]): Policy {
       if (recorded?.kind !== "choice") return MIDDLE_CHOICE;
       return { key: recorded.option, want: OPTION_EFFORT[recorded.option] };
     },
+    cutsSleep: (week) => {
+      let cuts = false;
+      for (const decision of decisions) {
+        if (decision.week > week) break;
+        if (decision.kind === "cutSleep") cuts = decision.cutsSleep;
+      }
+      return cuts;
+    },
   };
 }
 
@@ -131,7 +142,7 @@ export function autoLive(seed: number, policy: Policy, difficulty: Difficulty = 
   for (let week = 0; week < WEEKS; week++) {
     const event = eventAt(life, week);
     if (event?.options.length) meet(life, event, policy.choose(life, event, week));
-    liveWeek(life, week, policy.timetable(life, week));
+    liveWeek(life, week, policy.timetable(life, week), policy.cutsSleep?.(week));
   }
   eventAt(life, WEEKS);
   return life;

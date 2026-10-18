@@ -17,6 +17,8 @@ import {
   budgetLine,
   CANNOT_PAY,
   CHOSEN_LABEL,
+  CUT_SLEEP_LABELS,
+  CUT_SLEEP_PROMPT,
   removeLabel,
   CARD_TITLES,
   CLEAR_ALL,
@@ -31,6 +33,8 @@ import {
   slackLine,
   PAUSE_HEAD,
   pauseLines,
+  RESTING_TILE,
+  restingLine,
   type PauseReason,
   savingsAfterLine,
   SECTION,
@@ -74,6 +78,9 @@ interface Props {
   readonly pausedFor: PauseReason | null;
   readonly feed: readonly FeedEntry[];
   readonly onTimetable: (timetable: readonly RoutineKey[]) => void;
+  /** Whether booked hours that do not fit come out of sleep rather than resting tiles. */
+  readonly cutsSleep: boolean;
+  readonly onCutsSleep: (cutsSleep: boolean) => void;
   readonly onSpeed: (speed: Speed) => void;
   readonly onStep: () => void;
   readonly onChoose: (option: OptionKey) => void;
@@ -107,6 +114,7 @@ export function PlayView(props: Props) {
           life={life}
           week={week}
           timetable={props.timetable}
+          cutsSleep={props.cutsSleep}
           onChoose={props.onChoose}
           onNext={props.onNext}
         />
@@ -117,6 +125,8 @@ export function PlayView(props: Props) {
             week={week}
             timetable={props.timetable}
             onChange={props.onTimetable}
+            cutsSleep={props.cutsSleep}
+            onCutsSleep={props.onCutsSleep}
           />
           <div className="actions">
             {props.pausedFor ? (
@@ -241,6 +251,7 @@ function EventPanel({
   life,
   week,
   timetable,
+  cutsSleep,
   onChoose,
   onNext,
 }: {
@@ -248,16 +259,21 @@ function EventPanel({
   life: Life;
   week: number;
   timetable: readonly RoutineKey[];
+  cutsSleep: boolean;
   onChoose: (option: OptionKey) => void;
   onNext: () => void;
 }) {
   const text = describeEvent(event);
-  const preview = planWeek(life, week, timetable);
+  const preview = planWeek(life, week, timetable, cutsSleep);
   // An option's hours replace any one-off booked before, so they are added to the routines alone.
   const bookedHours = life.oneOff.weeks > 0 ? life.oneOff.hours / life.oneOff.weeks : 0;
   const routineHours = preview.hours - bookedHours;
-  const roomOf = (option: PricedOption) =>
-    optionRoom(preview.budget - routineHours - option.hours / option.weeks);
+  const roomOf = (option: PricedOption) => {
+    const left = preview.budget - routineHours - option.hours / option.weeks;
+    if (left >= 0 || cutsSleep) return optionRoom(left);
+    const booked = { ...life, oneOff: { hours: option.hours, weeks: option.weeks } };
+    return optionRoom(left, planWeek(booked, week, timetable).skipped.map(routineTileLabel));
+  };
   return (
     <div className="event">
       <div className="card">
@@ -327,13 +343,20 @@ function Timetable({
   week,
   timetable,
   onChange,
+  cutsSleep,
+  onCutsSleep,
 }: {
   life: Life;
   week: number;
   timetable: readonly RoutineKey[];
   onChange: (timetable: readonly RoutineKey[]) => void;
+  cutsSleep: boolean;
+  onCutsSleep: (cutsSleep: boolean) => void;
 }) {
-  const preview = planWeek(life, week, timetable);
+  const preview = planWeek(life, week, timetable, cutsSleep);
+  // Tiles the booking would rest; illness rests tiles whatever the player sets, so it asks nothing.
+  const resting =
+    life.lostWeeks > 0 ? [] : planWeek(life, week, timetable).skipped.map(routineTileLabel);
   const takeOut = (key: RoutineKey) => onChange(timetable.filter((k) => k !== key));
   const toggle = (spec: RoutineSpec) => {
     if (timetable.includes(spec.key)) takeOut(spec.key);
@@ -376,6 +399,25 @@ function Timetable({
               : null
           }
         />
+        {resting.length ? (
+          <div className="cut-sleep">
+            <p className="cut-sleep-prompt">{CUT_SLEEP_PROMPT}</p>
+            <div className="cut-sleep-choices" role="group" aria-label={CUT_SLEEP_PROMPT}>
+              {([false, true] as const).map((cuts) => (
+                <button
+                  key={String(cuts)}
+                  type="button"
+                  className="toggle"
+                  aria-pressed={cutsSleep === cuts}
+                  onClick={() => onCutsSleep(cuts)}
+                >
+                  {cuts ? CUT_SLEEP_LABELS.cut : CUT_SLEEP_LABELS.rest}
+                </button>
+              ))}
+            </div>
+            {cutsSleep ? null : <p className="resting">{restingLine(resting)}</p>}
+          </div>
+        ) : null}
         {timetable.length ? (
           <ul className="chosen-chips" aria-label={CHOSEN_LABEL}>
             {timetable.map((key) => (
@@ -420,6 +462,7 @@ function Timetable({
             {specs.map((spec) => {
               const chosen = timetable.includes(spec.key);
               const dropped = preview.dropped.includes(spec.key);
+              const rests = preview.skipped.includes(spec.key);
               return (
                 <button
                   key={spec.key}
@@ -433,7 +476,7 @@ function Timetable({
                 >
                   <span className="activity-name">{routineTileLabel(spec.key)}</span>
                   <span className="activity-cost">
-                    {dropped ? CANNOT_PAY : tileCost(spec, week)}
+                    {dropped ? CANNOT_PAY : rests ? RESTING_TILE : tileCost(spec, week)}
                   </span>
                   <span className="activity-effects">{routineEffects(spec)}</span>
                 </button>

@@ -61,6 +61,40 @@ describe("a week's timetable", () => {
   });
 });
 
+describe("a week with booked hours that do not fit", () => {
+  // 40 free hours: friends 10, rest 10, sns 7 make 27, so a 30-hour booking runs 17 over.
+  const timetable = ["friends", "rest", "sns"] as const;
+  function bookedLife(hours: number): Life {
+    const life = richLife();
+    life.oneOff = { hours, weeks: 1 };
+    return life;
+  }
+
+  it("rests the routines set last until the week fits, by default", () => {
+    const outcome = planWeek(bookedLife(30), 0, timetable);
+
+    expect(outcome.skipped).toEqual(["rest", "sns"]);
+    expect(outcome.shortHours).toBe(0);
+  });
+
+  it("takes every routine out of sleep instead when the player cuts sleep", () => {
+    const outcome = planWeek(bookedLife(30), 0, timetable, true);
+
+    expect(outcome.skipped).toEqual([]);
+    expect(outcome.shortHours).toBe(17);
+  });
+
+  it("keeps the sleep the timetable already cut, resting only what the booking adds", () => {
+    // The timetable takes 48 hours, 8 over; a 10-hour booking rests research to get back to 48.
+    const over = ["selfAnalysis", "infoSessions", "friends", "rest", "sns", "research"] as const;
+
+    const outcome = planWeek(bookedLife(10), 0, over);
+
+    expect(outcome.skipped).toEqual(["research"]);
+    expect(outcome.shortHours).toBe(8);
+  });
+});
+
 describe("living a week", () => {
   it("earns what paid routines pay and uses up one-offs and lost hours", () => {
     const life = richLife();

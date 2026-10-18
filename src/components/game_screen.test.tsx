@@ -305,38 +305,43 @@ test("shows the hour bar at an event", () => {
   expect(host.querySelector(".event .bar")).not.toBeNull();
 });
 
-test("stops on the timetable after a choice that runs the week over", () => {
+test("rests the last tiles in a week its booking runs over, unless the player cuts sleep", () => {
+  // 37 of 40 hours, so most options that take hours run the week over.
   const host = toFirstChoice((h) => {
-    // Over 40 hours in all, so the week runs over whichever option is taken.
-    for (const name of [
-      "研究・ゼミ",
-      "友達と遊ぶ",
-      "ゆっくり休む",
-      "SNS・動画",
-      "自己分析",
-      "説明会",
-    ]) {
+    for (const name of ["研究・ゼミ", "友達と遊ぶ", "ゆっくり休む", "SNS・動画"]) {
       click(tileNamed(h, name));
     }
   });
-
-  // Some events offer nothing that takes hours to this self, such as a trip it cannot pay for.
-  const takesHours = () =>
+  const runsOver = () =>
     [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")].find((button) =>
-      /\d+時間/.test(button.querySelector(".cost")?.textContent ?? ""),
+      button.querySelector(".room-block.over"),
     );
-  for (let guard = 0; guard < 100 && !takesHours(); guard++) {
+  for (let guard = 0; guard < 100 && !runsOver(); guard++) {
     const options = [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")];
     if (options.length) click(options.at(-1)!);
     else keepFlowing(host);
   }
-  click(takesHours()!);
+  const option = runsOver()!;
+  expect(option.querySelector(".room-cost")?.textContent).toMatch(/SNS・動画 を今週休む$/);
 
-  expect(host.querySelector(".event")).toBeNull();
-  expect(stepButton(host)).not.toBeNull();
+  click(option);
+
+  expect(stepButton(host)).toBeNull();
+  const choice = (label: string) =>
+    [...host.querySelectorAll<HTMLButtonElement>(".cut-sleep button")].find(
+      (button) => button.textContent === label,
+    )!;
+  expect(choice("今週は休む").getAttribute("aria-pressed")).toBe("true");
+  expect(host.querySelector(".cut-sleep .resting")?.textContent).toMatch(/^今週休む：.*SNS・動画$/);
+  expect(tileNamed(host, "SNS・動画").querySelector(".activity-cost")?.textContent).toBe(
+    "今週は休み",
+  );
+
+  click(choice("睡眠を削ってやる"));
+
+  expect(choice("睡眠を削ってやる").getAttribute("aria-pressed")).toBe("true");
+  expect(host.querySelector(".cut-sleep .resting")).toBeNull();
   expect(host.querySelector(".time-over")).not.toBeNull();
-  const legend = [...host.querySelectorAll(".bar-legend li")].map((n) => n.textContent);
-  expect(legend.at(-1)).toMatch(/^オーバー \d+(\.\d)?時間$/);
 });
 
 test("keeps the chosen speed after declining, even in a week already over", () => {
@@ -368,35 +373,6 @@ test("keeps the chosen speed after a choice that fits the week", () => {
   click(options.at(-1)!);
 
   expect(stepButton(host)).toBeNull();
-});
-
-test("stops auto play once an event's booked hours end, saying the hours are free again", () => {
-  const host = mount();
-  startYear(host);
-  click(speedButton(host, "▶▶ 2倍"));
-  const takesHours = () =>
-    [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")].find((b) =>
-      /\d+時間/.test(b.querySelector(".cost")?.textContent ?? ""),
-    );
-  for (let guard = 0; guard < 100 && !takesHours(); guard++) {
-    const options = [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")];
-    if (options.length) click(options.at(-1)!);
-    else keepFlowing(host);
-  }
-  click(takesHours()!);
-  const lines = () =>
-    [...host.querySelectorAll(".actions .paused-line")].map((n) => n.textContent ?? "");
-
-  // Declining events on the way, live until the booked hours have ended.
-  for (let guard = 0; guard < 120 && !lines()[0]?.startsWith("予定が終わり"); guard++) {
-    const options = [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")];
-    if (options.length) click(options.at(-1)!);
-    else keepFlowing(host);
-  }
-
-  expect(lines()[0]).toMatch(/^予定が終わり，週[\d.]+時間あいた．$/);
-  expect(lines()[1]).toBe("活動を入れ直せる");
-  expect(stepButton(host)).not.toBeNull();
 });
 
 test("moves focus to an event when time stops for it", () => {

@@ -3,6 +3,7 @@ import {
   endedCount,
   optionRoom,
   pauseLines,
+  restingLine,
   lostHoursLine,
   monthlyBreakdown,
   slackLine,
@@ -78,6 +79,10 @@ describe("the room an option leaves in the week", () => {
       cost: "睡眠を削る・健康↓・心↓",
     });
   });
+
+  it("names the tiles that rest this week instead, when the week rests them", () => {
+    expect(optionRoom(-4.5, ["説明会", "SNS・動画"]).cost).toBe("説明会・SNS・動画 を今週休む");
+  });
 });
 
 describe("why auto play paused", () => {
@@ -85,20 +90,6 @@ describe("why auto play paused", () => {
     expect(pauseLines({ kind: "limited", tile: "夏インターンのES対策", weeks: 4 })).toEqual([
       "夏インターンのES対策が出た．",
       "入れるなら今（あと4週）",
-    ]);
-  });
-
-  it("gives the hours over and what to do", () => {
-    expect(pauseLines({ kind: "over", hours: 4 })).toEqual([
-      "今週の予定が4時間オーバーした．",
-      "活動を外すか，睡眠を削って進む",
-    ]);
-  });
-
-  it("says how many hours an event's end frees", () => {
-    expect(pauseLines({ kind: "bookingEnded", hours: 15 })).toEqual([
-      "予定が終わり，週15時間あいた．",
-      "活動を入れ直せる",
     ]);
   });
 });
@@ -130,6 +121,10 @@ test("a self who ran out of study repeats the year, and one out of research lose
   expect(endedCount({ study: 2, research: 1 })).toBe(
     "途中で終わった人：ゼミに居場所がなくなった 1 人・留年 2 人",
   );
+});
+
+test("tiles resting for booked hours are listed for the week", () => {
+  expect(restingLine(["説明会", "SNS・動画"])).toBe("今週休む：説明会・SNS・動画");
 });
 
 test("hours lost this week say why and for how long", () => {

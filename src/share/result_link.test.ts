@@ -43,6 +43,17 @@ describe("a share link", () => {
     expect(parse(encode(params))).toEqual({ ok: true, value: params });
   });
 
+  it("carries a choice to cut sleep for booked hours and replays with it", () => {
+    const { params: played } = play(7, 3, [middlePolicy]);
+    const params = {
+      ...played,
+      decisions: [{ week: 0, kind: "cutSleep", cutsSleep: true } as const, ...played.decisions],
+    };
+
+    expect(parse(encode(params))).toEqual({ ok: true, value: params });
+    expect(replay(params).ok).toBe(true);
+  });
+
   it("carries the difficulty, reading a link without one as normal", () => {
     const params = { seed: 1, player: 0, difficulty: "hard", decisions: [] } as const;
 

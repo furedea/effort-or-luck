@@ -25,6 +25,8 @@ export interface Cohort {
   /** Each self's event this week, or null when there is none or it has been met. */
   readonly events: readonly (Event | null)[];
   readonly timetable: readonly RoutineKey[];
+  /** Whether booked hours that do not fit come out of sleep rather than resting routines. */
+  readonly cutsSleep: boolean;
   readonly decisions: readonly Decision[];
   /** What the last week took and gave each self; null for selves not living the year. */
   readonly lastWeek: readonly (WeekOutcome | null)[];
@@ -46,6 +48,7 @@ export function startCohort(baseSeed: number, difficulty: Difficulty = "normal")
     week: 0,
     events: lives.map((life) => eventAt(life, 0)),
     timetable: [],
+    cutsSleep: false,
     decisions: [],
     lastWeek: lives.map(() => null),
     everBlocked: new Set(),
@@ -95,6 +98,15 @@ export function setTimetable(cohort: Cohort, timetable: readonly RoutineKey[]): 
   };
 }
 
+/** Sets whether booked hours that do not fit come out of everyone's sleep from this week on. */
+export function setCutsSleep(cohort: Cohort, cutsSleep: boolean): Cohort {
+  return {
+    ...cohort,
+    cutsSleep,
+    decisions: [...cohort.decisions, { week: cohort.week, kind: "cutSleep", cutsSleep }],
+  };
+}
+
 /** The player takes `option` at this week's event; everyone else with an event attempts it too. */
 export function choose(cohort: Cohort, option: OptionKey): Cohort {
   const others: Choice = { key: option, want: OPTION_EFFORT[option] };
@@ -112,7 +124,9 @@ export function step(cohort: Cohort): Cohort {
   meetAll(cohort, MIDDLE_CHOICE);
   if (cohort.week >= WEEKS)
     return { ...cohort, week: WEEKS + 1, events: cohort.lives.map(() => null) };
-  const lastWeek = cohort.lives.map((life) => liveWeek(life, cohort.week, cohort.timetable));
+  const lastWeek = cohort.lives.map((life) =>
+    liveWeek(life, cohort.week, cohort.timetable, cohort.cutsSleep),
+  );
   const blocked = lastWeek.flatMap((outcome, i) => (outcome?.dropped.length ? [i] : []));
   const week = cohort.week + 1;
   return {

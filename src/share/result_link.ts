@@ -3,6 +3,7 @@ import {
   COHORT_SIZE,
   isOver,
   replayYear,
+  setCutsSleep,
   setTimetable,
   startCohort,
   step,
@@ -34,6 +35,7 @@ type Result<T> =
 const DECISION_SEPARATOR = ".";
 const TIMETABLE_MARK = "t";
 const CHOICE_MARK = "o";
+const CUT_SLEEP_MARK = "z";
 /** Options outnumber one base-36 digit, so each takes two. */
 const OPTION_DIGITS = 2;
 // Links name routines and options by position, so reordering them needs a RULES_VERSION bump.
@@ -106,6 +108,10 @@ export function replay({
       cohort = setTimetable(cohort, decision.timetable);
       continue;
     }
+    if (decision.kind === "cutSleep") {
+      cohort = setCutsSleep(cohort, decision.cutsSleep);
+      continue;
+    }
     const offered = cohort.events[player]?.options.find((o) => o.key === decision.option);
     if (!offered || offered.shortfall) return failure("unreadable");
     cohort = choose(cohort, decision.option);
@@ -125,8 +131,11 @@ function awaitsChoice(cohort: Cohort, player: number): boolean {
   return Boolean(cohort.events[player]?.options.length);
 }
 
-/** A decision as its week, a mark, and base-36 indices, e.g. "12t0156" or "9o02". */
+/** A decision as its week, a mark, and base-36 indices, e.g. "12t0156", "9o02", or "20z1". */
 function encodeDecision(decision: Decision): string {
+  if (decision.kind === "cutSleep") {
+    return `${decision.week}${CUT_SLEEP_MARK}${decision.cutsSleep ? 1 : 0}`;
+  }
   if (decision.kind === "choice") {
     const index = OPTION_KEYS.indexOf(decision.option).toString(36).padStart(OPTION_DIGITS, "0");
     return `${decision.week}${CHOICE_MARK}${index}`;
@@ -136,11 +145,14 @@ function encodeDecision(decision: Decision): string {
 }
 
 function decodeDecision(text: string): Decision | null {
-  const match = text.match(/^(\d{1,2})([to])([0-9a-z]*)$/);
+  const match = text.match(/^(\d{1,2})([toz])([0-9a-z]*)$/);
   if (!match) return null;
   const [, weekText = "", mark, indices = ""] = match;
   const week = Number(weekText);
   const digits = indices.split("").map((digit) => Number.parseInt(digit, 36));
+  if (mark === CUT_SLEEP_MARK) {
+    return /^[01]$/.test(indices) ? { week, kind: "cutSleep", cutsSleep: indices === "1" } : null;
+  }
   if (mark === CHOICE_MARK) {
     const option =
       indices.length === OPTION_DIGITS ? OPTION_KEYS[Number.parseInt(indices, 36)] : undefined;

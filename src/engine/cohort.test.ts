@@ -7,6 +7,7 @@ import {
   replayYear,
   revealByAllowance,
   revealGaps,
+  setCutsSleep,
   setTimetable,
   startCohort,
   step,
@@ -21,8 +22,8 @@ function withoutRng({ rng: _, ...rest }: Life) {
 }
 
 /**
- * Plays a year as `player`: sets `first` as the timetable, switches to `later` halfway, and
- * takes the first option offered at each event.
+ * Plays a year as `player`: sets `first` as the timetable, switches to `later` halfway and cuts
+ * sleep for booked hours from then on, and takes the first option offered at each event.
  */
 function playYear(
   seed: number,
@@ -32,7 +33,7 @@ function playYear(
 ): Cohort {
   let cohort = setTimetable(startCohort(seed), first);
   while (!isOver(cohort)) {
-    if (cohort.week === WEEKS / 2) cohort = setTimetable(cohort, later);
+    if (cohort.week === WEEKS / 2) cohort = setCutsSleep(setTimetable(cohort, later), true);
     const event = cohort.events[player];
     const option: OptionKey | undefined = event?.options.find((o) => o.shortfall === null)?.key;
     if (option) cohort = choose(cohort, option);
@@ -65,7 +66,7 @@ describe("a shared year", () => {
       2026,
       0,
       ["selfAnalysis", "friends", "rest"],
-      ["interviewPractice", "research"],
+      ["interviewPractice", "research", "friends", "rest"],
     );
 
     expect(isOver(cohort)).toBe(true);
@@ -98,7 +99,7 @@ describe("a shared year", () => {
     expect([...cohort.everBlocked].sort((a, b) => a - b)).toEqual([...seen].sort((a, b) => a - b));
   });
 
-  it("records each timetable and choice with the week it was made", () => {
+  it("records each timetable, choice, and choice to cut sleep with the week it was made", () => {
     const cohort = playYear(3, 0, ["friends"], ["rest"]);
 
     expect(cohort.decisions[0]).toEqual({ week: 0, kind: "timetable", timetable: ["friends"] });
@@ -108,6 +109,7 @@ describe("a shared year", () => {
       timetable: ["rest"],
     });
     expect(cohort.decisions.some((d) => d.kind === "choice")).toBe(true);
+    expect(cohort.decisions).toContainEqual({ week: WEEKS / 2, kind: "cutSleep", cutsSleep: true });
   });
 });
 

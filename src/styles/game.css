@@ -479,6 +479,21 @@ main {
 .time-left {
   color: var(--sub);
 }
+.cut-sleep {
+  display: grid;
+  gap: 6px;
+}
+.cut-sleep-prompt,
+.resting {
+  margin: 0;
+  font-size: 12px;
+  color: var(--sub);
+}
+.cut-sleep-choices {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
 .event,
 .timetable {
   display: grid;
