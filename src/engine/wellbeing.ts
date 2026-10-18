@@ -14,9 +14,9 @@ import {
   WEEKLY_DRIFT,
 } from "./parameters";
 
-// How health, peace of mind, relationships, and research move, and when the year ends.
+// How health, peace of mind, relationships, research, and study move, and when the year ends.
 
-const STATS: readonly Stat[] = ["health", "mind", "social", "research"];
+const STATS: readonly Stat[] = ["health", "mind", "social", "research", "study"];
 const MAX_STAT = 100;
 
 interface PeriodLoad {
@@ -78,12 +78,6 @@ export function shock(life: Life, kind: keyof typeof STAT_SHOCK): void {
 export function nudge(life: Life, change: Readonly<Partial<Record<Stat, number>>>): void {
   if (life.over) return;
   shift(life, change);
-}
-
-/** Directly lowers research, as a term crunch does. */
-export function setBack(life: Life, stat: Stat, amount: number): void {
-  if (life.over) return;
-  shift(life, { [stat]: -amount });
 }
 
 function shift(life: Life, change: Partial<Record<Stat, number>>): void {

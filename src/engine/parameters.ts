@@ -2,7 +2,7 @@
 // that always choosing the middle option lands near the surveyed June 1st offer rate.
 
 /** Bump whenever a change alters results, so shared links from older rules are reported as old. */
-export const RULES_VERSION = 17;
+export const RULES_VERSION = 18;
 
 export const WAGE_YEN_PER_HOUR = 1100;
 export const MONTHLY_EXPENSE_YEN = 130_000;
@@ -52,7 +52,7 @@ export const PASS = {
   finalPerPrep: 0.003,
   onlineFinalFactor: 0.85,
   /** Sized so the metro/regional gap matches the surveyed 関東 vs other-regions offer rates. */
-  regionalFinalFactor: 0.8,
+  regionalFinalFactor: 0.82,
 } as const;
 
 // Chances and sizes below are assumptions unless a source is given.
@@ -65,9 +65,12 @@ export const AUTUMN_EVENT = {
 export const FAMILY_TRIP_YEN = 20_000;
 export const FAMILY_TRIP_HOURS = 15;
 export const LAPTOP_REPAIR_YEN = 50_000;
-export const TERM_CRUNCH_CHANCE = 0.3;
-export const TERM_CRUNCH_HOURS = 20;
-export const TERM_CRUNCH_RESEARCH = 15;
+/** End-of-term reports and exams: hours over two weeks and the change in study. */
+export const TERM_EXAM = {
+  hard: { hours: 20, study: 12 },
+  some: { hours: 10, study: 4 },
+  skip: { study: -15 },
+} as const;
 /**
  * Chance that a company pays a regional self's travel to a final interview. マイナビ 2025年卒
  * 学生就職モニター調査 (6月): 67.9% of students received travel or lodging from companies, from
@@ -77,7 +80,13 @@ export const TRAVEL_REIMBURSED_CHANCE = 0.5;
 export const SENIOR_TALK_CHANCE = { metro: 0.5, regional: 0.25 } as const;
 
 // Wellbeing: each stat runs 0–100 and the year ends when one reaches zero. All assumptions.
-export const STARTING_STATS = { health: 70, mind: 70, social: 60, research: 50 } as const;
+export const STARTING_STATS = {
+  health: 70,
+  mind: 70,
+  social: 60,
+  research: 50,
+  study: 60,
+} as const;
 /**
  * Difficulty shifts every starting stat and scales the weekly drift; the calibration uses normal.
  */
@@ -88,7 +97,13 @@ export const DIFFICULTY = {
 } as const;
 export type Difficulty = keyof typeof DIFFICULTY;
 /** Weekly drift when nothing is done for a stat; research drifts faster in the final year. */
-export const WEEKLY_DRIFT = { health: -0.5, mind: -0.6, social: -0.8, research: -0.4 } as const;
+export const WEEKLY_DRIFT = {
+  health: -0.5,
+  mind: -0.6,
+  social: -0.8,
+  research: -0.4,
+  study: -0.3,
+} as const;
 export const FINAL_YEAR_RESEARCH_DRIFT = -1.2;
 /** Weekly hours of part-time and job hunting together beyond which health wears down. */
 export const HEALTHY_WORKLOAD_WEEKLY_HOURS = 30;

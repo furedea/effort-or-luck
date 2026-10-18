@@ -29,7 +29,7 @@ describe("the status panel", () => {
 });
 
 test("the stat bars flag stats close to zero", () => {
-  const bars = statBars({ health: 24, mind: 25, social: 80, research: 3 });
+  const bars = statBars({ health: 24, mind: 25, social: 80, research: 3, study: 60 });
 
   expect(bars.filter((bar) => bar.low).map((bar) => bar.label)).toEqual(["健康", "研究"]);
 });
@@ -44,7 +44,9 @@ test("hours left over are said to help health and mind, and an exact fit says no
 });
 
 test("selves who ended early are counted by reason", () => {
-  expect(endedCount({ mind: 5, research: 3 })).toBe("途中で終わった人：心が折れた 5 人・留年 3 人");
+  expect(endedCount({ mind: 5, research: 3 })).toBe(
+    "途中で終わった人：心が折れた 5 人・ゼミに居場所がなくなった 3 人",
+  );
   expect(endedCount({})).toBe("途中で終わった人はいない．");
 });
 
@@ -114,4 +116,10 @@ describe("the monthly money flow", () => {
       ],
     });
   });
+});
+
+test("a self who ran out of study repeats the year, and one out of research loses the seminar", () => {
+  expect(endedCount({ study: 2, research: 1 })).toBe(
+    "途中で終わった人：ゼミに居場所がなくなった 1 人・留年 2 人",
+  );
 });

@@ -28,6 +28,7 @@ export const STAT_LABELS = {
   mind: "心の余裕",
   social: "人間関係",
   research: "研究",
+  study: "勉強",
 } as const satisfies Record<Stat, string>;
 
 /** The date of a week, e.g. "5月 第2週" or "翌4月 第1週"; the result comes on "6月1日". */
@@ -61,6 +62,12 @@ export function describeEvent({ facts }: Event): EventText {
         table: introTable(facts),
         next: "始める",
       };
+    case "termExam":
+      return {
+        lines: [
+          facts.term === "first" ? "前期のレポートと試験が来る．" : "後期のレポートと試験が来る．",
+        ],
+      };
     case "longInternCall":
       return { lines: ["長期インターンの募集が来た．通れば，6月から週16時間働ける．"] };
     case "longInternResult":
@@ -93,10 +100,7 @@ export function describeEvent({ facts }: Event): EventText {
       return { lines: ["内定が一つある．就活を続ける？"] };
     case "entries":
       return {
-        lines: [
-          "本選考のエントリーが始まった．ES は一社 2 時間．",
-          ...(facts.busy ? ["ゼミの発表と学年末の課題も重なり，4週間は時間が減る．"] : []),
-        ],
+        lines: ["本選考のエントリーが始まった．ES は一社 2 時間．"],
       };
     case "finals":
       return { lines: finalsLines(facts), ...(facts.finals ? {} : { next: "次へ" }) };
@@ -169,6 +173,7 @@ const STAT_SHORT = {
   mind: "心",
   social: "人間関係",
   research: "研究",
+  study: "勉強",
 } as const satisfies Record<Stat, string>;
 
 const BOOST_SHORT = {
@@ -222,8 +227,6 @@ export function describeLog(fact: LogFact): string {
       return "12月，早期選考で内定";
     case "seniorTalk":
       return "1月，先輩に話を聞いた";
-    case "termCrunch":
-      return "3月，ゼミの発表と学年末の課題が重なった";
     case "missed":
       return `お金か時間が足りず「${OPTION_LABELS[fact.option]}」ができなかった`;
     case "over":
@@ -321,14 +324,16 @@ const ENDINGS = {
   health: "体を壊して入院した．就活どころではなくなった．",
   mind: "心が折れて，就活を続けられなくなった．",
   social: "誰とも話さない日が続き，大学に行けなくなった．",
-  research: "研究が進まず，留年が決まった．",
+  research: "研究が進まず，ゼミに居場所がなくなった．",
+  study: "単位が足りず，留年が決まった．",
 } as const satisfies Record<Stat, string>;
 
 const ENDING_LOG = {
   health: "体を壊して，就活を続けられなくなった",
   mind: "心が折れて，就活を続けられなくなった",
   social: "大学に行けなくなった",
-  research: "留年が決まった",
+  research: "ゼミに居場所がなくなった",
+  study: "単位が足りず，留年が決まった",
 } as const satisfies Record<Stat, string>;
 
 const BOOST_LABELS = {
@@ -345,7 +350,6 @@ const SMALL_EVENT_LINES = {
   extraShift: "バイト先から，シフトを増やしてほしいと頼まれた．",
   obChance: "OB に話を聞ける機会がある．",
   yearEnd: "年末，実家に帰る？",
-  midterm: "学年末のレポートと試験が近い．",
   studyGroup: "就活仲間に，面接の練習会に誘われた．",
 } as const satisfies Record<SmallEventId, string>;
 
@@ -382,12 +386,13 @@ const OPTION_LABELS = {
   obSkip: "行かない",
   homeGo: "帰る",
   homeStay: "帰らない",
-  midtermPrep: "しっかり準備する",
-  midtermMinimal: "最低限で済ませる",
   studyJoin: "参加する",
   studySkip: "参加しない",
   applyIntern: "応募する",
   skipInternCall: "見送る",
+  examHard: "しっかり準備する",
+  examSome: "そこそこ準備する",
+  examSkip: "捨てる",
 } as const satisfies Record<OptionKey, string>;
 
 const ROUTINES = {
@@ -403,6 +408,7 @@ const ROUTINES = {
   rest: { tile: "ゆっくり休む", label: "ゆっくり休む" },
   extraWork: { tile: "バイト", label: "バイト" },
   moreWork: { tile: "バイト（多め）", label: "バイト（多め）" },
+  coursework: { tile: "授業の予習・復習", label: "授業の予習・復習" },
   summerEsPrep: { tile: "夏インターンのES対策", label: "夏インターンの ES 対策" },
   earlyPrep: { tile: "早期選考の対策", label: "早期選考の対策" },
   entryPrep: { tile: "本選考のES準備", label: "本選考の ES 準備" },

@@ -1,4 +1,4 @@
-import { EVENT_WEEKS, WEEKS } from "./calendar";
+import { dateOf, EVENT_WEEKS, WEEKS } from "./calendar";
 import { applicationQuality, eventAt, pickOption, resolve, type Event } from "./events";
 import type { EventFacts, EventId, Stat } from "./facts";
 import { makeLife, tripYen, weekBudget, type Life } from "./life";
@@ -8,7 +8,6 @@ import {
   LAPTOP_REPAIR_YEN,
   SENIOR_TALK_CHANCE,
   SICK_HOURS,
-  TERM_CRUNCH_HOURS,
 } from "./parameters";
 import { SMALL_EVENTS } from "./small_events";
 import { liveWeek } from "./week";
@@ -83,13 +82,30 @@ describe("autumn events", () => {
   });
 });
 
-test("the March term crunch takes hours for four weeks from some selves", () => {
-  const entries = momentsAt("entries", middlePolicy, 3000);
-  const busy = entries.filter((m) => factsOf(m, "entries").busy);
+describe("reports and exams at the end of each term", () => {
+  const terms = [EVENT_WEEKS.firstTermExam, EVENT_WEEKS.secondTermExam];
 
-  expect(busy.length).toBeGreaterThan(0);
-  expect(entries.length - busy.length).toBeGreaterThan(0);
-  for (const m of busy) expect([m.lostWeeklyAt, m.lostWeeksAt]).toEqual([TERM_CRUNCH_HOURS / 4, 4]);
+  it("come in late July and late January", () => {
+    expect(terms.map((week) => dateOf(week))).toEqual([
+      { month: 7, weekOfMonth: 4, following: false },
+      { month: 1, weekOfMonth: 4, following: false },
+    ]);
+  });
+
+  it("let a self prepare well, somewhat, or give up, moving study accordingly", () => {
+    const study = (key: string) => {
+      const life = makeLife(1);
+      const event = eventAt(life, EVENT_WEEKS.firstTermExam)!;
+      const option = event.options.find((o) => o.key === key)!;
+      const before = life.stats.study;
+      resolve(life, event, option, option.key);
+      return life.stats.study - before;
+    };
+
+    expect(study("examHard")).toBeGreaterThan(study("examSome"));
+    expect(study("examSome")).toBeGreaterThan(0);
+    expect(study("examSkip")).toBeLessThan(0);
+  });
 });
 
 test("companies paying travel lower a regional self's in-person finals cost", () => {

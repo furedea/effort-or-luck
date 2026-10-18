@@ -84,14 +84,6 @@ export const SMALL_EVENTS: readonly SmallEvent[] = [
     ],
   },
   {
-    id: "midterm",
-    week: weekOfMonthStart(9) + 4,
-    options: () => [
-      { key: "midtermPrep", hours: 12, weeks: 2, stats: { research: 10 } },
-      { key: "midtermMinimal" },
-    ],
-  },
-  {
     id: "studyGroup",
     week: weekOfMonthStart(10) + 2,
     options: () => [
