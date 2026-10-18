@@ -1,7 +1,6 @@
 import { JUNE_OFFER_RATE, JUNE_OFFER_RATE_BY_REGION } from "../data/statistics";
 import type { LogFact, Stat } from "../engine/facts";
 import {
-  DIFFICULTY,
   HEALTH_PER_SLEEP_HOUR,
   METRO_SHARE,
   MONTHLY_EXPENSE_YEN,
@@ -31,18 +30,19 @@ export const SOURCES_TITLE = "数字の出典と仮定";
 export const BACK_TO_GAME = "ゲームに戻る";
 export const PLAY_AGAIN = "もう一度";
 export const DIFFICULTY_TITLE = "難しさを選ぶ";
+export const TITLE_LEAD = ["就活の1年を過ごす．", "内定を決めるのは，努力か，運か．"] as const;
 export const DIFFICULTY_LABELS = {
   easy: "やさしい",
   normal: "ふつう",
   hard: "きびしい",
 } as const satisfies Record<Difficulty, string>;
 
-/** What a difficulty changes, e.g. "健康などの初期値 +15・毎週の減り方 ×0.7". */
-export function difficultyDetail(difficulty: Difficulty): string {
-  const { statShift, driftFactor } = DIFFICULTY[difficulty];
-  const shift = statShift > 0 ? `+${statShift}` : statShift < 0 ? `−${-statShift}` : "そのまま";
-  return `健康などの初期値 ${shift}・毎週の減り方 ×${driftFactor}`;
-}
+/** What a difficulty changes, in plain words; normal needs none. */
+export const DIFFICULTY_NOTES = {
+  easy: "体も心も丈夫",
+  normal: null,
+  hard: "すぐに疲れて倒れやすい",
+} as const satisfies Record<Difficulty, string | null>;
 export const SHARE = "結果を共有する";
 export const COPIED = "リンクをコピーした";
 export const PLAY_YOURSELF = "自分も遊ぶ";

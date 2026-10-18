@@ -75,7 +75,6 @@ export function GameScreen() {
   if (!game) {
     return (
       <main>
-        <h1 className="title">{TITLE}</h1>
         <DifficultyPicker onPick={(difficulty) => setGame(newGame(difficulty))} />
       </main>
     );

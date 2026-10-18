@@ -66,14 +66,25 @@ function keepFlowing(host: HTMLElement) {
   passMs(300);
 }
 
+test("opens on a title screen that explains the game above the difficulty choice", () => {
+  const host = mountRaw();
+
+  expect(host.querySelector(".title-screen h1")?.textContent).toBe("努力か，運か");
+  expect(host.querySelector(".title-screen .lead")?.textContent).toBe(
+    "就活の1年を過ごす．内定を決めるのは，努力か，運か．",
+  );
+  expect(host.querySelector(".title-screen .difficulty")).not.toBeNull();
+});
+
 test("asks for a difficulty before the year starts", () => {
   const host = mountRaw();
 
   const labels = [...host.querySelectorAll(".difficulty .opt .label")].map((n) => n.textContent);
   expect(labels).toEqual(["やさしい", "ふつう", "きびしい"]);
-  expect(host.querySelector(".difficulty .opt .cost")?.textContent).toBe(
-    "健康などの初期値 +15・毎週の減り方 ×0.7",
+  const notes = [...host.querySelectorAll(".difficulty .opt")].map(
+    (n) => n.querySelector(".cost")?.textContent ?? null,
   );
+  expect(notes).toEqual(["体も心も丈夫", null, "すぐに疲れて倒れやすい"]);
 });
 
 test("starts the stats from the chosen difficulty", () => {
