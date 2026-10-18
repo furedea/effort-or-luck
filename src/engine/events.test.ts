@@ -1,5 +1,5 @@
 import { EVENT_WEEKS, WEEKS } from "./calendar";
-import { eventAt, pickOption, resolve, type Event } from "./events";
+import { applicationQuality, eventAt, pickOption, resolve, type Event } from "./events";
 import type { EventFacts, EventId, Stat } from "./facts";
 import { makeLife, tripYen, weekBudget, type Life } from "./life";
 import {
@@ -250,4 +250,11 @@ describe("the long internship", () => {
       passed: life.longInternAccepted,
     });
   });
+});
+
+test("applications beyond the focused count each lose some of their chance", () => {
+  expect(applicationQuality(8, 8)).toBe(1);
+  expect(applicationQuality(3, 8)).toBe(1);
+  expect(applicationQuality(20, 8)).toBeLessThan(1);
+  expect(applicationQuality(20, 8)).toBeGreaterThan(applicationQuality(40, 8));
 });

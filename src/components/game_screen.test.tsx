@@ -99,7 +99,19 @@ test("asks for a difficulty before the year starts", () => {
   const notes = [...host.querySelectorAll(".difficulty .opt")].map(
     (n) => n.querySelector(".cost")?.textContent ?? null,
   );
-  expect(notes).toEqual(["体も心も丈夫", null, "すぐに疲れて倒れやすい"]);
+  expect(notes).toEqual([
+    "首都圏・仕送り多め・体も心も丈夫",
+    "境遇は運しだい",
+    "地方・仕送り少なめ・疲れやすい",
+  ]);
+});
+
+test("hard places the player in a regional home on little allowance", () => {
+  const host = mountRaw();
+
+  chooseDifficulty(host, "きびしい");
+
+  expect(host.querySelector(".event .lines")?.textContent).toContain("地方で一人暮らし");
 });
 
 test("starts the stats from the chosen difficulty", () => {

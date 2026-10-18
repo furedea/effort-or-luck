@@ -15,7 +15,7 @@ import {
 import { WEEKS } from "../engine/calendar";
 import {
   choose,
-  COHORT_SIZE,
+  pickPlayer,
   isOver,
   replayYear,
   setTimetable,
@@ -134,7 +134,7 @@ export function GameScreen() {
 function newGame(difficulty: Difficulty): Game {
   const seed = randomSeed();
   const cohort = startCohort(seed, difficulty);
-  const player = Math.floor(Math.random() * COHORT_SIZE);
+  const player = pickPlayer(cohort, difficulty, Math.random());
   return {
     seed,
     cohort,

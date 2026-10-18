@@ -2,7 +2,7 @@
 // that always choosing the middle option lands near the surveyed June 1st offer rate.
 
 /** Bump whenever a change alters results, so shared links from older rules are reported as old. */
-export const RULES_VERSION = 15;
+export const RULES_VERSION = 16;
 
 export const WAGE_YEN_PER_HOUR = 1100;
 export const MONTHLY_EXPENSE_YEN = 130_000;
@@ -30,6 +30,11 @@ export const SHOP_CLOSED_LOSS_YEN = 30_000;
 export const SICK_HOURS = 25;
 
 export const MAX_PASS_PROBABILITY = 0.9;
+/**
+ * Applying to more companies than the middle way spreads preparation thin: beyond the focused
+ * count, each application's pass chance shrinks by (focused / count) ^ exponent.
+ */
+export const APPLICATION_FOCUS = { internEs: 2, entries: 8, exponent: 0.45 } as const;
 export const PASS = {
   internEs: 0.3,
   /** The long internship's written selection. */
