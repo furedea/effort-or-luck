@@ -175,11 +175,6 @@ export function restingTile(weeks: number): string {
   return `休み・あと${weeks}週`;
 }
 
-/** Savings after an option that costs or pays money. */
-export function savingsAfterLine(money: number): string {
-  return `貯金 ${yen(Math.max(0, money))}`;
-}
-
 /** What the week's slack does: hours over cost health and mind, hours left over help them. */
 export function slackLine(shortHours: number, spareHours: number): string | null {
   if (shortHours > 0) return "睡眠を削るので，健康・心↓";

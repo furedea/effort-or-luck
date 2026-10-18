@@ -567,8 +567,7 @@ main {
 .room-block.over .room-head {
   color: var(--warn);
 }
-.room-sub,
-.room-savings {
+.room-sub {
   font-size: 12px;
   color: var(--sub);
 }

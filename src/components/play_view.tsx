@@ -38,7 +38,6 @@ import {
   restPickTitle,
   restStatusLine,
   type PauseReason,
-  savingsAfterLine,
   SECTION,
   SPEED_LABELS,
   statBars,
@@ -358,16 +357,7 @@ function EventPanel({
               <span className="cost">
                 {option.shortfall ? shortfallReason(option.shortfall) : optionCost(option)}
               </span>
-              {option.shortfall ? null : (
-                <OptionRoom
-                  room={roomOf(option)}
-                  savings={
-                    option.money || option.pay
-                      ? savingsAfterLine(life.money - option.money + (option.pay ?? 0))
-                      : null
-                  }
-                />
-              )}
+              {option.shortfall ? null : <OptionRoom room={roomOf(option)} />}
             </button>
           ))
         ) : (
@@ -621,19 +611,12 @@ function HourBar({
   );
 }
 
-/** The hours an option leaves this week, large beside it, with savings when money moves. */
-function OptionRoom({
-  room,
-  savings,
-}: {
-  room: ReturnType<typeof optionRoom>;
-  savings: string | null;
-}) {
+/** What an option does to the week, beside it; savings show in the status above. */
+function OptionRoom({ room }: { room: ReturnType<typeof optionRoom> }) {
   return (
     <span className={room.over ? "room-block over" : "room-block"}>
       <span className="room-head">{room.head}</span>
       {room.sub ? <span className="room-sub">{room.sub}</span> : null}
-      {savings ? <span className="room-savings">{savings}</span> : null}
     </span>
   );
 }
