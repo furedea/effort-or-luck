@@ -95,7 +95,7 @@ export function describeEvent({ facts }: Event): EventText {
       return {
         lines: [
           "本選考のエントリーが始まった．ES は一社 2 時間．",
-          ...(facts.busy ? ["ゼミの発表と卒論の締切も重なり，4週間は時間が減る．"] : []),
+          ...(facts.busy ? ["ゼミの発表と学年末の課題も重なり，4週間は時間が減る．"] : []),
         ],
       };
     case "finals":
@@ -222,8 +222,8 @@ export function describeLog(fact: LogFact): string {
       return "12月，早期選考で内定";
     case "seniorTalk":
       return "1月，先輩に話を聞いた";
-    case "thesisCrunch":
-      return "3月，卒論の締切が重なった";
+    case "termCrunch":
+      return "3月，ゼミの発表と学年末の課題が重なった";
     case "missed":
       return `お金か時間が足りず「${OPTION_LABELS[fact.option]}」ができなかった`;
     case "over":
@@ -345,7 +345,7 @@ const SMALL_EVENT_LINES = {
   extraShift: "バイト先から，シフトを増やしてほしいと頼まれた．",
   obChance: "OB に話を聞ける機会がある．",
   yearEnd: "年末，実家に帰る？",
-  midterm: "卒論の中間発表が近い．",
+  midterm: "学年末のレポートと試験が近い．",
   studyGroup: "就活仲間に，面接の練習会に誘われた．",
 } as const satisfies Record<SmallEventId, string>;
 

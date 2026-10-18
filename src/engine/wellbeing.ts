@@ -3,7 +3,7 @@ import type { Life } from "./life";
 import {
   BROKE_BELOW_YEN,
   DIFFICULTY,
-  FOURTH_YEAR_RESEARCH_DRIFT,
+  FINAL_YEAR_RESEARCH_DRIFT,
   HEALTH_PER_OVERLOAD_HOUR,
   HEALTHY_WORKLOAD_WEEKLY_HOURS,
   MIND_PER_JOB_HOUR,
@@ -21,7 +21,7 @@ const MAX_STAT = 100;
 
 interface PeriodLoad {
   readonly weeks: number;
-  readonly fourthYear: boolean;
+  readonly finalYear: boolean;
   readonly taken: readonly { readonly statsPerWeek?: Readonly<Partial<Record<Stat, number>>> }[];
   readonly jobHours: number;
   readonly extraWorkHours: number;
@@ -34,9 +34,9 @@ interface PeriodLoad {
 /** Moves every stat for a period of living, then ends the year if one reached zero. */
 export function liveThroughPeriod(life: Life, load: PeriodLoad): void {
   if (life.over) return;
-  const { weeks, fourthYear, taken, jobHours, extraWorkHours, shortHours, spareHours } = load;
+  const { weeks, finalYear, taken, jobHours, extraWorkHours, shortHours, spareHours } = load;
   const change: Record<Stat, number> = { ...WEEKLY_DRIFT };
-  if (fourthYear) change.research = FOURTH_YEAR_RESEARCH_DRIFT;
+  if (finalYear) change.research = FINAL_YEAR_RESEARCH_DRIFT;
   const { driftFactor } = DIFFICULTY[life.difficulty];
   for (const stat of STATS) change[stat] *= weeks * driftFactor;
   for (const activity of taken) {
@@ -80,7 +80,7 @@ export function nudge(life: Life, change: Readonly<Partial<Record<Stat, number>>
   shift(life, change);
 }
 
-/** Directly lowers research, as a thesis crunch does. */
+/** Directly lowers research, as a term crunch does. */
 export function setBack(life: Life, stat: Stat, amount: number): void {
   if (life.over) return;
   shift(life, { [stat]: -amount });

@@ -156,7 +156,7 @@ export type LogFact =
   | { readonly kind: "laptopBroken" }
   | { readonly kind: "earlyOffer" }
   | { readonly kind: "seniorTalk" }
-  | { readonly kind: "thesisCrunch" }
+  | { readonly kind: "termCrunch" }
   | { readonly kind: "missed"; readonly event: EventId; readonly option: OptionKey }
   | { readonly kind: "over"; readonly stat: Stat }
   | { readonly kind: "june"; readonly offers: number };

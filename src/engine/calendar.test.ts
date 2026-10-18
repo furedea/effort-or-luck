@@ -1,4 +1,4 @@
-import { dateOf, WEEKS, weekOfMonthStart } from "./calendar";
+import { dateOf, FINAL_STRETCH_FROM, WEEKS, weekOfMonthStart } from "./calendar";
 
 describe("the calendar", () => {
   it("starts in the first week of April", () => {
@@ -17,4 +17,8 @@ describe("the calendar", () => {
       expect(now.weekOfMonth).toBe(now.month === before.month ? before.weekOfMonth + 1 : 1);
     }
   });
+});
+
+test("the final year, with its heavier research, starts the following April", () => {
+  expect(dateOf(FINAL_STRETCH_FROM)).toEqual({ month: 4, weekOfMonth: 1, following: true });
 });
