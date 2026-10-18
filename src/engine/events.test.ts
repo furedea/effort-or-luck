@@ -183,7 +183,7 @@ describe("choosing at an event", () => {
     );
 
     expect(life.log).toContainEqual({ kind: "missed", event: "internEs", option: "esFive" });
-    expect(life.oneOff).toEqual({ hours: 6, weeks: 3 });
+    expect(life.oneOff).toEqual({ hours: 6, weeks: 3, timetable: null });
   });
 });
 
@@ -223,7 +223,7 @@ describe("small choices", () => {
     }
     expect(life.money).toBe(before.money - option.money);
     expect(life.prep).toBeCloseTo(before.prep + (option.prep ?? 0));
-    expect(life.oneOff).toEqual({ hours: option.hours, weeks: option.weeks });
+    expect(life.oneOff).toEqual({ hours: option.hours, weeks: option.weeks, timetable: null });
   });
 });
 

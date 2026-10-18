@@ -6,10 +6,20 @@ import { autoLive, followDecisions, middlePolicy, mostPolicy, type Decision } fr
 const decisions: Decision[] = [
   { week: 0, kind: "timetable", timetable: ["friends"] },
   { week: 9, kind: "choice", option: "esFive" },
+  { week: 9, kind: "booking", timetable: ["sns"] },
+  { week: 10, kind: "booking", timetable: ["sns", "rest"] },
   { week: 20, kind: "timetable", timetable: ["rest", "research"] },
 ];
 
 describe("following recorded decisions", () => {
+  it("gives the timetable set for a booking at the week it was set, and none otherwise", () => {
+    const policy = followDecisions(decisions);
+
+    expect(policy.bookingTimetable?.(9)).toEqual(["sns"]);
+    expect(policy.bookingTimetable?.(10)).toEqual(["sns", "rest"]);
+    expect(policy.bookingTimetable?.(11)).toBeNull();
+  });
+
   it("uses the latest timetable set by each week", () => {
     const policy = followDecisions(decisions);
     const life = makeLife(1);

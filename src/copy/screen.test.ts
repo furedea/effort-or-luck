@@ -3,6 +3,8 @@ import {
   endedCount,
   optionRoom,
   pauseLines,
+  bookingTitle,
+  restStatusLine,
   lostHoursLine,
   monthlyBreakdown,
   slackLine,
@@ -60,23 +62,40 @@ test("a falling stat is warned about with its value", () => {
   expect(warningLine("health", 18.4)).toBe("健康が 18 まで下がった．このままだと危ない．");
 });
 
-describe("the room an option leaves in the week", () => {
-  it("gives the hours left", () => {
-    expect(optionRoom(1)).toEqual({
+describe("what an option leaves of the week", () => {
+  it("gives the hours left when it fits", () => {
+    expect(optionRoom({ spare: 3, short: 0, need: 0 })).toEqual({
       over: false,
-      caption: "今週の残り",
-      hours: "1時間",
-      cost: null,
+      head: "あと3時間",
+      sub: null,
     });
   });
 
-  it("marks hours over the week", () => {
-    expect(optionRoom(-4.5)).toEqual({
+  it("gives the hours short and leads on to a timetable for the booking when it does not fit", () => {
+    expect(optionRoom({ spare: 0, short: 7, need: 7 })).toEqual({
       over: true,
-      caption: "今週オーバー",
-      hours: "4.5時間",
-      cost: "睡眠を削る・健康↓・心↓",
+      head: "週7時間たりない",
+      sub: "予定の間の時間割を組む ›",
     });
+  });
+
+  it("gives the sleep a timetable already over cuts, when the option adds nothing", () => {
+    expect(optionRoom({ spare: 0, short: 4.5, need: 0 })).toEqual({
+      over: true,
+      head: "睡眠を削る 4.5時間",
+      sub: "健康↓・心↓",
+    });
+  });
+});
+
+describe("the timetable followed while a booking lasts", () => {
+  it("is titled with the weeks left", () => {
+    expect(bookingTitle(3)).toBe("予定の間の時間割（あと3週）");
+  });
+
+  it("says whether the week fits or what sleep the hours over cost", () => {
+    expect(restStatusLine(0)).toBe("時間内に収まる");
+    expect(restStatusLine(2.5)).toBe("2.5時間オーバー：睡眠を削る・健康↓・心↓");
   });
 });
 
@@ -85,20 +104,6 @@ describe("why auto play paused", () => {
     expect(pauseLines({ kind: "limited", tile: "夏インターンのES対策", weeks: 4 })).toEqual([
       "夏インターンのES対策が出た．",
       "入れるなら今（あと4週）",
-    ]);
-  });
-
-  it("gives the hours over and what to do", () => {
-    expect(pauseLines({ kind: "over", hours: 4 })).toEqual([
-      "今週の予定が4時間オーバーした．",
-      "活動を外すか，睡眠を削って進む",
-    ]);
-  });
-
-  it("says how many hours an event's end frees", () => {
-    expect(pauseLines({ kind: "bookingEnded", hours: 15 })).toEqual([
-      "予定が終わり，週15時間あいた．",
-      "活動を入れ直せる",
     ]);
   });
 });

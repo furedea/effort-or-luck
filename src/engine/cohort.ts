@@ -7,7 +7,15 @@ import type { OptionKey, RoutineKey } from "./facts";
 import { makeLife, type Life } from "./life";
 import { ALLOWANCE_DISTRIBUTION, type Difficulty } from "./parameters";
 import { liveWeek, type WeekOutcome } from "./week";
-import { autoLive, leastPolicy, meet, mostPolicy, type Choice, type Decision } from "./year";
+import {
+  autoLive,
+  leastPolicy,
+  meet,
+  mostPolicy,
+  setBooking,
+  type Choice,
+  type Decision,
+} from "./year";
 
 export const COHORT_SIZE = 100;
 const SEED_STRIDE = 7919;
@@ -92,6 +100,15 @@ export function setTimetable(cohort: Cohort, timetable: readonly RoutineKey[]): 
     ...cohort,
     timetable,
     decisions: [...cohort.decisions, { week: cohort.week, kind: "timetable", timetable }],
+  };
+}
+
+/** Sets the timetable everyone with a booking follows instead of the usual one while it lasts. */
+export function setBookingTimetable(cohort: Cohort, timetable: readonly RoutineKey[]): Cohort {
+  for (const life of cohort.lives) setBooking(life, timetable);
+  return {
+    ...cohort,
+    decisions: [...cohort.decisions, { week: cohort.week, kind: "booking", timetable }],
   };
 }
 
