@@ -570,11 +570,33 @@ main {
 .week-summary .time-bar {
   padding-bottom: 0;
 }
-.chosen-list {
-  margin: 0;
+/* Chosen tiles as small chips that wrap; tapping one takes it out of the timetable. */
+.chosen-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.chip {
+  padding: 2px 8px;
+  font: inherit;
   font-size: 12px;
   line-height: 1.6;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.chip span {
   color: var(--sub);
+}
+.chip:hover,
+.chip:focus-visible {
+  border-color: var(--shu);
+  outline: none;
 }
 .activity-section {
   margin: 6px 0 0;

@@ -16,7 +16,8 @@ import {
   barLegendItem,
   budgetLine,
   CANNOT_PAY,
-  chosenLine,
+  CHOSEN_LABEL,
+  removeLabel,
   CARD_TITLES,
   CLEAR_ALL,
   LIMITED_TITLE,
@@ -325,7 +326,20 @@ function Timetable({
       <div className="week-summary">
         <WeekBar budget={preview.budget} preview={preview} oneOffHours={oneOffHours} />
         {timetable.length ? (
-          <p className="chosen-list">{chosenLine(timetable.map((key) => routineTileLabel(key)))}</p>
+          <ul className="chosen-chips" aria-label={CHOSEN_LABEL}>
+            {timetable.map((key) => (
+              <li key={key}>
+                <button
+                  type="button"
+                  className="chip"
+                  aria-label={removeLabel(routineTileLabel(key))}
+                  onClick={() => onChange(timetable.filter((k) => k !== key))}
+                >
+                  {routineTileLabel(key)} <span aria-hidden="true">×</span>
+                </button>
+              </li>
+            ))}
+          </ul>
         ) : null}
       </div>
       <div className="tabs" role="tablist">

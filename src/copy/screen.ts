@@ -75,9 +75,11 @@ export const TIMETABLE_TITLE = "毎週の過ごし方";
 export const CARD_TITLES = { event: "出来事" } as const;
 export const CLEAR_ALL = "全部外す";
 
-/** The tiles in the timetable, e.g. "選んだ札：説明会・友達と遊ぶ". */
-export function chosenLine(tiles: readonly string[]): string {
-  return `選んだ札：${tiles.join("・")}`;
+export const CHOSEN_LABEL = "選んだ札";
+
+/** What a chip of a chosen tile does, for screen readers, e.g. "説明会を外す". */
+export function removeLabel(tile: string): string {
+  return `${tile}を外す`;
 }
 export const TIMETABLE_RESTORED = "予定が終わったので，時間割を元に戻した";
 export const LIMITED_TITLE = "★ 今だけ";

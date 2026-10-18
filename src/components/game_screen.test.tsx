@@ -500,12 +500,21 @@ describe("the weekly timetable", () => {
     }
   });
 
-  it("lists the chosen tiles under the bar, from every group", () => {
+  it("lists the chosen tiles under the bar as small chips that remove them", () => {
     const host = firstWeek();
     click(tile(host, "説明会"));
     click(tile(host, "友達と遊ぶ"));
+    const chips = () =>
+      [...host.querySelectorAll<HTMLButtonElement>(".chosen-chips .chip")].map(
+        (c) => c.textContent,
+      );
 
-    expect(host.querySelector(".chosen-list")?.textContent).toBe("選んだ札：説明会・友達と遊ぶ");
+    expect(chips()).toEqual(["説明会 ×", "友達と遊ぶ ×"]);
+
+    click(host.querySelector<HTMLButtonElement>(".chosen-chips .chip")!);
+
+    expect(chips()).toEqual(["友達と遊ぶ ×"]);
+    expect(tile(host, "説明会").getAttribute("aria-pressed")).toBe("false");
   });
 
   it("gives the price of tiles that cost or pay money", () => {
