@@ -160,11 +160,11 @@ describe("choosing whom the player lives as", () => {
     }
   });
 
-  it("is a regional self on little or no allowance when hard", () => {
+  it("is a regional self on no allowance when hard", () => {
     for (const draw of [0, 0.5, 0.99]) {
       const life = cohort.lives[pickPlayer(cohort, "hard", draw)]!;
       expect(life.metro).toBe(false);
-      expect(life.allowance).toBeLessThanOrEqual(30_000);
+      expect(life.allowance).toBe(0);
     }
   });
 

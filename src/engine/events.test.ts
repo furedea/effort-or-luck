@@ -1,8 +1,16 @@
-import { dateOf, EVENT_WEEKS, WEEKS } from "./calendar";
-import { applicationQuality, eventAt, pickOption, resolve, type Event } from "./events";
+import { dateOf, EVENT_WEEKS, WEEKS, weekOfMonthStart } from "./calendar";
+import {
+  academicFactor,
+  applicationQuality,
+  eventAt,
+  pickOption,
+  resolve,
+  type Event,
+} from "./events";
 import type { EventFacts, EventId, Stat } from "./facts";
 import { makeLife, tripYen, weekBudget, type Life } from "./life";
 import {
+  ACADEMIC,
   FAMILY_TRIP_HOURS,
   FAMILY_TRIP_YEN,
   LAPTOP_REPAIR_YEN,
@@ -272,4 +280,40 @@ test("applications beyond the focused count each lose some of their chance", () 
   expect(applicationQuality(3, 8)).toBe(1);
   expect(applicationQuality(20, 8)).toBeLessThan(1);
   expect(applicationQuality(20, 8)).toBeGreaterThan(applicationQuality(40, 8));
+});
+
+describe("the year's luck by difficulty", () => {
+  const autumnOf = (difficulty: "easy" | "hard") =>
+    Array.from({ length: 300 }, (_, i) => {
+      const life = makeLife(1 + i, difficulty);
+      const event = eventAt(life, weekOfMonthStart(6));
+      return event?.facts.id === "autumn" ? event.facts.event.kind : null;
+    });
+  const seniorOf = (difficulty: "easy" | "hard") =>
+    Array.from(
+      { length: 300 },
+      (_, i) => eventAt(makeLife(1 + i, difficulty), weekOfMonthStart(9) + 1)?.facts.id ?? null,
+    );
+
+  it("spares an easy year any October misfortune, and always offers a senior's talk", () => {
+    expect(new Set(autumnOf("easy"))).toEqual(new Set(["calm"]));
+    expect(new Set(seniorOf("easy"))).toEqual(new Set(["seniorTalk"]));
+  });
+
+  it("always brings a hard year an October misfortune, and never a senior's talk", () => {
+    expect(autumnOf("hard")).not.toContain("calm");
+    expect(new Set(autumnOf("hard")).size).toBeGreaterThan(2);
+    expect(new Set(seniorOf("hard"))).toEqual(new Set([null]));
+  });
+});
+
+test("interviews go better for a self with something to talk about from research and study", () => {
+  const life = makeLife(1);
+  life.stats.research = 100;
+  life.stats.study = 100;
+  expect(academicFactor(life)).toBe(1);
+
+  life.stats.research = 0;
+  life.stats.study = 0;
+  expect(academicFactor(life)).toBeCloseTo(ACADEMIC.floor);
 });

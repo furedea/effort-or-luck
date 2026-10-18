@@ -54,7 +54,7 @@ export function startCohort(baseSeed: number, difficulty: Difficulty = "normal")
 
 /**
  * The self the player lives as. Difficulty picks the circumstances: easy is a metro self on the
- * largest allowance, hard a regional self on little or none, normal anyone. When no self fits,
+ * largest allowance, hard a regional self on none, normal anyone. When no self fits,
  * the nearest ones are taken. `draw` is a random number in [0, 1).
  */
 export function pickPlayer(cohort: Cohort, difficulty: Difficulty, draw: number): number {
@@ -64,11 +64,9 @@ export function pickPlayer(cohort: Cohort, difficulty: Difficulty, draw: number)
   return pool[Math.floor(draw * pool.length)] ?? 0;
 }
 
-const HARD_ALLOWANCE_LIMIT_YEN = 30_000;
-
 function fitsDifficulty(life: Life, difficulty: Difficulty): boolean {
   if (difficulty === "easy") return life.metro && life.allowance === maxAllowance();
-  if (difficulty === "hard") return !life.metro && life.allowance <= HARD_ALLOWANCE_LIMIT_YEN;
+  if (difficulty === "hard") return !life.metro && life.allowance === 0;
   return true;
 }
 

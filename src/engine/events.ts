@@ -4,6 +4,7 @@ import { EVENT_WEEKS, weekOfMonthStart, WEEKS } from "./calendar";
 import type { AutumnEvent, Effort, EventFacts, OptionKey, Shortfall, Stat } from "./facts";
 import { isActive, loseHours, neededWorkHours, tripYen, monthlyIncomeYen, type Life } from "./life";
 import {
+  ACADEMIC,
   ALLOWANCE_CUT_YEN,
   APPLICATION_FOCUS,
   AUTUMN_EVENT,
@@ -18,6 +19,7 @@ import {
   SICK_HOURS,
   TERM_EXAM,
   TRAVEL_REIMBURSED_CHANCE,
+  YEAR_LUCK,
   WEEKLY_HOURS,
 } from "./parameters";
 import { countSuccesses } from "./random";
@@ -318,7 +320,12 @@ function autumn(life: Life) {
 }
 
 function drawAutumnEvent(life: Life): AutumnEvent {
-  const roll = life.rng();
+  // Difficulty sets how likely any misfortune is; which one it is keeps its usual odds.
+  const anyMisfortune = Object.values(AUTUMN_EVENT).reduce((sum, chance) => sum + chance, 0);
+  const share = YEAR_LUCK[life.difficulty]?.misfortune ?? anyMisfortune;
+  const drawn = life.rng();
+  if (drawn >= share) return { kind: "calm" };
+  const roll = (drawn / share) * anyMisfortune;
   let threshold = AUTUMN_EVENT.allowanceCut;
   if (roll < threshold) {
     if (life.allowance > 0) {
@@ -391,7 +398,9 @@ function earlySelection(life: Life) {
 
 function seniorTalk(life: Life) {
   if (!isActive(life)) return null;
-  const chance = life.metro ? SENIOR_TALK_CHANCE.metro : SENIOR_TALK_CHANCE.regional;
+  const chance =
+    YEAR_LUCK[life.difficulty]?.seniorTalk ??
+    (life.metro ? SENIOR_TALK_CHANCE.metro : SENIOR_TALK_CHANCE.regional);
   if (life.rng() >= chance) return null;
   return {
     facts: { id: "seniorTalk" } as const,
@@ -450,6 +459,7 @@ function finals(life: Life) {
     life.rng,
     firstRound,
     passChance(PASS.toFinal, PASS.toFinalPerPrep, life) *
+      academicFactor(life) *
       applicationQuality(life.entries, APPLICATION_FOCUS.entries),
   );
   const reimbursed =
@@ -494,6 +504,7 @@ function june(life: Life) {
   if (life.over) return { facts: { id: "over", stat: life.over } as const, options: [] };
   const chance =
     passChance(PASS.final + life.boosts.final, PASS.finalPerPrep, life) *
+    academicFactor(life) *
     (life.metro ? 1 : PASS.regionalFinalFactor);
   const won =
     countSuccesses(life.rng, life.finals.face, chance) +
@@ -509,6 +520,12 @@ function june(life: Life) {
     scholarshipTotal: life.scholarship * SCHOLARSHIP_MONTHS,
   };
   return { facts, options: [] };
+}
+
+/** How much interviews credit what the self has to talk about from research and study. */
+export function academicFactor(life: Life): number {
+  const worked = (life.stats.research + life.stats.study) / 2;
+  return ACADEMIC.floor + (1 - ACADEMIC.floor) * Math.min(1, worked / ACADEMIC.full);
 }
 
 /** How much of each application's chance survives spreading preparation over `count`. */
