@@ -5,6 +5,7 @@ import type { AutumnEvent, Effort, EventFacts, OptionKey, Shortfall, Stat } from
 import { isActive, loseHours, neededWorkHours, tripYen, monthlyIncomeYen, type Life } from "./life";
 import {
   ALLOWANCE_CUT_YEN,
+  APPLICATION_FOCUS,
   AUTUMN_EVENT,
   FAMILY_TRIP_HOURS,
   FAMILY_TRIP_YEN,
@@ -257,7 +258,8 @@ function summerIntern(life: Life) {
   const passed = countSuccesses(
     life.rng,
     applications,
-    documentChance(PASS.internEs + life.boosts.internEs, life),
+    documentChance(PASS.internEs + life.boosts.internEs, life) *
+      applicationQuality(applications, APPLICATION_FOCUS.internEs),
   );
   const intern = applications === 0 ? "none" : passed === 0 ? "failed" : "passed";
   if (intern === "failed") {
@@ -420,12 +422,14 @@ function finals(life: Life) {
   const firstRound = countSuccesses(
     life.rng,
     life.entries,
-    documentChance(PASS.entryEs + life.boosts.entryEs, life),
+    documentChance(PASS.entryEs + life.boosts.entryEs, life) *
+      applicationQuality(life.entries, APPLICATION_FOCUS.entries),
   );
   const count = countSuccesses(
     life.rng,
     firstRound,
-    passChance(PASS.toFinal, PASS.toFinalPerPrep, life),
+    passChance(PASS.toFinal, PASS.toFinalPerPrep, life) *
+      applicationQuality(life.entries, APPLICATION_FOCUS.entries),
   );
   const reimbursed =
     count && !life.metro ? countSuccesses(life.rng, count, TRAVEL_REIMBURSED_CHANCE) : 0;
@@ -484,6 +488,11 @@ function june(life: Life) {
     scholarshipTotal: life.scholarship * SCHOLARSHIP_MONTHS,
   };
   return { facts, options: [] };
+}
+
+/** How much of each application's chance survives spreading preparation over `count`. */
+export function applicationQuality(count: number, focused: number): number {
+  return count <= focused ? 1 : (focused / count) ** APPLICATION_FOCUS.exponent;
 }
 
 function passChance(base: number, perPrep: number, life: Life): number {

@@ -14,6 +14,8 @@ export interface WeekOutcome {
   readonly taken: readonly RoutineSpec[];
   /** Routines in the timetable the self could not pay for this week. */
   readonly dropped: readonly RoutineKey[];
+  /** Routines skipped because hours were lost this week, such as to illness. */
+  readonly skipped: readonly RoutineKey[];
   readonly hours: number;
   /** Hours beyond the free hours, taken from sleep. */
   readonly shortHours: number;
@@ -41,9 +43,28 @@ export function planWeek(life: Life, week: number, timetable: readonly RoutineKe
     hours += spec.weeklyHours;
     paid += spec.weeklyMoney;
   }
+  // Hours lost to illness or family leave no time for the last routines; they are skipped rather
+  // than squeezed out of sleep.
+  const skipped: RoutineKey[] = [];
+  if (life.lostWeeks > 0) {
+    while (hours > budget && taken.length) {
+      const last = taken.pop()!;
+      skipped.unshift(last.key);
+      hours -= last.weeklyHours;
+      paid -= last.weeklyMoney;
+    }
+  }
   const earned = taken.reduce((sum, spec) => sum + spec.weeklyPay, 0);
   const shortHours = Math.max(0, hours - budget);
-  return { budget, taken, dropped, hours, shortHours, paid, earned };
+  return { budget, taken, dropped, skipped, hours, shortHours, paid, earned };
+}
+
+/** Rest cannot happen in hours taken from sleep, so its effect shrinks by the hours over. */
+function restedFor(spec: RoutineSpec, shortHours: number): Pick<RoutineSpec, "statsPerWeek"> {
+  if (spec.key !== "rest" || shortHours <= 0) return spec;
+  const share = Math.max(0, spec.weeklyHours - shortHours) / spec.weeklyHours;
+  const stats = Object.entries(spec.statsPerWeek).map(([stat, amount]) => [stat, amount * share]);
+  return { statsPerWeek: Object.fromEntries(stats) };
 }
 
 /** Lives one week by the timetable: pays, earns, practises, and moves the stats. */
@@ -65,7 +86,7 @@ export function liveWeek(
   liveThroughPeriod(life, {
     weeks: 1,
     finalYear: week >= FINAL_STRETCH_FROM,
-    taken: outcome.taken,
+    taken: outcome.taken.map((spec) => restedFor(spec, outcome.shortHours)),
     jobHours: hoursOf("job") + oneOffHours,
     extraWorkHours: hoursOf("work"),
     shortHours: outcome.shortHours,

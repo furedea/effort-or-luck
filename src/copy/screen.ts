@@ -38,9 +38,9 @@ export const DIFFICULTY_LABELS = {
 
 /** What a difficulty changes, in plain words; normal needs none. */
 export const DIFFICULTY_NOTES = {
-  easy: "体も心も丈夫",
-  normal: null,
-  hard: "すぐに疲れて倒れやすい",
+  easy: "首都圏・仕送り多め・体も心も丈夫",
+  normal: "境遇は運しだい",
+  hard: "地方・仕送り少なめ・疲れやすい",
 } as const satisfies Record<Difficulty, string | null>;
 export const SHARE = "結果を共有する";
 export const COPIED = "リンクをコピーした";
