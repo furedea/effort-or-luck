@@ -46,7 +46,14 @@ import { WEEKS } from "../engine/calendar";
 import type { Event, PricedOption } from "../engine/events";
 import type { LostReason, OptionKey, RoutineKey } from "../engine/facts";
 import type { Life } from "../engine/life";
-import { isAvailable, isLimited, ROUTINES, type RoutineSpec } from "../engine/routine";
+import {
+  areAlternatives,
+  isAvailable,
+  isLimited,
+  routineOf,
+  ROUTINES,
+  type RoutineSpec,
+} from "../engine/routine";
 import { planWeek } from "../engine/week";
 
 /** How time moves: one week per press, or on its own at normal or double speed. */
@@ -327,12 +334,11 @@ function Timetable({
   onChange: (timetable: readonly RoutineKey[]) => void;
 }) {
   const preview = planWeek(life, week, timetable);
+  const takeOut = (key: RoutineKey) => onChange(timetable.filter((k) => k !== key));
   const toggle = (spec: RoutineSpec) => {
-    onChange(
-      timetable.includes(spec.key)
-        ? timetable.filter((key) => key !== spec.key)
-        : [...timetable, spec.key],
-    );
+    if (timetable.includes(spec.key)) takeOut(spec.key);
+    // Part-time amounts are one choice: picking one replaces the other.
+    else onChange([...timetable.filter((k) => !areAlternatives(spec, routineOf(k))), spec.key]);
   };
   const oneOffHours = life.oneOff.weeks > 0 ? life.oneOff.hours / life.oneOff.weeks : 0;
   // A tab chosen before limited-time tiles opened gives way to them once.
@@ -378,7 +384,7 @@ function Timetable({
                   type="button"
                   className="chip"
                   aria-label={removeLabel(routineTileLabel(key))}
-                  onClick={() => onChange(timetable.filter((k) => k !== key))}
+                  onClick={() => takeOut(key)}
                 >
                   {routineTileLabel(key)} <span aria-hidden="true">×</span>
                 </button>

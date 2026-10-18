@@ -128,9 +128,14 @@ export const ROUTINES: readonly RoutineSpec[] = [
   limited("earlyPrep", EVENT_WEEKS.early, 4, { early: 0.03 }),
   limited("entryPrep", EVENT_WEEKS.entries, 4, { entryEs: 0.02 }),
   limited("finalPrep", EVENT_WEEKS.finals, 6, { final: 0.02 }),
-  routine({ key: "moreWork", kind: "work", weeklyHours: 16, weeklyPay: roundPay(16) }),
+  routine({ key: "moreWork", kind: "work", weeklyHours: 20, weeklyPay: roundPay(20) }),
   routine({ key: "coursework", kind: "study", weeklyHours: 4, statsPerWeek: { study: 1.2 } }),
 ];
+
+/** Whether two routines are alternatives of which only one can be taken, such as part-time hours. */
+export function areAlternatives(a: RoutineSpec, b: RoutineSpec): boolean {
+  return a.key !== b.key && a.kind === "work" && b.kind === "work";
+}
 
 /** Whether the routine is preparation open only in the weeks leading up to one event. */
 export function isLimited(spec: RoutineSpec): boolean {

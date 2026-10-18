@@ -1,7 +1,7 @@
 import { dateOf, FINAL_STRETCH_FROM } from "./calendar";
 import type { RoutineKey } from "./facts";
 import { isActive, monthlyIncomeYen, weekBudget, type Life } from "./life";
-import { isAvailable, practise, routineOf, type RoutineSpec } from "./routine";
+import { areAlternatives, isAvailable, practise, routineOf, type RoutineSpec } from "./routine";
 import { liveThroughPeriod } from "./wellbeing";
 
 // One week: a booked one-off comes first, then the timetable in the order it was set. Hours
@@ -35,6 +35,7 @@ export function planWeek(life: Life, week: number, timetable: readonly RoutineKe
   for (const key of new Set(timetable)) {
     const spec = routineOf(key);
     if (!isAvailable(spec, week, life)) continue;
+    if (taken.some((other) => areAlternatives(spec, other))) continue;
     if (paid + spec.weeklyMoney > life.money) {
       dropped.push(key);
       continue;

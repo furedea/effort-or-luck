@@ -77,11 +77,9 @@ export const middlePolicy: Policy = {
 function workFor(life: Life): RoutineKey[] {
   const needed = life.money < WORK_BELOW_YEN ? neededWorkHours(life) : 0;
   const short = routineOf("extraWork").weeklyHours;
-  const long = routineOf("moreWork").weeklyHours;
   if (needed === 0) return [];
   if (needed <= short) return ["extraWork"];
-  if (needed <= long) return ["moreWork"];
-  return ["moreWork", "extraWork"];
+  return ["moreWork"];
 }
 
 /**
