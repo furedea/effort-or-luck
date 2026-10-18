@@ -54,7 +54,11 @@ export function describeEvent({ facts }: Event): EventText {
   switch (facts.id) {
     case "intro":
       return {
-        lines: [...INTRO_LINES, `${region(facts.metro)}で一人暮らし．`],
+        lines: [
+          ...INTRO_LINES,
+          `${region(facts.metro)}で一人暮らし．`,
+          ...(facts.weeklyGapYen ? [LIVING_GAP_LINE] : []),
+        ],
         table: introTable(facts),
         next: "始める",
       };
@@ -190,6 +194,9 @@ const INTRO_LINES = [
   `6月1日（面接解禁）までに，同級生の${Math.round(JUNE_OFFER_RATE * 10)}割が内定を持つ．`,
 ];
 
+const LIVING_GAP_LINE =
+  "仕送りと奨学金だけでは生活費が足りない．バイトをしないと，毎週その分だけ貯金が減る．";
+
 /** The self's situation; allowance and scholarship are left to the status panel. */
 function introTable(facts: Facts<"intro">): TableRow[] {
   return [
@@ -197,7 +204,7 @@ function introTable(facts: Facts<"intro">): TableRow[] {
     ...(facts.weeklyGapYen
       ? [
           { label: "生活費の不足", value: `週 ${yen(facts.weeklyGapYen)}` },
-          { label: "要るバイト", value: `週 ${facts.neededWorkHours} 時間` },
+          { label: "必要なバイト", value: `週 ${facts.neededWorkHours} 時間` },
         ]
       : [{ label: "生活費の不足", value: "なし" }]),
   ];
