@@ -34,7 +34,7 @@ test("the stat bars flag stats close to zero", () => {
 });
 
 test("hours beyond the budget are said to come from sleep", () => {
-  expect(overflowLine(5)).toBe("はみ出た週5時間は睡眠を削る（健康 −1／週）");
+  expect(overflowLine(10)).toBe("はみ出た週10時間は睡眠を削る（健康 −5.5・心 −1／週）");
 });
 
 test("selves who ended early are counted by reason", () => {
@@ -66,7 +66,7 @@ describe("the room an option leaves in the week", () => {
       over: true,
       caption: "今週オーバー",
       hours: "4.5時間",
-      cost: "睡眠を削る・健康↓",
+      cost: "睡眠を削る・健康↓・心↓",
     });
   });
 });

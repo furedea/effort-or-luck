@@ -1,7 +1,6 @@
 import { JUNE_OFFER_RATE, JUNE_OFFER_RATE_BY_REGION } from "../data/statistics";
 import type { LogFact, Stat } from "../engine/facts";
 import {
-  HEALTH_PER_SLEEP_HOUR,
   METRO_SHARE,
   MONTHLY_EXPENSE_YEN,
   STARTING_MONEY_YEN,
@@ -9,6 +8,7 @@ import {
   WEEKLY_HOURS,
   type Difficulty,
 } from "../engine/parameters";
+import { sleepCost } from "../engine/wellbeing";
 import { yen } from "./format";
 import { describeLog, STAT_LABELS } from "./scenes";
 
@@ -131,7 +131,7 @@ export function optionRoom(hoursLeft: number): {
   const hours = `${Number(Math.abs(hoursLeft).toFixed(1))}時間`;
   return hoursLeft >= 0
     ? { over: false, caption: "今週の残り", hours, cost: null }
-    : { over: true, caption: "今週オーバー", hours, cost: "睡眠を削る・健康↓" };
+    : { over: true, caption: "今週オーバー", hours, cost: "睡眠を削る・健康↓・心↓" };
 }
 
 /** Savings after an option that costs or pays money. */
@@ -142,8 +142,9 @@ export function savingsAfterLine(money: number): string {
 /** Hours beyond the free hours, taken from sleep, e.g. "はみ出た週5時間は睡眠を削る（健康 −1／週）". */
 export function overflowLine(shortHours: number): string {
   const hours = Number(shortHours.toFixed(1));
-  const health = Number((shortHours * HEALTH_PER_SLEEP_HOUR).toFixed(1));
-  return `はみ出た週${hours}時間は睡眠を削る（健康 −${health}／週）`;
+  const { health, mind } = sleepCost(shortHours);
+  const one = (value: number) => Number(value.toFixed(1));
+  return `はみ出た週${hours}時間は睡眠を削る（健康 −${one(health)}・心 −${one(mind)}／週）`;
 }
 
 export function oneOffLine(hours: number): string {

@@ -5,10 +5,10 @@ import {
   DIFFICULTY,
   FOURTH_YEAR_RESEARCH_DRIFT,
   HEALTH_PER_OVERLOAD_HOUR,
-  HEALTH_PER_SLEEP_HOUR,
   HEALTHY_WORKLOAD_WEEKLY_HOURS,
   MIND_PER_JOB_HOUR,
   MIND_WHEN_BROKE_WEEKLY,
+  SLEEP_LOSS,
   STAT_SHOCK,
   WEEKLY_DRIFT,
 } from "./parameters";
@@ -42,10 +42,24 @@ export function liveThroughPeriod(life: Life, load: PeriodLoad): void {
   const weeklyLoad = (jobHours + extraWorkHours) / weeks;
   change.health -=
     Math.max(0, weeklyLoad - HEALTHY_WORKLOAD_WEEKLY_HOURS) * HEALTH_PER_OVERLOAD_HOUR * weeks;
-  change.health -= shortHours * HEALTH_PER_SLEEP_HOUR;
+  const sleep = sleepCost(shortHours / weeks);
+  change.health -= sleep.health * weeks;
+  change.mind -= sleep.mind * weeks;
   change.mind -= jobHours * MIND_PER_JOB_HOUR;
   if (life.money < BROKE_BELOW_YEN) change.mind -= MIND_WHEN_BROKE_WEEKLY * weeks;
   shift(life, change);
+}
+
+/** What a week's hours taken from sleep cost in health and mind. */
+export function sleepCost(weeklyHours: number): { health: number; mind: number } {
+  const { lightHours, healthPerLightHour, healthPerHeavyHour, mindPerHour } = SLEEP_LOSS;
+  const light = Math.min(weeklyHours, lightHours);
+  const heavy = Math.max(0, weeklyHours - lightHours);
+  const round = (value: number) => Number(value.toFixed(2));
+  return {
+    health: round(light * healthPerLightHour + heavy * healthPerHeavyHour),
+    mind: round(weeklyHours * mindPerHour),
+  };
 }
 
 /** A sudden change to stats, such as falling ill or getting an offer. */
