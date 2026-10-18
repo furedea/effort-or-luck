@@ -225,6 +225,28 @@ test("stops on the timetable after a choice that runs the week over", () => {
   expect(legend.at(-1)).toMatch(/^オーバー \d+(\.\d)?時間$/);
 });
 
+test("keeps the chosen speed after declining, even in a week already over", () => {
+  const host = toFirstChoice((h) => {
+    for (const name of [
+      "研究・ゼミ",
+      "友達と遊ぶ",
+      "ゆっくり休む",
+      "SNS・動画",
+      "自己分析",
+      "説明会",
+    ]) {
+      click(tileNamed(h, name));
+    }
+  });
+  const takesNoTime = [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")]
+    .filter((button) => !/\d+時間/.test(button.querySelector(".cost")?.textContent ?? ""))
+    .at(-1)!;
+
+  click(takesNoTime);
+
+  expect(stepButton(host)).toBeNull();
+});
+
 test("keeps the chosen speed after a choice that fits the week", () => {
   const host = toFirstChoice();
   const options = [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")];

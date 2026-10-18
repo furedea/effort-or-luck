@@ -180,13 +180,15 @@ function limitedEntries(week: number): FeedEntry[] {
 }
 
 /**
- * Takes an option. When it runs the week over the free hours, time waits on the timetable so the
- * player can drop something or accept losing sleep.
+ * Takes an option. When an option that takes hours runs the week over the free hours, time waits
+ * on the timetable so the player can drop something or accept losing sleep.
  */
 function decide(game: Game, option: OptionKey): Game {
+  const takesHours = Boolean(stopAt(game)?.options.find((o) => o.key === option)?.hours);
   const cohort = choose(withTimetable(game.cohort, game.timetable), option);
   const life = cohort.lives[game.player];
-  const over = life ? planWeek(life, cohort.week, game.timetable).shortHours > 0 : false;
+  const over =
+    takesHours && life ? planWeek(life, cohort.week, game.timetable).shortHours > 0 : false;
   return { ...game, cohort, speed: over ? "step" : game.speed };
 }
 
