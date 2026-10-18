@@ -15,6 +15,7 @@ import {
   barLegendItem,
   budgetLine,
   CANNOT_PAY,
+  CARD_TITLES,
   CLEAR_ALL,
   FEED_TITLE,
   LIMITED_TITLE,
@@ -78,8 +79,11 @@ export function PlayView(props: Props) {
         <h2 className="when" ref={heading} tabIndex={-1}>
           {weekLabel(week)}
         </h2>
-        <Status life={life} />
       </header>
+      <div className="card">
+        <h3 className="card-title">{CARD_TITLES.status}</h3>
+        <Status life={life} />
+      </div>
       <Feed entries={feed} />
       {event ? (
         <EventPanel
@@ -211,29 +215,34 @@ function EventPanel({
     });
   return (
     <div className="event">
-      <div className="lines" aria-live="polite">
-        {text.lines.map((line, k) => (
-          <p key={k} style={{ animationDelay: `${k * 0.2}s` }}>
-            {line}
-          </p>
-        ))}
-      </div>
-      {text.table ? (
-        <dl className="status event-table">
-          {text.table.map(({ label, value }) => (
-            <div key={label} className="status-item">
-              <dt>{label}</dt>
-              <dd>{value}</dd>
-            </div>
+      <div className="card">
+        <h3 className="card-title">{CARD_TITLES.event}</h3>
+        <div className="lines" aria-live="polite">
+          {text.lines.map((line, k) => (
+            <p key={k} style={{ animationDelay: `${k * 0.2}s` }}>
+              {line}
+            </p>
           ))}
-        </dl>
-      ) : null}
-      {event.options.length ? (
-        <div className="week-status-block">
-          <p className="week-status">{weekStatusLine(preview.hours, preview.budget, life.money)}</p>
-          <HourBar budget={preview.budget} preview={preview} oneOffHours={bookedHours} />
         </div>
-      ) : null}
+        {text.table ? (
+          <dl className="status event-table">
+            {text.table.map(({ label, value }) => (
+              <div key={label} className="status-item">
+                <dt>{label}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
+        {event.options.length ? (
+          <div className="week-status-block">
+            <p className="week-status">
+              {weekStatusLine(preview.hours, preview.budget, life.money)}
+            </p>
+            <HourBar budget={preview.budget} preview={preview} oneOffHours={bookedHours} />
+          </div>
+        ) : null}
+      </div>
       <div className="actions">
         {event.options.length ? (
           event.options.map((option) => (
@@ -280,7 +289,7 @@ function Timetable({
   };
   const oneOffHours = life.oneOff.weeks > 0 ? life.oneOff.hours / life.oneOff.weeks : 0;
   return (
-    <div className="timetable">
+    <div className="card timetable">
       <div className="timetable-head">
         <h3 className="activity-section">{TIMETABLE_TITLE}</h3>
         <button
