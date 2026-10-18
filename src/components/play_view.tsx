@@ -604,11 +604,8 @@ function OptionRoom({
 }) {
   return (
     <span className={room.over ? "room-block over" : "room-block"}>
-      <span className="room">
-        <span className="room-caption">{room.caption}</span>
-        <span className="room-hours">{room.value}</span>
-      </span>
-      {room.cost ? <span className="room-cost">{room.cost}</span> : null}
+      <span className="room-head">{room.head}</span>
+      {room.sub ? <span className="room-sub">{room.sub}</span> : null}
       {savings ? <span className="room-savings">{savings}</span> : null}
     </span>
   );

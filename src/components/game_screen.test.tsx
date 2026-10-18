@@ -285,10 +285,9 @@ test("shows this week's hours and what each option leaves at an event", () => {
   }
 
   expect(host.querySelector(".event .week-status")?.textContent).toMatch(/^週.+時間（.+）・貯金 /);
-  const rooms = [...host.querySelectorAll(".event .opt .room")].map((n) => n.textContent);
+  const rooms = [...host.querySelectorAll(".event .opt .room-head")].map((n) => n.textContent);
   expect(rooms.length).toBeGreaterThan(0);
-  for (const room of rooms)
-    expect(room).toMatch(/^(今週の残り\d+(\.\d)?時間|今週オーバー\d+(\.\d)?時間)$/);
+  for (const room of rooms) expect(room).toMatch(/^(あと[\d.]+時間|週[\d.]+時間たりない)$/);
 });
 
 /** Plays at double speed until the first event with options, after `setUp` on the first week. */
@@ -317,8 +316,8 @@ test("asks which tiles rest when an option's hours do not fit, and rests them me
     }
   });
   const doesNotFit = () =>
-    [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")].find(
-      (button) => button.querySelector(".room-caption")?.textContent === "時間がたりない",
+    [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")].find((button) =>
+      /たりない$/.test(button.querySelector(".room-head")?.textContent ?? ""),
     );
   for (let guard = 0; guard < 100 && !doesNotFit(); guard++) {
     const options = [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")];
@@ -326,7 +325,8 @@ test("asks which tiles rest when an option's hours do not fit, and rests them me
     else keepFlowing(host);
   }
   const option = doesNotFit()!;
-  expect(option.querySelector(".room-hours")?.textContent).toMatch(/^週\d+(\.\d)?時間$/);
+  expect(option.querySelector(".room-head")?.textContent).toMatch(/^週\d+(\.\d)?時間たりない$/);
+  expect(option.querySelector(".room-sub")?.textContent).toBe("休む活動を選ぶ ›");
 
   click(option);
 
@@ -361,8 +361,8 @@ test("goes back from choosing tiles to rest to the event's options", () => {
     }
   });
   const doesNotFit = () =>
-    [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")].find(
-      (button) => button.querySelector(".room-caption")?.textContent === "時間がたりない",
+    [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")].find((button) =>
+      /たりない$/.test(button.querySelector(".room-head")?.textContent ?? ""),
     );
   for (let guard = 0; guard < 100 && !doesNotFit(); guard++) {
     const options = [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")];

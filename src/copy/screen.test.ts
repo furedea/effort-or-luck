@@ -65,29 +65,26 @@ test("a falling stat is warned about with its value", () => {
 
 describe("what an option leaves of the week", () => {
   it("gives the hours left when it fits", () => {
-    expect(optionRoom({ spare: 1, short: 0, need: 0 })).toEqual({
+    expect(optionRoom({ spare: 3, short: 0, need: 0 })).toEqual({
       over: false,
-      caption: "今週の残り",
-      value: "1時間",
-      cost: null,
+      head: "あと3時間",
+      sub: null,
     });
   });
 
-  it("gives the hours short and asks for tiles to rest when it does not fit", () => {
+  it("gives the hours short and leads on to picking tiles to rest when it does not fit", () => {
     expect(optionRoom({ spare: 0, short: 7, need: 7 })).toEqual({
       over: true,
-      caption: "時間がたりない",
-      value: "週7時間",
-      cost: "休む活動を選ぶ",
+      head: "週7時間たりない",
+      sub: "休む活動を選ぶ ›",
     });
   });
 
   it("gives the sleep a timetable already over cuts, when the option adds nothing", () => {
     expect(optionRoom({ spare: 0, short: 4.5, need: 0 })).toEqual({
       over: true,
-      caption: "睡眠を削る",
-      value: "4.5時間",
-      cost: "健康↓・心↓",
+      head: "睡眠を削る 4.5時間",
+      sub: "健康↓・心↓",
     });
   });
 });

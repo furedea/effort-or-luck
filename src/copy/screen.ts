@@ -137,26 +137,22 @@ export function weekStatusLine(used: number, budget: number, money: number): str
   return `${budgetLine(used, budget)}・貯金 ${yen(Math.round(money))}`;
 }
 
-/** What an option leaves of the week: hours to spare, hours short, or the sleep cut. */
+/**
+ * What an option leaves of the week in two lines: what happens to the hours, then what it costs
+ * or what taking it leads to.
+ */
 export function optionRoom(plan: { spare: number; short: number; need: number }): {
   over: boolean;
-  caption: string;
-  value: string;
-  cost: string | null;
+  head: string;
+  sub: string | null;
 } {
   const hours = (n: number) => `${Number(n.toFixed(1))}時間`;
   if (plan.need > 0) {
-    return {
-      over: true,
-      caption: "時間がたりない",
-      value: `週${hours(plan.need)}`,
-      cost: "休む活動を選ぶ",
-    };
+    return { over: true, head: `週${hours(plan.need)}たりない`, sub: "休む活動を選ぶ ›" };
   }
-  if (plan.short > 0) {
-    return { over: true, caption: "睡眠を削る", value: hours(plan.short), cost: "健康↓・心↓" };
-  }
-  return { over: false, caption: "今週の残り", value: hours(plan.spare), cost: null };
+  if (plan.short > 0)
+    return { over: true, head: `睡眠を削る ${hours(plan.short)}`, sub: "健康↓・心↓" };
+  return { over: false, head: `あと${hours(plan.spare)}`, sub: null };
 }
 
 /** The prompt for tiles to rest while an option's hours last. */
