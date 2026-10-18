@@ -24,6 +24,18 @@ export const EFFORT_DEFINITION =
 export const LUCK_PART = "① 努力をそろえて，運だけ変えると";
 export const EFFORT_PART = "② 運をそろえて，努力だけ変えると";
 export const ALLOWANCE_HEADER = "仕送り";
+export const DETAILS_TITLE = "詳しく見る";
+
+/** The reveal's conclusion: the luck gap, the effort gap, and which was larger. */
+export function gapSummary(gaps: { luck: number; effort: number }) {
+  const percent = (rate: number) => `${Math.round(Math.abs(rate) * 100)}%`;
+  return {
+    luck: { label: "運の差", text: `仕送りで内定率が ${percent(gaps.luck)} 違う` },
+    effort: { label: "努力の差", text: `選び方で内定率が ${percent(gaps.effort)} 違う` },
+    verdict: `→ この1年は，${gaps.luck > gaps.effort ? "運" : "努力"}の差のほうが大きかった`,
+  };
+}
+
 export const SOURCES_LINK = "数字の出典と仮定について";
 export const SOURCES_TITLE = "数字の出典と仮定";
 export const BACK_TO_GAME = "ゲームに戻る";

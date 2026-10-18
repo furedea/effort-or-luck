@@ -156,6 +156,26 @@ export function revealByAllowance(
   });
 }
 
+/**
+ * The reveal's two gaps: the spread of offer rates across allowances for the same choices (luck),
+ * and the difference between the all-in and least-effort paths for the same selves (effort).
+ */
+export function revealGaps(
+  lives: readonly Life[],
+  ranks: readonly number[],
+  paths: { most: readonly Life[]; least: readonly Life[] },
+): { luck: number; effort: number } {
+  const rate = (group: readonly Life[]) =>
+    group.length ? group.filter((life) => life.offers.length > 0).length / group.length : 0;
+  const rowRates = revealByAllowance(lives, ranks)
+    .filter((row) => row.members.length)
+    .map((row) => row.offered / row.members.length);
+  return {
+    luck: Math.max(...rowRates) - Math.min(...rowRates),
+    effort: rate(paths.most) - rate(paths.least),
+  };
+}
+
 /** Meets every open event that offers options by `choice`. Events are cleared by the caller. */
 function meetAll(cohort: Cohort, choice: Choice): void {
   cohort.events.forEach((event, i) => {

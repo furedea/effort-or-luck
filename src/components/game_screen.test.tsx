@@ -435,6 +435,23 @@ test("moves focus to an event when time stops for it", () => {
   expect(document.activeElement).toBe(host.querySelector(".when"));
 });
 
+test("the reveal opens with the offers, the luck and effort gaps, and which was larger", () => {
+  const host = mount();
+  playToReveal(host);
+
+  const summary = host.querySelector(".reveal-summary");
+  expect(summary?.querySelector(".gap-luck")?.textContent).toMatch(
+    /^運の差仕送りで内定率が \d+% 違う$/,
+  );
+  expect(summary?.querySelector(".gap-effort")?.textContent).toMatch(
+    /^努力の差選び方で内定率が \d+% 違う$/,
+  );
+  expect(summary?.querySelector(".gap-verdict")?.textContent).toMatch(
+    /^→ この1年は，(運|努力)の差のほうが大きかった$/,
+  );
+  expect(host.querySelector(".reveal-details summary")?.textContent).toBe("詳しく見る");
+});
+
 test("describes each allowance row in words for screen readers", () => {
   const host = mount();
   playToReveal(host);
