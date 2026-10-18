@@ -4,6 +4,7 @@ import "../styles/game.css";
 import { describeEvent, routineTileLabel } from "../copy/scenes";
 import {
   limitedLine,
+  type PauseReason,
   PLAY_AGAIN,
   shareText,
   TIMETABLE_RESTORED,
@@ -30,7 +31,7 @@ import { isLimited, ROUTINES } from "../engine/routine";
 import { planWeek } from "../engine/week";
 import { encode } from "../share/result_link";
 import { DifficultyPicker } from "./difficulty_picker";
-import { PlayView, type FeedEntry, type PauseReason, type Speed } from "./play_view";
+import { PlayView, type FeedEntry, type Speed } from "./play_view";
 import { RevealView } from "./reveal_view";
 import { ShareButton } from "./share_button";
 
@@ -161,7 +162,15 @@ function advance(game: Game): Game {
   const warnings =
     falling && life ? [{ week: cohort.week, text: warningLine(falling, life.stats[falling]) }] : [];
   const living = Boolean(life && isActive(life));
-  const appeared = living ? limitedEntries(cohort.week) : [];
+  const opened = living ? openedLimited(cohort.week) : [];
+  const appeared = opened.map((spec) => ({
+    week: cohort.week,
+    text: limitedLine(routineTileLabel(spec.key), spec.until - cohort.week),
+  }));
+  const [first] = opened;
+  const limitedPause: PauseReason | null = first
+    ? { kind: "limited", tile: routineTileLabel(first.key), weeks: first.until - cohort.week }
+    : null;
   // Tiles dropped to make room for an event's hours come back once those hours end.
   const ended = booked.weeks === 1 ? game.beforeBooking : null;
   const restored = living && ended && !sameTimetable(ended, game.timetable) ? ended : null;
@@ -172,7 +181,7 @@ function advance(game: Game): Game {
     beforeBooking: booked.weeks === 1 ? null : game.beforeBooking,
     // Limited-time preparation would pass within seconds at speed, so time waits for the player.
     speed: appeared.length ? "step" : game.speed,
-    pausedFor: appeared.length && game.speed !== "step" ? "limited" : null,
+    pausedFor: game.speed !== "step" ? limitedPause : null,
     feed: [
       ...appeared,
       ...(restored ? [{ week: cohort.week, text: TIMETABLE_RESTORED }] : []),
@@ -185,11 +194,8 @@ function advance(game: Game): Game {
 }
 
 /** Limited-time preparation that opens this week. */
-function limitedEntries(week: number): FeedEntry[] {
-  return ROUTINES.filter((spec) => isLimited(spec) && spec.from === week).map((spec) => ({
-    week,
-    text: limitedLine(routineTileLabel(spec.key), spec.until - week),
-  }));
+function openedLimited(week: number) {
+  return ROUTINES.filter((spec) => isLimited(spec) && spec.from === week);
 }
 
 /**
@@ -200,13 +206,14 @@ function decide(game: Game, option: OptionKey): Game {
   const takesHours = Boolean(stopAt(game)?.options.find((o) => o.key === option)?.hours);
   const cohort = choose(withTimetable(game.cohort, game.timetable), option);
   const life = cohort.lives[game.player];
-  const over =
-    takesHours && life ? planWeek(life, cohort.week, game.timetable).shortHours > 0 : false;
+  const shortHours =
+    takesHours && life ? planWeek(life, cohort.week, game.timetable).shortHours : 0;
+  const over = shortHours > 0;
   return {
     ...game,
     cohort,
     speed: over ? "step" : game.speed,
-    pausedFor: over && game.speed !== "step" ? "over" : game.pausedFor,
+    pausedFor: over && game.speed !== "step" ? { kind: "over", hours: shortHours } : game.pausedFor,
     beforeBooking: takesHours ? game.timetable : game.beforeBooking,
   };
 }

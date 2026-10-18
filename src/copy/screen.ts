@@ -56,10 +56,20 @@ export const LINK_ERRORS = {
 
 export const SECTION = { job: "就活", study: "学業", life: "自分のこと", work: "お金" } as const;
 export const STEP = "次の週へ";
-export const PAUSE_REASONS = {
-  limited: "⏸ ★ 今だけの札が出たので，自動を止めた",
-  over: "⏸ 今週の時間がはみ出たので，自動を止めた",
-} as const;
+/** Why the game took auto play back to one week per press. */
+export type PauseReason =
+  | { readonly kind: "limited"; readonly tile: string; readonly weeks: number }
+  | { readonly kind: "over"; readonly hours: number };
+
+export const PAUSE_HEAD = "一時停止";
+
+/** What made auto play pause and what the player can do now. */
+export function pauseLines(reason: PauseReason): string[] {
+  if (reason.kind === "limited") {
+    return [`${reason.tile}が出た．`, `入れるなら今（あと${reason.weeks}週）`];
+  }
+  return [`今週が${Number(reason.hours.toFixed(1))}時間はみ出た．`, "札を外すか，そのまま進む"];
+}
 export const SPEED_LABELS = { step: "1週ずつ", normal: "▶ 自動", double: "▶▶ 2倍" } as const;
 export const TIMETABLE_TITLE = "毎週の過ごし方";
 export const CARD_TITLES = { event: "出来事" } as const;

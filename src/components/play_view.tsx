@@ -25,7 +25,9 @@ import {
   optionRoom,
   oneOffLine,
   overflowLine,
-  PAUSE_REASONS,
+  PAUSE_HEAD,
+  pauseLines,
+  type PauseReason,
   savingsAfterLine,
   SECTION,
   SPEED_LABELS,
@@ -45,8 +47,6 @@ import { planWeek } from "../engine/week";
 
 /** How time moves: one week per press, or on its own at normal or double speed. */
 export type Speed = keyof typeof SPEED_LABELS;
-
-export type PauseReason = keyof typeof PAUSE_REASONS;
 
 export interface FeedEntry {
   readonly week: number;
@@ -110,7 +110,14 @@ export function PlayView(props: Props) {
           <div className="actions">
             {props.pausedFor ? (
               <p className="paused-note" role="status">
-                {PAUSE_REASONS[props.pausedFor]}
+                <span className="paused-head">{PAUSE_HEAD}</span>
+                <span className="paused-text">
+                  {pauseLines(props.pausedFor).map((line) => (
+                    <span key={line} className="paused-line">
+                      {line}
+                    </span>
+                  ))}
+                </span>
               </p>
             ) : null}
             {speed === "step" ? (

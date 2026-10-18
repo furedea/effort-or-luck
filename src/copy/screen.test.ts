@@ -2,6 +2,7 @@ import {
   budgetLine,
   endedCount,
   optionRoom,
+  pauseLines,
   overflowLine,
   statBars,
   statusItems,
@@ -57,5 +58,21 @@ describe("the room an option leaves in the week", () => {
 
   it("marks hours over the week", () => {
     expect(optionRoom(-4.5)).toEqual({ over: true, caption: "オーバー", hours: "4.5時間" });
+  });
+});
+
+describe("why auto play paused", () => {
+  it("names the limited-time tile and how long it stays", () => {
+    expect(pauseLines({ kind: "limited", tile: "夏インターンのES対策", weeks: 4 })).toEqual([
+      "夏インターンのES対策が出た．",
+      "入れるなら今（あと4週）",
+    ]);
+  });
+
+  it("gives the hours over and what to do", () => {
+    expect(pauseLines({ kind: "over", hours: 4 })).toEqual([
+      "今週が4時間はみ出た．",
+      "札を外すか，そのまま進む",
+    ]);
   });
 });

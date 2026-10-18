@@ -183,9 +183,12 @@ test("returns to one week per press when limited-time preparation appears", () =
     "★ 今だけ：夏インターンのES対策（あと4週）",
   );
   expect(host.querySelector(".tab[aria-selected='true']")?.textContent).toBe("★ 今だけ");
-  expect(host.querySelector(".actions .paused-note")?.textContent).toBe(
-    "⏸ ★ 今だけの札が出たので，自動を止めた",
-  );
+  const note = host.querySelector(".actions .paused-note");
+  expect(note?.querySelector(".paused-head")?.textContent).toBe("一時停止");
+  expect([...(note?.querySelectorAll(".paused-line") ?? [])].map((n) => n.textContent)).toEqual([
+    "夏インターンのES対策が出た．",
+    "入れるなら今（あと4週）",
+  ]);
 
   click(speedButton(host, "▶ 自動"));
   expect(host.querySelector(".actions .paused-note")).toBeNull();

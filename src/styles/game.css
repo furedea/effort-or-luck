@@ -677,14 +677,29 @@ main {
   cursor: pointer;
 }
 .paused-note {
+  display: flex;
+  align-items: center;
+  column-gap: 10px;
   margin: 0;
   padding: 8px 12px;
   font-size: 13px;
-  font-weight: 700;
   color: var(--shu);
   background: color-mix(in srgb, var(--shu) 12%, transparent);
   border-radius: 6px;
   animation: rise 0.3s ease both;
+}
+.paused-head {
+  flex: none;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--paper);
+  background: var(--shu);
+  border-radius: 4px;
+}
+.paused-text {
+  display: grid;
+  color: var(--ink);
 }
 .speeds {
   display: grid;
