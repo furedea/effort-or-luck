@@ -61,6 +61,16 @@ export function describeEvent({ facts }: Event): EventText {
         table: introTable(facts),
         next: "始める",
       };
+    case "longInternCall":
+      return { lines: ["長期インターンの募集が来た．通れば，6月から週16時間働ける．"] };
+    case "longInternResult":
+      return {
+        lines: [
+          facts.passed
+            ? "長期インターンに受かった．6月から札を入れられる．"
+            : "長期インターンは落ちた．",
+        ],
+      };
     case "internEs":
       return { lines: ["夏インターンの ES の締切が来た．ES は一社 3 時間．"] };
     case "summerIntern":
@@ -107,9 +117,9 @@ export function optionLabel(option: PricedOption, facts: EventFacts): string {
   return OPTION_LABELS[option.key];
 }
 
-/** What an option takes and brings, e.g. "15時間（3週）・3万円・心の余裕 +5". */
+/** What an option takes and brings, e.g. "週5時間 × 3週・3万円・心の余裕 +5". */
 export function optionCost({ hours, weeks, money, pay, stats, prep }: PricedOption): string {
-  const time = hours ? `${hours}時間${weeks > 1 ? `（${weeks}週）` : ""}` : "";
+  const time = !hours ? "" : weeks > 1 ? `週${hours / weeks}時間 × ${weeks}週` : `${hours}時間`;
   const signed = (value: number) => (value < 0 ? `−${-value}` : `+${value}`);
   const statChanges = (Object.keys(STAT_LABELS) as Stat[])
     .filter((stat) => stats?.[stat])
@@ -376,6 +386,8 @@ const OPTION_LABELS = {
   midtermMinimal: "最低限で済ませる",
   studyJoin: "参加する",
   studySkip: "参加しない",
+  applyIntern: "応募する",
+  skipInternCall: "見送る",
 } as const satisfies Record<OptionKey, string>;
 
 const ROUTINES = {

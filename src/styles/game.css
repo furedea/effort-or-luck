@@ -9,6 +9,11 @@
   --suit-soft: #8ea6dc;
   --shu: #b2442d;
   --field: #ffffff;
+  --c-job: #3b5bdb;
+  --c-study: #2b8a3e;
+  --c-life: #e5a50a;
+  --c-work: #868e96;
+  --warn: #b26b00;
   --display: "BIZ UDPMincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
   --body: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
 }
@@ -22,6 +27,11 @@
     --suit-soft: #5470ad;
     --shu: #e58b73;
     --field: #181c24;
+    --c-job: #7b93f5;
+    --c-study: #5fc675;
+    --c-life: #f2c94c;
+    --c-work: #9aa1ad;
+    --warn: #f2c94c;
     color-scheme: dark;
   }
 }
@@ -34,6 +44,11 @@
   --suit-soft: #5470ad;
   --shu: #e58b73;
   --field: #181c24;
+  --c-job: #7b93f5;
+  --c-study: #5fc675;
+  --c-life: #f2c94c;
+  --c-work: #9aa1ad;
+  --warn: #f2c94c;
   color-scheme: dark;
 }
 
@@ -77,9 +92,9 @@ main {
 .when {
   margin: 0;
   font-family: var(--display);
-  font-size: clamp(28px, 8vw, 40px);
+  font-size: 22px;
   font-weight: 400;
-  line-height: 1.1;
+  line-height: 1.2;
   letter-spacing: 0.04em;
 }
 
@@ -158,24 +173,81 @@ main {
   transition: width 0.3s linear;
 }
 .play-head {
-  display: grid;
-  row-gap: 12px;
+  display: flex;
+  align-items: center;
+  column-gap: 14px;
 }
-.feed-block {
+.play-head .progress-bar {
+  flex: 1;
+}
+.history summary,
+.money-detail summary {
+  list-style: none;
+  cursor: pointer;
+}
+.history summary::-webkit-details-marker,
+.money-detail summary::-webkit-details-marker {
+  display: none;
+}
+.history summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  column-gap: 12px;
+}
+.history-open {
+  flex: none;
+  font-size: 12px;
+  color: var(--suit);
+}
+.history-open::after {
+  content: " ▸";
+}
+.history[open] .history-open::after {
+  content: " ▾";
+}
+.history ul {
   display: grid;
   row-gap: 4px;
-}
-.feed {
-  display: grid;
-  row-gap: 4px;
-  margin: 0;
-  padding: 0;
+  max-height: 40vh;
+  overflow-y: auto;
+  margin: 8px 0 0;
+  padding: 10px 12px;
   list-style: none;
   font-size: 13px;
   line-height: 1.6;
+  background: var(--field);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
 }
-.feed li:first-child {
-  animation: rise 0.45s ease both;
+.money-detail summary {
+  font-size: 12px;
+  color: var(--sub);
+}
+.money-detail summary::after {
+  content: " ▸";
+}
+.money-detail[open] summary::after {
+  content: " ▾";
+}
+.money-detail dl {
+  display: grid;
+  row-gap: 2px;
+  margin: 6px 0 0;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.money-detail dl div {
+  display: flex;
+  justify-content: space-between;
+}
+.money-detail dd {
+  margin: 0;
+}
+.feed-entry {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
 }
 .feed-when {
   margin-right: 0.6em;
@@ -237,7 +309,7 @@ main {
 .card {
   display: grid;
   row-gap: 18px;
-  padding: 18px 16px 20px;
+  padding: 16px;
   background: var(--field);
   border: 1px solid var(--rule);
   border-radius: 10px;
@@ -266,19 +338,18 @@ main {
 }
 .status-block {
   display: grid;
-  row-gap: 18px;
+  row-gap: 14px;
 }
+/* The four stats side by side, each its label over a bar and its value. */
 .stat-bars {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 18px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0 12px;
   margin: 0;
 }
 .stat-bar {
   display: grid;
-  grid-template-columns: 5.5em 1fr;
-  align-items: center;
-  column-gap: 8px;
+  row-gap: 4px;
   font-size: 12px;
 }
 .stat-bar dt {
@@ -286,7 +357,7 @@ main {
 }
 .stat-bar dd {
   display: grid;
-  grid-template-columns: 1fr 2.2em;
+  grid-template-columns: 1fr 1.8em;
   align-items: center;
   column-gap: 6px;
   margin: 0;
@@ -343,24 +414,29 @@ main {
 .bar-oneOff {
   background: var(--ink);
 }
-.bar-job {
-  background: var(--suit);
+/* Each kind of time has its own hue, told apart in both themes; tabs carry the same dot. */
+.bar-job,
+.tab-job::before {
+  background: var(--c-job);
 }
-.bar-study {
-  background: color-mix(in srgb, var(--suit) 55%, var(--suit-soft));
+.bar-study,
+.tab-study::before {
+  background: var(--c-study);
 }
-.bar-life {
-  background: var(--suit-soft);
+.bar-life,
+.tab-life::before {
+  background: var(--c-life);
 }
-.bar-work {
-  background: var(--sub);
+.bar-work,
+.tab-work::before {
+  background: var(--c-work);
 }
-/* Stripes keep over hours apart from the blues, not only by color. */
+/* Amber stripes mark over hours: a warning, apart from the other parts not only by color. */
 .bar-over {
   background: repeating-linear-gradient(
     -45deg,
-    var(--shu) 0 4px,
-    color-mix(in srgb, var(--shu) 45%, transparent) 4px 8px
+    var(--warn) 0 4px,
+    color-mix(in srgb, var(--warn) 45%, transparent) 4px 8px
   );
 }
 .bar-legend {
@@ -391,7 +467,12 @@ main {
   font-size: 12px;
 }
 .time-over {
-  color: var(--shu);
+  color: var(--warn);
+}
+.time-spare {
+  margin: 0;
+  font-size: 12px;
+  color: var(--c-study);
 }
 .time-left {
   color: var(--sub);
@@ -447,10 +528,50 @@ main {
   color: var(--sub);
   font-variant-numeric: tabular-nums;
 }
-.opt .after {
-  font-size: 12px;
-  color: var(--suit);
+/* The option's name and cost on the left, the hours it leaves this week large on the right. */
+.opt {
+  grid-template-columns: 1fr auto;
+  column-gap: 12px;
+}
+.opt .label,
+.opt .cost {
+  grid-column: 1;
+}
+.room-block {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: grid;
+  justify-items: end;
+  align-content: center;
+  row-gap: 2px;
   font-variant-numeric: tabular-nums;
+}
+.room {
+  display: grid;
+  justify-items: end;
+}
+.room-caption {
+  font-size: 11px;
+  color: var(--sub);
+}
+.room-hours {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+/* Running over is a warning, not a block: the option stays selectable, so it is amber, and red
+   is kept for options that cannot be taken. */
+.room-block.over .room-caption,
+.room-block.over .room-hours,
+.room-cost {
+  color: var(--warn);
+}
+.room-cost {
+  font-size: 11px;
+}
+.room-savings {
+  font-size: 11px;
+  color: var(--sub);
 }
 .week-status-block {
   display: grid;
@@ -463,6 +584,7 @@ main {
   font-variant-numeric: tabular-nums;
 }
 .opt:disabled {
+  opacity: 0.55;
   cursor: default;
   background: transparent;
   color: var(--sub);
@@ -470,9 +592,90 @@ main {
 .opt:disabled .cost {
   color: var(--shu);
 }
-.activity-group {
+.tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--rule);
+}
+.tab {
+  flex: none;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sub);
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+.tab[aria-selected="true"] {
+  color: var(--ink);
+  border-bottom-color: var(--suit);
+}
+.tab-job::before,
+.tab-study::before,
+.tab-life::before,
+.tab-work::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 2px;
+}
+.tab.limited {
+  color: var(--shu);
+}
+.tab:focus-visible {
+  outline: 2px solid var(--suit);
+  outline-offset: -2px;
+}
+.tile-stack {
   display: grid;
-  row-gap: 6px;
+}
+.tile-stack > .tiles {
+  grid-area: 1 / 1;
+  align-content: start;
+}
+.tile-stack > .tiles:not(.active) {
+  visibility: hidden;
+}
+.week-summary {
+  display: grid;
+  row-gap: 4px;
+}
+.week-summary .time-bar {
+  padding-bottom: 0;
+}
+/* Chosen tiles as small chips that wrap; tapping one takes it out of the timetable. */
+.chosen-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.chip {
+  padding: 2px 8px;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.chip span {
+  color: var(--sub);
+}
+.chip:hover,
+.chip:focus-visible {
+  border-color: var(--shu);
+  outline: none;
 }
 .activity-section {
   margin: 6px 0 0;
@@ -547,6 +750,17 @@ main {
   row-gap: 8px;
   animation: rise 0.45s ease 0.3s both;
 }
+/* During play the buttons stay at the bottom of the screen on any phone, clear of the home bar,
+   so moving the week on never needs a scroll. */
+.play .actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin: 0 -16px;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: var(--paper);
+  border-top: 1px solid var(--rule);
+}
 .next {
   box-sizing: border-box;
   text-align: center;
@@ -562,6 +776,31 @@ main {
   border: 0;
   border-radius: 4px;
   cursor: pointer;
+}
+.paused-note {
+  display: flex;
+  align-items: center;
+  column-gap: 10px;
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--shu);
+  background: color-mix(in srgb, var(--shu) 12%, transparent);
+  border-radius: 6px;
+  animation: rise 0.3s ease both;
+}
+.paused-head {
+  flex: none;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--paper);
+  background: var(--shu);
+  border-radius: 4px;
+}
+.paused-text {
+  display: grid;
+  color: var(--ink);
 }
 .speeds {
   display: grid;
@@ -748,7 +987,4 @@ main {
   .dots i {
     transition: none;
   }
-}
-.limited .activity-section {
-  color: var(--shu);
 }

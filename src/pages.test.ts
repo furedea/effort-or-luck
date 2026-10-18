@@ -25,3 +25,11 @@ test("sources page credits every source and states that pass rates are assumptio
   expect(html).toContain("地域別の内定率");
   expect(html).toContain("交通費や宿泊費の支給");
 });
+
+test("pages extend under the phone's home bar, so fixed buttons can keep clear of it", async () => {
+  const container = await AstroContainer.create();
+
+  const html = await container.renderToString(SourcesPage);
+
+  expect(html).toMatch(/<meta name="viewport" content="[^"]*viewport-fit=cover/);
+});

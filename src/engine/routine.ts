@@ -21,6 +21,8 @@ export interface RoutineSpec {
   readonly documentPrepPerWeek: number;
   readonly inviteBonusPerWeek: number;
   readonly boostsPerWeek: Readonly<Partial<Record<Boost, number>>>;
+  /** Open only to a self accepted into it, such as the long internship. */
+  readonly needsAcceptance: boolean;
 }
 
 const ALL_YEAR = { from: 0, until: WEEKS } as const;
@@ -30,6 +32,7 @@ const NONE = {
   documentPrepPerWeek: 0,
   inviteBonusPerWeek: 0,
   boostsPerWeek: {},
+  needsAcceptance: false,
 };
 
 function routine(
@@ -91,7 +94,9 @@ export const ROUTINES: readonly RoutineSpec[] = [
     key: "longIntern",
     kind: "job",
     weeklyHours: 16,
+    from: weekOfMonthStart(2),
     until: weekOfMonthStart(10),
+    needsAcceptance: true,
     prepPerWeek: 0.25,
   }),
   routine({
@@ -140,6 +145,11 @@ export function routineOf(key: RoutineKey): RoutineSpec {
 /** Whether the routine is open in `week`. */
 export function isOpen(spec: RoutineSpec, week: number): boolean {
   return week >= spec.from && week < spec.until;
+}
+
+/** Whether `life` can take the routine in `week`: open, and accepted into it if it needs that. */
+export function isAvailable(spec: RoutineSpec, week: number, life: Life): boolean {
+  return isOpen(spec, week) && (!spec.needsAcceptance || life.longInternAccepted);
 }
 
 /** Applies a week of the routine's effects other than stats. */

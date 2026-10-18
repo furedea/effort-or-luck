@@ -2,7 +2,7 @@
 // that always choosing the middle option lands near the surveyed June 1st offer rate.
 
 /** Bump whenever a change alters results, so shared links from older rules are reported as old. */
-export const RULES_VERSION = 12;
+export const RULES_VERSION = 15;
 
 export const WAGE_YEN_PER_HOUR = 1100;
 export const MONTHLY_EXPENSE_YEN = 130_000;
@@ -32,6 +32,8 @@ export const SICK_HOURS = 25;
 export const MAX_PASS_PROBABILITY = 0.9;
 export const PASS = {
   internEs: 0.3,
+  /** The long internship's written selection. */
+  longIntern: 0.35,
   inviteAfterFaceIntern: 0.7,
   inviteAfterOnlineIntern: 0.35,
   early: 0.25,
@@ -86,8 +88,19 @@ export const FOURTH_YEAR_RESEARCH_DRIFT = -1.2;
 /** Weekly hours of part-time and job hunting together beyond which health wears down. */
 export const HEALTHY_WORKLOAD_WEEKLY_HOURS = 30;
 export const HEALTH_PER_OVERLOAD_HOUR = 0.15;
-/** Health lost per hour beyond the week's free hours, taken from sleep. */
-export const HEALTH_PER_SLEEP_HOUR = 0.2;
+/**
+ * Hours beyond the week's free hours come out of sleep: the first few cost a little health each,
+ * hours beyond them much more, and every hour wears the mind down a little.
+ */
+/** Hours left free in a week rest health and mind a little, counted up to a cap. */
+export const SPARE_TIME = { maxHours: 10, perHour: 0.08 } as const;
+
+export const SLEEP_LOSS = {
+  lightHours: 5,
+  healthPerLightHour: 0.3,
+  healthPerHeavyHour: 0.8,
+  mindPerHour: 0.1,
+} as const;
 export const MIND_PER_JOB_HOUR = 0.025;
 export const MIND_WHEN_BROKE_WEEKLY = 0.8;
 export const BROKE_BELOW_YEN = 10_000;

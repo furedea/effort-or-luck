@@ -35,6 +35,10 @@ export interface Life {
   inviteBonus: number;
   /** Pass-rate raises from limited-time preparation, per selection stage. */
   boosts: Record<Boost, number>;
+  /** Whether the self passed the long internship's selection, which opens its tile. */
+  longInternAccepted: boolean;
+  /** Whether the self applied to the long internship, so its result comes the week after. */
+  longInternApplied: boolean;
   /** Hours lost each week to illness, a trip home, or deadlines, for `lostWeeks` more weeks. */
   lostWeekly: number;
   lostWeeks: number;
@@ -69,6 +73,8 @@ export function makeLife(seed: number, difficulty: Difficulty = "normal"): Life 
     documentPrep: 0,
     inviteBonus: 0,
     boosts: { internEs: 0, early: 0, entryEs: 0, final: 0 },
+    longInternAccepted: false,
+    longInternApplied: false,
     lostWeekly: 0,
     lostWeeks: 0,
     oneOff: { hours: 0, weeks: 0 },

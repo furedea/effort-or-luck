@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 
 import "../styles/game.css";
-import { describeEvent, routineTileLabel } from "../copy/scenes";
+import { describeEvent, optionLabel, routineTileLabel } from "../copy/scenes";
 import {
+  choiceLine,
   limitedLine,
+  type PauseReason,
   PLAY_AGAIN,
   shareText,
   TIMETABLE_RESTORED,
@@ -26,7 +28,7 @@ import type { Event } from "../engine/events";
 import type { OptionKey, RoutineKey, Stat } from "../engine/facts";
 import { isActive, type Life } from "../engine/life";
 import type { Difficulty } from "../engine/parameters";
-import { isLimited, ROUTINES } from "../engine/routine";
+import { isLimited, isOpen, ROUTINES, routineOf } from "../engine/routine";
 import { planWeek } from "../engine/week";
 import { encode } from "../share/result_link";
 import { DifficultyPicker } from "./difficulty_picker";
@@ -51,12 +53,17 @@ interface Game {
   /** The timetable being edited; it takes effect when the next week is lived. */
   readonly timetable: readonly RoutineKey[];
   readonly speed: Speed;
+  /** Why the game took auto play back to one week per press, until the player moves on. */
+  readonly pausedFor: PauseReason | null;
   /** Happenings that did not stop time, newest first. */
   readonly feed: readonly FeedEntry[];
   /** Stats already warned about, so each warning comes once. */
   readonly warned: readonly Stat[];
-  /** The timetable when an event booked hours, put back once they end. */
-  readonly beforeBooking: readonly RoutineKey[] | null;
+  /**
+   * The timetable before something temporary took room in it: hours an event booked, or a
+   * limited-time tile. Tiles dropped since come back once nothing temporary is left.
+   */
+  readonly beforeTemporary: readonly RoutineKey[] | null;
   readonly yearEnd: YearEnd | null;
 }
 
@@ -112,8 +119,9 @@ export function GameScreen() {
           timetable={game.timetable}
           speed={game.speed}
           feed={game.feed}
-          onTimetable={(timetable) => setGame({ ...game, timetable })}
-          onSpeed={(speed) => setGame({ ...game, speed })}
+          onTimetable={(timetable) => setGame(edit(game, timetable))}
+          pausedFor={game.pausedFor}
+          onSpeed={(speed) => setGame({ ...game, speed, pausedFor: null })}
           onStep={() => setGame(advance(game))}
           onChoose={(option: OptionKey) => setGame(decide(game, option))}
           onNext={() => setGame(acknowledge(game))}
@@ -133,9 +141,10 @@ function newGame(difficulty: Difficulty): Game {
     player,
     timetable: [],
     speed: "step",
+    pausedFor: null,
     feed: [],
     warned: [],
-    beforeBooking: null,
+    beforeTemporary: null,
     yearEnd: null,
   };
 }
@@ -157,20 +166,40 @@ function advance(game: Game): Game {
   const warnings =
     falling && life ? [{ week: cohort.week, text: warningLine(falling, life.stats[falling]) }] : [];
   const living = Boolean(life && isActive(life));
-  const appeared = living ? limitedEntries(cohort.week) : [];
-  // Tiles dropped to make room for an event's hours come back once those hours end.
-  const ended = booked.weeks === 1 ? game.beforeBooking : null;
-  const restored = living && ended && !sameTimetable(ended, game.timetable) ? ended : null;
+  const opened = living ? openedLimited(cohort.week) : [];
+  const appeared = opened.map((spec) => ({
+    week: cohort.week,
+    text: limitedLine(routineTileLabel(spec.key), spec.until - cohort.week),
+  }));
+  const [first] = opened;
+  const limitedPause: PauseReason | null = first
+    ? { kind: "limited", tile: routineTileLabel(first.key), weeks: first.until - cohort.week }
+    : null;
+  // Closed limited-time tiles leave the timetable; once nothing temporary is left, tiles dropped
+  // to make room come back, and tiles added meanwhile stay. The timetable is remembered from the
+  // week limited-time tiles appear, since room is often made before adding them.
+  const closesNow = ROUTINES.some((spec) => isLimited(spec) && spec.until === cohort.week);
+  const closed = game.timetable.filter(
+    (key) => isLimited(routineOf(key)) && !isOpen(routineOf(key), cohort.week),
+  );
+  const current = game.timetable.filter((key) => !closed.includes(key));
+  const stillTemporary =
+    (life?.oneOff.weeks ?? 0) > 0 || current.some((key) => isLimited(routineOf(key)));
+  const ending = (booked.weeks === 1 || closesNow) && !stillTemporary;
+  const restoring = ending && living && (booked.weeks === 1 || closed.length > 0);
+  const back = restoring ? droppedSince(game.beforeTemporary, current) : [];
+  const remembered = ending ? null : game.beforeTemporary;
   return {
     ...game,
     cohort,
-    timetable: restored ?? game.timetable,
-    beforeBooking: booked.weeks === 1 ? null : game.beforeBooking,
+    timetable: [...current, ...back],
+    beforeTemporary: remembered ?? (opened.length ? game.timetable : null),
     // Limited-time preparation would pass within seconds at speed, so time waits for the player.
     speed: appeared.length ? "step" : game.speed,
+    pausedFor: game.speed !== "step" ? limitedPause : null,
     feed: [
       ...appeared,
-      ...(restored ? [{ week: cohort.week, text: TIMETABLE_RESTORED }] : []),
+      ...(back.length ? [{ week: cohort.week, text: TIMETABLE_RESTORED }] : []),
       ...warnings,
       ...noticeEntries(cohort, game.player),
       ...game.feed,
@@ -180,11 +209,8 @@ function advance(game: Game): Game {
 }
 
 /** Limited-time preparation that opens this week. */
-function limitedEntries(week: number): FeedEntry[] {
-  return ROUTINES.filter((spec) => isLimited(spec) && spec.from === week).map((spec) => ({
-    week,
-    text: limitedLine(routineTileLabel(spec.key), spec.until - week),
-  }));
+function openedLimited(week: number) {
+  return ROUTINES.filter((spec) => isLimited(spec) && spec.from === week);
 }
 
 /**
@@ -192,16 +218,30 @@ function limitedEntries(week: number): FeedEntry[] {
  * on the timetable so the player can drop something or accept losing sleep.
  */
 function decide(game: Game, option: OptionKey): Game {
-  const takesHours = Boolean(stopAt(game)?.options.find((o) => o.key === option)?.hours);
+  const event = stopAt(game);
+  const taken = event?.options.find((o) => o.key === option);
+  const takesHours = Boolean(taken?.hours);
+  const choice =
+    event && taken
+      ? [
+          {
+            week: game.cohort.week,
+            text: choiceLine(describeEvent(event).lines[0] ?? "", optionLabel(taken, event.facts)),
+          },
+        ]
+      : [];
   const cohort = choose(withTimetable(game.cohort, game.timetable), option);
   const life = cohort.lives[game.player];
-  const over =
-    takesHours && life ? planWeek(life, cohort.week, game.timetable).shortHours > 0 : false;
+  const shortHours =
+    takesHours && life ? planWeek(life, cohort.week, game.timetable).shortHours : 0;
+  const over = shortHours > 0;
   return {
     ...game,
     cohort,
     speed: over ? "step" : game.speed,
-    beforeBooking: takesHours ? game.timetable : game.beforeBooking,
+    pausedFor: over && game.speed !== "step" ? { kind: "over", hours: shortHours } : game.pausedFor,
+    beforeTemporary: takesHours ? (game.beforeTemporary ?? game.timetable) : game.beforeTemporary,
+    feed: [...choice, ...game.feed],
   };
 }
 
@@ -223,6 +263,23 @@ function noticeEntries(cohort: Cohort, player: number): FeedEntry[] {
   const event = cohort.events[player];
   if (!event || event.options.length || STOPPING_NOTICES.includes(event.facts.id)) return [];
   return [{ week: cohort.week, text: describeEvent(event).lines.join("") }];
+}
+
+/** A timetable edit; adding a limited-time tile remembers the timetable before it. */
+function edit(game: Game, timetable: readonly RoutineKey[]): Game {
+  const addsLimited = timetable.some(
+    (key) => isLimited(routineOf(key)) && !game.timetable.includes(key),
+  );
+  const beforeTemporary = game.beforeTemporary ?? (addsLimited ? game.timetable : null);
+  return { ...game, timetable, beforeTemporary };
+}
+
+/** Tiles in `before` that are no longer in `current` and can still be planned. */
+function droppedSince(
+  before: readonly RoutineKey[] | null,
+  current: readonly RoutineKey[],
+): RoutineKey[] {
+  return (before ?? []).filter((key) => !current.includes(key) && !isLimited(routineOf(key)));
 }
 
 function withTimetable(cohort: Cohort, timetable: readonly RoutineKey[]): Cohort {

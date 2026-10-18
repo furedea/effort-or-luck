@@ -46,10 +46,25 @@ function startYear(host: HTMLElement) {
 }
 
 const when = (host: HTMLElement) => host.querySelector(".when")?.textContent;
-const tileNamed = (host: HTMLElement, name: string) =>
-  [...host.querySelectorAll<HTMLButtonElement>(".activity")].find(
-    (button) => button.querySelector(".activity-name")?.textContent === name,
+/** The tile named `name`, switching tabs until its group is shown. */
+function tileNamed(host: HTMLElement, name: string): HTMLButtonElement {
+  const visible = () =>
+    [...host.querySelectorAll<HTMLButtonElement>(".tiles.active .activity")].find(
+      (button) => button.querySelector(".activity-name")?.textContent === name,
+    );
+  for (const tab of [null, ...host.querySelectorAll<HTMLButtonElement>(".tab")]) {
+    if (tab) click(tab);
+    const found = visible();
+    if (found) return found;
+  }
+  throw new Error(`no tile named ${name}`);
+}
+
+function tabNamed(host: HTMLElement, name: string): HTMLButtonElement {
+  return [...host.querySelectorAll<HTMLButtonElement>(".tab")].find(
+    (tab) => tab.textContent === name,
   )!;
+}
 const stepButton = (host: HTMLElement) => host.querySelector<HTMLButtonElement>(".actions .step");
 const speedButton = (host: HTMLElement, label: string) =>
   [...host.querySelectorAll<HTMLButtonElement>(".speeds button")].find(
@@ -96,13 +111,47 @@ test("starts the stats from the chosen difficulty", () => {
   expect(health).toBe("55");
 });
 
-test("groups the situation and the event into titled cards, with buttons below them", () => {
+test("groups the situation and the event into cards, with buttons below them", () => {
   const host = mount();
 
   const titles = [...host.querySelectorAll(".card > .card-title")].map((n) => n.textContent);
-  expect(titles).toEqual(["いまの状況", "出来事"]);
+  expect(titles).toEqual(["出来事"]);
   expect(host.querySelector(".card .stat-bars")).not.toBeNull();
   expect(host.querySelector(".card .next")).toBeNull();
+});
+
+test("keeps the top slim: the date beside the progress, and only the latest happening", () => {
+  const host = mount();
+  startYear(host);
+  click(speedButton(host, "▶▶ 2倍"));
+  for (let guard = 0; guard < 40 && host.querySelectorAll(".feed-entry").length === 0; guard++) {
+    keepFlowing(host);
+  }
+
+  expect(host.querySelector(".play-head .progress-bar")).not.toBeNull();
+  expect(host.querySelectorAll(".feed-entry")).toHaveLength(1);
+});
+
+test("shows the monthly money flow under savings, with its parts on demand", () => {
+  const host = mount();
+
+  expect(host.querySelector(".money-detail summary")?.textContent).toMatch(/^毎月 [−+]/);
+  expect(host.querySelector(".money-detail dl")?.textContent).toContain("生活費・家賃込み");
+});
+
+test("keeps every happening and choice in a history opened from the latest line", () => {
+  const host = mount();
+  startYear(host);
+  click(speedButton(host, "▶▶ 2倍"));
+  for (let guard = 0; guard < 100 && !host.querySelector(".event .opt"); guard++) {
+    keepFlowing(host);
+  }
+  const label = host.querySelector(".event .opt:not([disabled]) .label")?.textContent ?? "";
+  click(host.querySelector<HTMLButtonElement>(".event .opt:not([disabled])")!);
+
+  const history = [...host.querySelectorAll(".history li")].map((n) => n.textContent);
+  expect(history[0]).toContain(`→ ${label}`);
+  expect(host.querySelector(".history summary")?.textContent).toContain(`→ ${label}`);
 });
 
 test("opens on the first week with the opening notice", () => {
@@ -152,9 +201,31 @@ test("returns to one week per press when limited-time preparation appears", () =
 
   expect(when(host)).toBe("5月 第1週");
   expect(stepButton(host)).not.toBeNull();
-  expect(host.querySelector(".feed li")?.textContent).toContain(
+  expect(host.querySelector(".feed-entry")?.textContent).toContain(
     "★ 今だけ：夏インターンのES対策（あと4週）",
   );
+  expect(host.querySelector(".tab[aria-selected='true']")?.textContent).toBe("★ 今だけ");
+  const note = host.querySelector(".actions .paused-note");
+  expect(note?.querySelector(".paused-head")?.textContent).toBe("一時停止");
+  expect([...(note?.querySelectorAll(".paused-line") ?? [])].map((n) => n.textContent)).toEqual([
+    "夏インターンのES対策が出た．",
+    "入れるなら今（あと4週）",
+  ]);
+
+  click(speedButton(host, "▶ 自動"));
+  expect(host.querySelector(".actions .paused-note")).toBeNull();
+});
+
+test("opens the limited-time tab even when another tab was chosen", () => {
+  const host = mount();
+  startYear(host);
+  click(tabNamed(host, "お金"));
+
+  for (let i = 0; i < 4; i++) click(stepButton(host)!);
+
+  expect(when(host)).toBe("5月 第1週");
+  expect(host.querySelector(".tab[aria-selected='true']")?.textContent).toBe("★ 今だけ");
+  expect(host.querySelector(".actions .paused-note")).toBeNull();
 });
 
 test("stops only for choices, listing other happenings while time flows", () => {
@@ -177,7 +248,7 @@ test("stops only for choices, listing other happenings while time flows", () => 
 
   expect(stopsWithoutChoice).toEqual([]);
   expect(when(host)).toBe("6月1日");
-  expect(host.querySelectorAll(".feed li").length).toBeGreaterThan(0);
+  expect(host.querySelectorAll(".feed-entry").length).toBeGreaterThan(0);
 });
 
 test("can be played from the first week to the reveal", () => {
@@ -198,9 +269,10 @@ test("shows this week's hours and what each option leaves at an event", () => {
   }
 
   expect(host.querySelector(".event .week-status")?.textContent).toMatch(/^週.+時間（.+）・貯金 /);
-  const afters = [...host.querySelectorAll(".event .opt .after")].map((n) => n.textContent);
-  expect(afters.length).toBeGreaterThan(0);
-  for (const after of afters) expect(after).toMatch(/^選ぶと：/);
+  const rooms = [...host.querySelectorAll(".event .opt .room")].map((n) => n.textContent);
+  expect(rooms.length).toBeGreaterThan(0);
+  for (const room of rooms)
+    expect(room).toMatch(/^(今週の残り\d+(\.\d)?時間|今週オーバー\d+(\.\d)?時間)$/);
 });
 
 /** Plays at double speed until the first event with options, after `setUp` on the first week. */
@@ -304,12 +376,40 @@ test("puts back the tiles dropped for an event's hours when they end, without st
   click(tileNamed(host, "説明会"));
   expect(tileNamed(host, "説明会").getAttribute("aria-pressed")).toBe("false");
 
-  const restored = () => host.querySelector(".feed li")?.textContent?.includes("元に戻した");
+  const restored = () => host.querySelector(".feed-entry")?.textContent?.includes("元に戻した");
   for (let guard = 0; guard < 6 && !restored(); guard++) passMs(300);
 
   expect(restored()).toBe(true);
-  expect(tileNamed(host, "説明会").getAttribute("aria-pressed")).toBe("true");
   expect(stepButton(host)).toBeNull();
+  // The next event may already be on screen; declining it shows the timetable again.
+  const decline = () => host.querySelectorAll<HTMLButtonElement>(".event .opt").item(1);
+  if (decline()) click(decline());
+  expect(tileNamed(host, "説明会").getAttribute("aria-pressed")).toBe("true");
+});
+
+test("puts back tiles dropped for a limited-time tile once it closes, and keeps tiles added", () => {
+  const host = mount();
+  startYear(host);
+  click(tileNamed(host, "説明会"));
+  click(tileNamed(host, "研究・ゼミ"));
+  for (let i = 0; i < 4; i++) click(stepButton(host)!);
+  expect(when(host)).toBe("5月 第1週");
+
+  click(tileNamed(host, "説明会"));
+  click(tileNamed(host, "夏インターンのES対策"));
+  click(tileNamed(host, "ゆっくり休む"));
+  const pressed = (name: string) => tileNamed(host, name).getAttribute("aria-pressed");
+  expect(pressed("説明会")).toBe("false");
+
+  // Declining events on the way, live until the limited-time tile has closed in June.
+  for (let guard = 0; guard < 12 && when(host) !== "6月 第2週"; guard++) {
+    const options = [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")];
+    click(options.at(-1) ?? stepButton(host)!);
+  }
+
+  expect(pressed("説明会")).toBe("true");
+  expect(pressed("ゆっくり休む")).toBe("true");
+  expect(host.querySelector(".chosen-chips")?.textContent).not.toContain("夏インターンのES対策");
 });
 
 test("moves focus to an event when time stops for it", () => {
@@ -399,10 +499,7 @@ describe("the weekly timetable", () => {
     return host;
   }
   const total = (host: HTMLElement) => host.querySelector(".time-total")?.textContent;
-  const tile = (host: HTMLElement, name: string) =>
-    [...host.querySelectorAll<HTMLButtonElement>(".activity")].find(
-      (button) => button.querySelector(".activity-name")?.textContent === name,
-    )!;
+  const tile = tileNamed;
 
   it("adds a chosen routine's weekly hours to the bar and removes them when chosen again", () => {
     const host = firstWeek();
@@ -422,20 +519,64 @@ describe("the weekly timetable", () => {
     for (let i = 0; i < 4; i++) click(stepButton(host)!);
 
     expect(when(host)).toBe("5月 第1週");
-    const tile = host.querySelector(".limited .activity");
+    click(tabNamed(host, "★ 今だけ"));
+    const tile = host.querySelector(".tiles.active .activity");
     expect(tile?.querySelector(".activity-name")?.textContent).toBe("夏インターンのES対策");
     expect(tile?.querySelector(".activity-cost")?.textContent).toBe("週4時間・あと4週");
   });
 
-  it("groups the tiles into job hunting, study, oneself, and money", () => {
+  it("shows one group of tiles at a time, chosen by tabs", () => {
     const host = firstWeek();
-    const groups = [...host.querySelectorAll(".activity-group")].map((group) => ({
-      title: group.querySelector(".activity-section")?.textContent,
-      tiles: [...group.querySelectorAll(".activity-name")].map((n) => n.textContent),
-    }));
+    const names = () =>
+      [...host.querySelectorAll(".tiles.active .activity-name")].map((n) => n.textContent);
 
-    expect(groups.map((g) => g.title)).toEqual(["就活", "学業", "自分のこと", "お金"]);
-    expect(groups[1]?.tiles).toEqual(["資格の勉強", "研究・ゼミ"]);
+    expect([...host.querySelectorAll(".tab")].map((n) => n.textContent)).toEqual([
+      "就活",
+      "学業",
+      "自分のこと",
+      "お金",
+    ]);
+    click(tabNamed(host, "学業"));
+    expect(names()).toEqual(["資格の勉強", "研究・ゼミ"]);
+  });
+
+  it("keeps every tab's tiles stacked in one place, so switching tabs keeps the height", () => {
+    const host = firstWeek();
+    const panels = [...host.querySelectorAll(".tile-stack > .tiles")];
+
+    expect(panels).toHaveLength(host.querySelectorAll(".tab").length);
+    expect(panels.filter((panel) => panel.classList.contains("active"))).toHaveLength(1);
+    for (const panel of panels.filter((p) => !p.classList.contains("active"))) {
+      expect(panel.hasAttribute("inert")).toBe(true);
+    }
+  });
+
+  it("lists the chosen tiles under the bar as small chips that remove them", () => {
+    const host = firstWeek();
+    click(tile(host, "説明会"));
+    click(tile(host, "友達と遊ぶ"));
+    const chips = () =>
+      [...host.querySelectorAll<HTMLButtonElement>(".chosen-chips .chip")].map(
+        (c) => c.textContent,
+      );
+
+    expect(chips()).toEqual(["説明会 ×", "友達と遊ぶ ×"]);
+
+    click(host.querySelector<HTMLButtonElement>(".chosen-chips .chip")!);
+
+    expect(chips()).toEqual(["友達と遊ぶ ×"]);
+    expect(tile(host, "説明会").getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("gives the price of tiles that cost or pay money", () => {
+    const host = firstWeek();
+
+    expect(tile(host, "就活講座").querySelector(".activity-cost")?.textContent).toBe(
+      "週4時間・5,000円",
+    );
+    expect(tile(host, "バイト").querySelector(".activity-cost")?.textContent).toBe(
+      "週8時間・+9,000円",
+    );
   });
 
   it("clears every tile at once", () => {

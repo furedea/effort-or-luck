@@ -1,7 +1,6 @@
 import { JUNE_OFFER_RATE, JUNE_OFFER_RATE_BY_REGION } from "../data/statistics";
 import type { LogFact, Stat } from "../engine/facts";
 import {
-  HEALTH_PER_SLEEP_HOUR,
   METRO_SHARE,
   MONTHLY_EXPENSE_YEN,
   STARTING_MONEY_YEN,
@@ -56,11 +55,31 @@ export const LINK_ERRORS = {
 
 export const SECTION = { job: "就活", study: "学業", life: "自分のこと", work: "お金" } as const;
 export const STEP = "次の週へ";
+/** Why the game took auto play back to one week per press. */
+export type PauseReason =
+  | { readonly kind: "limited"; readonly tile: string; readonly weeks: number }
+  | { readonly kind: "over"; readonly hours: number };
+
+export const PAUSE_HEAD = "一時停止";
+
+/** What made auto play pause and what the player can do now. */
+export function pauseLines(reason: PauseReason): string[] {
+  if (reason.kind === "limited") {
+    return [`${reason.tile}が出た．`, `入れるなら今（あと${reason.weeks}週）`];
+  }
+  return [`今週が${Number(reason.hours.toFixed(1))}時間はみ出た．`, "札を外すか，そのまま進む"];
+}
 export const SPEED_LABELS = { step: "1週ずつ", normal: "▶ 自動", double: "▶▶ 2倍" } as const;
-export const FEED_TITLE = "これまで";
 export const TIMETABLE_TITLE = "毎週の過ごし方";
-export const CARD_TITLES = { status: "いまの状況", event: "出来事" } as const;
+export const CARD_TITLES = { event: "出来事" } as const;
 export const CLEAR_ALL = "全部外す";
+
+export const CHOSEN_LABEL = "選んだ札";
+
+/** What a chip of a chosen tile does, for screen readers, e.g. "説明会を外す". */
+export function removeLabel(tile: string): string {
+  return `${tile}を外す`;
+}
 export const TIMETABLE_RESTORED = "予定が終わったので，時間割を元に戻した";
 export const LIMITED_TITLE = "★ 今だけ";
 
@@ -100,28 +119,30 @@ export function weekStatusLine(used: number, budget: number, money: number): str
   return `${budgetLine(used, budget)}・貯金 ${yen(Math.round(money))}`;
 }
 
-interface OptionAfter {
-  /** Hours left this week after choosing; negative when the week runs over. */
-  readonly hoursLeft: number;
-  /** Weeks the option's hours last. */
-  readonly weeks: number;
-  readonly moneyAfter: number;
+/** The hours an option leaves in the week, or runs over it by, for a badge beside the option. */
+export function optionRoom(hoursLeft: number): {
+  over: boolean;
+  caption: string;
+  hours: string;
+  /** What running over costs; the option can still be chosen. */
+  cost: string | null;
+} {
+  const hours = `${Number(Math.abs(hoursLeft).toFixed(1))}時間`;
+  return hoursLeft >= 0
+    ? { over: false, caption: "今週の残り", hours, cost: null }
+    : { over: true, caption: "今週オーバー", hours, cost: "睡眠を削る・健康↓・心↓" };
 }
 
-/** What choosing an option leaves, e.g. "選ぶと：今週あと12時間・貯金 3万円". */
-export function optionAfterLine({ hoursLeft, weeks, moneyAfter }: OptionAfter): string {
-  const hours = Number(Math.abs(hoursLeft).toFixed(1));
-  const span = weeks > 1 ? `${weeks}週間，毎週` : "今週";
-  const time =
-    hoursLeft >= 0 ? `${span}あと${hours}時間` : `${span}${hours}時間オーバー（睡眠を削る）`;
-  return `選ぶと：${time}・貯金 ${yen(Math.max(0, Math.round(moneyAfter)))}`;
+/** Savings after an option that costs or pays money. */
+export function savingsAfterLine(money: number): string {
+  return `貯金 ${yen(Math.max(0, money))}`;
 }
 
-/** Hours beyond the free hours, taken from sleep, e.g. "はみ出た週5時間は睡眠を削る（健康 −1／週）". */
-export function overflowLine(shortHours: number): string {
-  const hours = Number(shortHours.toFixed(1));
-  const health = Number((shortHours * HEALTH_PER_SLEEP_HOUR).toFixed(1));
-  return `はみ出た週${hours}時間は睡眠を削る（健康 −${health}／週）`;
+/** What the week's slack does: hours over cost health and mind, hours left over help them. */
+export function slackLine(shortHours: number, spareHours: number): string | null {
+  if (shortHours > 0) return "睡眠を削るので，健康・心↓";
+  if (spareHours > 0) return "余った時間で，健康・心↑";
+  return null;
 }
 
 export function oneOffLine(hours: number): string {
@@ -146,20 +167,33 @@ export const LOW_NOTE = "（少ない）";
 const LOW_SAVINGS_YEN = 10_000;
 
 /** The self's situation as labeled figures, shown under the period. */
-export function statusItems(status: {
-  allowance: number;
-  scholarship: number;
-  money: number;
-  offers: number;
-}): StatusItem[] {
+/** What changes during play; allowance and scholarship stay as the opening says. */
+export function statusItems(status: { money: number; offers: number }): StatusItem[] {
   return [
-    { label: "仕送り", value: yen(status.allowance), low: false },
-    ...(status.scholarship
-      ? [{ label: "奨学金", value: yen(status.scholarship), low: false }]
-      : []),
     { label: "貯金", value: yen(status.money), low: status.money < LOW_SAVINGS_YEN },
     { label: "内定", value: status.offers ? `${status.offers} 社` : "なし", low: false },
   ];
+}
+
+/** The monthly money flow for the status card, with its parts, e.g. "毎月 −5万円". */
+export function monthlyBreakdown(money: { allowance: number; scholarship: number }) {
+  const signed = (value: number) => (value < 0 ? `−${yen(-value)}` : `+${yen(value)}`);
+  const net = money.allowance + money.scholarship - MONTHLY_EXPENSE_YEN;
+  return {
+    summary: `毎月 ${signed(net)}`,
+    rows: [
+      { label: "仕送り", value: signed(money.allowance) },
+      ...(money.scholarship ? [{ label: "奨学金", value: signed(money.scholarship) }] : []),
+      { label: "生活費・家賃込み", value: signed(-MONTHLY_EXPENSE_YEN) },
+    ],
+  };
+}
+
+export const HISTORY_TITLE = "これまで";
+
+/** A choice in the history, e.g. "ゴールデンウィーク，友達に旅行に誘われた．→ 行く". */
+export function choiceLine(situation: string, option: string): string {
+  return `${situation} → ${option}`;
 }
 
 const LOW_STAT = 25;

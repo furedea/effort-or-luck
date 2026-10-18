@@ -3,13 +3,13 @@ import {
   DIFFICULTY,
   FOURTH_YEAR_RESEARCH_DRIFT,
   HEALTH_PER_OVERLOAD_HOUR,
-  HEALTH_PER_SLEEP_HOUR,
   HEALTHY_WORKLOAD_WEEKLY_HOURS,
   MIND_PER_JOB_HOUR,
+  SPARE_TIME,
   STARTING_STATS,
   WEEKLY_DRIFT,
 } from "./parameters";
-import { liveThroughPeriod, shock } from "./wellbeing";
+import { liveThroughPeriod, shock, sleepCost } from "./wellbeing";
 
 const friends = { statsPerWeek: { social: 1.4 } };
 
@@ -31,6 +31,7 @@ describe("living through a period", () => {
       jobHours: 0,
       extraWorkHours: 0,
       shortHours: 0,
+      spareHours: 0,
     });
 
     expect(life.stats.social).toBeCloseTo(STARTING_STATS.social + WEEKLY_DRIFT.social * 4);
@@ -47,6 +48,7 @@ describe("living through a period", () => {
       jobHours: 0,
       extraWorkHours: 0,
       shortHours: 0,
+      spareHours: 0,
     });
 
     expect(life.stats.research).toBeCloseTo(
@@ -64,6 +66,7 @@ describe("living through a period", () => {
       jobHours: 0,
       extraWorkHours: 0,
       shortHours: 0,
+      spareHours: 0,
     });
 
     expect(life.stats.social).toBeCloseTo(STARTING_STATS.social + (WEEKLY_DRIFT.social + 1.4) * 4);
@@ -80,6 +83,7 @@ describe("living through a period", () => {
       jobHours,
       extraWorkHours: 0,
       shortHours: 0,
+      spareHours: 0,
     });
 
     expect(life.stats.health).toBeCloseTo(
@@ -103,6 +107,7 @@ describe("the end of the year", () => {
       jobHours: 0,
       extraWorkHours: 0,
       shortHours: 0,
+      spareHours: 0,
     });
 
     expect(life.over).toBe("social");
@@ -129,6 +134,7 @@ describe("the end of the year", () => {
       jobHours: 0,
       extraWorkHours: 0,
       shortHours: 0,
+      spareHours: 0,
     });
     const health = life.stats.health;
 
@@ -139,6 +145,7 @@ describe("the end of the year", () => {
       jobHours: 0,
       extraWorkHours: 0,
       shortHours: 0,
+      spareHours: 0,
     });
 
     expect(life.stats.health).toBe(health);
@@ -169,6 +176,7 @@ describe("difficulty", () => {
         jobHours: 0,
         extraWorkHours: 0,
         shortHours: 0,
+        spareHours: 0,
       });
       return life.stats.social - before;
     };
@@ -179,19 +187,47 @@ describe("difficulty", () => {
   });
 });
 
-test("hours beyond the free hours come out of sleep and cost health", () => {
-  const life = makeLife(1);
-
-  liveThroughPeriod(life, {
-    weeks: 1,
-    fourthYear: false,
-    taken: [],
-    jobHours: 0,
-    extraWorkHours: 0,
-    shortHours: 5,
+describe("hours taken from sleep", () => {
+  it("cost a little for the first few hours and much more beyond", () => {
+    expect(sleepCost(2)).toEqual({ health: 0.6, mind: 0.2 });
+    expect(sleepCost(5)).toEqual({ health: 1.5, mind: 0.5 });
+    expect(sleepCost(10).health).toBeCloseTo(5.5);
+    expect(sleepCost(20).health).toBeCloseTo(13.5);
   });
 
-  expect(life.stats.health).toBeCloseTo(
-    STARTING_STATS.health + WEEKLY_DRIFT.health - 5 * HEALTH_PER_SLEEP_HOUR,
-  );
+  it("move health and mind each week", () => {
+    const life = makeLife(1);
+
+    liveThroughPeriod(life, {
+      weeks: 1,
+      fourthYear: false,
+      taken: [],
+      jobHours: 0,
+      extraWorkHours: 0,
+      shortHours: 10,
+      spareHours: 0,
+    });
+
+    expect(life.stats.health).toBeCloseTo(STARTING_STATS.health + WEEKLY_DRIFT.health - 5.5);
+    expect(life.stats.mind).toBeCloseTo(STARTING_STATS.mind + WEEKLY_DRIFT.mind - 1);
+  });
+});
+
+test("hours left over in the week help health and mind a little, up to ten hours", () => {
+  const gain = (spareHours: number) => {
+    const life = makeLife(1);
+    liveThroughPeriod(life, {
+      weeks: 1,
+      fourthYear: false,
+      taken: [],
+      jobHours: 0,
+      extraWorkHours: 0,
+      shortHours: 0,
+      spareHours,
+    });
+    return life.stats.health - (STARTING_STATS.health + WEEKLY_DRIFT.health);
+  };
+
+  expect(gain(5)).toBeCloseTo(5 * SPARE_TIME.perHour);
+  expect(gain(30)).toBeCloseTo(SPARE_TIME.maxHours * SPARE_TIME.perHour);
 });

@@ -65,6 +65,8 @@ export type EventFacts =
       readonly weeklyHours: number;
       readonly money: number;
     }
+  | { readonly id: "longInternCall" }
+  | { readonly id: "longInternResult"; readonly passed: boolean }
   | { readonly id: "internEs" }
   | {
       readonly id: "summerIntern";
@@ -138,7 +140,9 @@ export type OptionKey =
   | "midtermPrep"
   | "midtermMinimal"
   | "studyJoin"
-  | "studySkip";
+  | "studySkip"
+  | "applyIntern"
+  | "skipInternCall";
 
 export type LogFact =
   | { readonly kind: "profile"; readonly allowance: number; readonly metro: boolean }

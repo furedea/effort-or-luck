@@ -1,5 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
+import { yen } from "../copy/format";
 import {
   describeEvent,
   optionCost,
@@ -15,15 +16,22 @@ import {
   barLegendItem,
   budgetLine,
   CANNOT_PAY,
+  CHOSEN_LABEL,
+  removeLabel,
   CARD_TITLES,
   CLEAR_ALL,
-  FEED_TITLE,
   LIMITED_TITLE,
+  HISTORY_TITLE,
   LOW_NOTE,
+  monthlyBreakdown,
   NEXT,
-  optionAfterLine,
+  optionRoom,
   oneOffLine,
-  overflowLine,
+  slackLine,
+  PAUSE_HEAD,
+  pauseLines,
+  type PauseReason,
+  savingsAfterLine,
   SECTION,
   SPEED_LABELS,
   statBars,
@@ -37,7 +45,7 @@ import { WEEKS } from "../engine/calendar";
 import type { Event, PricedOption } from "../engine/events";
 import type { OptionKey, RoutineKey } from "../engine/facts";
 import type { Life } from "../engine/life";
-import { isLimited, isOpen, ROUTINES, type RoutineSpec } from "../engine/routine";
+import { isAvailable, isLimited, ROUTINES, type RoutineSpec } from "../engine/routine";
 import { planWeek } from "../engine/week";
 
 /** How time moves: one week per press, or on its own at normal or double speed. */
@@ -55,6 +63,7 @@ interface Props {
   readonly event: Event | null;
   readonly timetable: readonly RoutineKey[];
   readonly speed: Speed;
+  readonly pausedFor: PauseReason | null;
   readonly feed: readonly FeedEntry[];
   readonly onTimetable: (timetable: readonly RoutineKey[]) => void;
   readonly onSpeed: (speed: Speed) => void;
@@ -72,16 +81,15 @@ export function PlayView(props: Props) {
   }, [event]);
   return (
     <section className="play">
-      <div className="progress-bar" aria-hidden="true">
-        <span style={{ width: `${(Math.min(week, WEEKS) / WEEKS) * 100}%` }} />
-      </div>
       <header className="play-head">
         <h2 className="when" ref={heading} tabIndex={-1}>
           {weekLabel(week)}
         </h2>
+        <div className="progress-bar" aria-hidden="true">
+          <span style={{ width: `${(Math.min(week, WEEKS) / WEEKS) * 100}%` }} />
+        </div>
       </header>
-      <div className="card">
-        <h3 className="card-title">{CARD_TITLES.status}</h3>
+      <div className="card status-card">
         <Status life={life} />
       </div>
       <Feed entries={feed} />
@@ -103,6 +111,18 @@ export function PlayView(props: Props) {
             onChange={props.onTimetable}
           />
           <div className="actions">
+            {props.pausedFor ? (
+              <p className="paused-note" role="status">
+                <span className="paused-head">{PAUSE_HEAD}</span>
+                <span className="paused-text">
+                  {pauseLines(props.pausedFor).map((line) => (
+                    <span key={line} className="paused-line">
+                      {line}
+                    </span>
+                  ))}
+                </span>
+              </p>
+            ) : null}
             {speed === "step" ? (
               <button type="button" className="next step" onClick={props.onStep}>
                 {STEP}
@@ -128,32 +148,52 @@ export function PlayView(props: Props) {
   );
 }
 
-const FEED_SHOWN = 3;
-
+/** The latest happening that did not stop time, in one line. */
 function Feed({ entries }: { entries: readonly FeedEntry[] }) {
-  if (!entries.length) return null;
+  const [latest] = entries;
+  if (!latest) return null;
+  // The latest line stays in view; the whole history opens from it without taking room.
   return (
-    <section className="feed-block">
-      <h3 className="activity-section">{FEED_TITLE}</h3>
-      <ul className="feed" aria-live="polite">
-        {entries.slice(0, FEED_SHOWN).map(({ week, text }) => (
-          <li key={`${week}${text}`}>
+    <details className="history">
+      <summary>
+        <span className="feed-entry" aria-live="polite">
+          <span className="feed-when">{weekLabel(latest.week)}</span>
+          {latest.text}
+        </span>
+        <span className="history-open">{HISTORY_TITLE}</span>
+      </summary>
+      <ul>
+        {entries.map(({ week, text }, k) => (
+          <li key={k}>
             <span className="feed-when">{weekLabel(week)}</span>
             {text}
           </li>
         ))}
       </ul>
-    </section>
+    </details>
+  );
+}
+
+/** The monthly flow under savings; its parts open on demand. */
+function MoneyDetail({ life }: { life: Life }) {
+  const { summary, rows } = monthlyBreakdown(life);
+  return (
+    <details className="money-detail">
+      <summary>{summary}</summary>
+      <dl>
+        {rows.map(({ label, value }) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </details>
   );
 }
 
 function Status({ life }: { life: Life }) {
-  const items = statusItems({
-    allowance: life.allowance,
-    scholarship: life.scholarship,
-    money: life.money,
-    offers: life.offers.length,
-  });
+  const items = statusItems({ money: life.money, offers: life.offers.length });
   return (
     <div className="status-block">
       <dl className="status">
@@ -167,6 +207,7 @@ function Status({ life }: { life: Life }) {
           </div>
         ))}
       </dl>
+      <MoneyDetail life={life} />
       <dl className="stat-bars">
         {statBars(life.stats).map(({ stat, label, value, low }) => (
           <div key={stat} className={low ? "stat-bar low" : "stat-bar"}>
@@ -207,12 +248,8 @@ function EventPanel({
   // An option's hours replace any one-off booked before, so they are added to the routines alone.
   const bookedHours = life.oneOff.weeks > 0 ? life.oneOff.hours / life.oneOff.weeks : 0;
   const routineHours = preview.hours - bookedHours;
-  const after = (option: PricedOption) =>
-    optionAfterLine({
-      hoursLeft: preview.budget - routineHours - option.hours / option.weeks,
-      weeks: option.weeks,
-      moneyAfter: life.money - option.money + (option.pay ?? 0),
-    });
+  const roomOf = (option: PricedOption) =>
+    optionRoom(preview.budget - routineHours - option.hours / option.weeks);
   return (
     <div className="event">
       <div className="card">
@@ -257,7 +294,16 @@ function EventPanel({
               <span className="cost">
                 {option.shortfall ? shortfallReason(option.shortfall) : optionCost(option)}
               </span>
-              {option.shortfall ? null : <span className="after">{after(option)}</span>}
+              {option.shortfall ? null : (
+                <OptionRoom
+                  room={roomOf(option)}
+                  savings={
+                    option.money || option.pay
+                      ? savingsAfterLine(life.money - option.money + (option.pay ?? 0))
+                      : null
+                  }
+                />
+              )}
             </button>
           ))
         ) : (
@@ -288,6 +334,16 @@ function Timetable({
     );
   };
   const oneOffHours = life.oneOff.weeks > 0 ? life.oneOff.hours / life.oneOff.weeks : 0;
+  // A tab chosen before limited-time tiles opened gives way to them once.
+  const [chosen, setChosen] = useState({ key: "job", week: -1 });
+  const setTab = (key: string) => setChosen({ key, week });
+  const shown = groups(week, life);
+  const openedAt = Math.max(
+    -1,
+    ...(shown.find((g) => g.key === "limited")?.specs.map((spec) => spec.from) ?? []),
+  );
+  const tab = openedAt > chosen.week ? "limited" : chosen.key;
+  const group = shown.find((g) => g.key === tab) ?? shown[0];
   return (
     <div className="card timetable">
       <div className="timetable-head">
@@ -301,18 +357,53 @@ function Timetable({
           {CLEAR_ALL}
         </button>
       </div>
-      <WeekBar budget={preview.budget} preview={preview} oneOffHours={oneOffHours} />
-      {groups(week).map(({ key, title, specs }) => (
-        <div className={key === "limited" ? "activity-group limited" : "activity-group"} key={key}>
-          <h4 className="activity-section">{title}</h4>
-          <div className="tiles">
+      {/* The bar, its legend, and the chosen tiles read as one block, so they sit close. */}
+      <div className="week-summary">
+        <WeekBar budget={preview.budget} preview={preview} oneOffHours={oneOffHours} />
+        {timetable.length ? (
+          <ul className="chosen-chips" aria-label={CHOSEN_LABEL}>
+            {timetable.map((key) => (
+              <li key={key}>
+                <button
+                  type="button"
+                  className="chip"
+                  aria-label={removeLabel(routineTileLabel(key))}
+                  onClick={() => onChange(timetable.filter((k) => k !== key))}
+                >
+                  {routineTileLabel(key)} <span aria-hidden="true">×</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+      <div className="tabs" role="tablist">
+        {shown.map(({ key, title }) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            className={key === "limited" ? "tab limited" : `tab tab-${key}`}
+            aria-selected={key === group?.key}
+            onClick={() => setTab(key)}
+          >
+            {title}
+          </button>
+        ))}
+      </div>
+      {/* Every tab's tiles share one grid cell, so the tallest sets the height and switching
+          tabs does not shift the screen; the hidden ones are inert. */}
+      <div className="tile-stack">
+        {shown.map(({ key, specs }) => (
+          <div
+            key={key}
+            className={key === group?.key ? "tiles active" : "tiles"}
+            role="tabpanel"
+            inert={key !== group?.key}
+          >
             {specs.map((spec) => {
               const chosen = timetable.includes(spec.key);
               const dropped = preview.dropped.includes(spec.key);
-              const hours = `週${spec.weeklyHours}時間`;
-              const cost = isLimited(spec)
-                ? `${hours}・${weeksLeftLine(spec.until - week)}`
-                : hours;
               return (
                 <button
                   key={spec.key}
@@ -325,21 +416,32 @@ function Timetable({
                   onClick={() => toggle(spec)}
                 >
                   <span className="activity-name">{routineTileLabel(spec.key)}</span>
-                  <span className="activity-cost">{dropped ? CANNOT_PAY : cost}</span>
+                  <span className="activity-cost">
+                    {dropped ? CANNOT_PAY : tileCost(spec, week)}
+                  </span>
                   <span className="activity-effects">{routineEffects(spec)}</span>
                 </button>
               );
             })}
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
 
+/** A tile's hours, then its weeks left or its price, e.g. "週4時間・5,000円". */
+function tileCost(spec: RoutineSpec, week: number): string {
+  const hours = `週${spec.weeklyHours}時間`;
+  if (isLimited(spec)) return `${hours}・${weeksLeftLine(spec.until - week)}`;
+  if (spec.weeklyMoney) return `${hours}・${yen(spec.weeklyMoney)}`;
+  if (spec.weeklyPay) return `${hours}・+${yen(spec.weeklyPay)}`;
+  return hours;
+}
+
 /** Open routines grouped for the tiles: limited-time preparation first, when there is any. */
-function groups(week: number) {
-  const open = ROUTINES.filter((spec) => isOpen(spec, week));
+function groups(week: number, life: Life) {
+  const open = ROUTINES.filter((spec) => isAvailable(spec, week, life));
   const limited = open.filter(isLimited);
   return [
     ...(limited.length ? [{ key: "limited", title: LIMITED_TITLE, specs: limited }] : []),
@@ -360,12 +462,13 @@ function WeekBar({
   preview: ReturnType<typeof planWeek>;
   oneOffHours: number;
 }) {
+  const slack = slackLine(preview.shortHours, Math.max(0, budget - preview.hours));
   return (
     <div className="time-bar">
       <p className="time-total">{budgetLine(preview.hours, budget)}</p>
       <HourBar budget={budget} preview={preview} oneOffHours={oneOffHours} />
       {oneOffHours ? <p className="time-left">{oneOffLine(oneOffHours)}</p> : null}
-      {preview.shortHours ? <p className="time-over">{overflowLine(preview.shortHours)}</p> : null}
+      {slack ? <p className={preview.shortHours ? "time-over" : "time-spare"}>{slack}</p> : null}
     </div>
   );
 }
@@ -432,6 +535,26 @@ function HourBar({
         </ul>
       ) : null}
     </>
+  );
+}
+
+/** The hours an option leaves this week, large beside it, with savings when money moves. */
+function OptionRoom({
+  room,
+  savings,
+}: {
+  room: ReturnType<typeof optionRoom>;
+  savings: string | null;
+}) {
+  return (
+    <span className={room.over ? "room-block over" : "room-block"}>
+      <span className="room">
+        <span className="room-caption">{room.caption}</span>
+        <span className="room-hours">{room.hours}</span>
+      </span>
+      {room.cost ? <span className="room-cost">{room.cost}</span> : null}
+      {savings ? <span className="room-savings">{savings}</span> : null}
+    </span>
   );
 }
 

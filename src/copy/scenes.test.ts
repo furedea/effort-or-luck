@@ -41,7 +41,7 @@ function option(extra: Partial<PricedOption>): PricedOption {
 
 describe("what an option takes", () => {
   it("lists hours, the weeks they spread over, and money that are not zero", () => {
-    expect(optionCost(option({ hours: 15, weeks: 3, money: 30_000 }))).toBe("15時間（3週）・3万円");
+    expect(optionCost(option({ hours: 15, weeks: 3, money: 30_000 }))).toBe("週5時間 × 3週・3万円");
     expect(optionCost(option({ hours: 8 }))).toBe("8時間");
     expect(optionCost(option({}))).toBe("");
   });
