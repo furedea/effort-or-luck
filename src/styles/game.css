@@ -674,6 +674,29 @@ main {
   opacity: 0.55;
   border-style: dashed;
 }
+.remove-question {
+  display: grid;
+  row-gap: 6px;
+  margin-top: 4px;
+  padding: 10px 12px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  animation: rise 0.2s ease both;
+}
+.remove-question p {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+.remove-answers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.remove-keep {
+  color: var(--sub);
+}
 .chip span {
   color: var(--sub);
 }

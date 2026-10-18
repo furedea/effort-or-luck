@@ -121,6 +121,8 @@ export function GameScreen() {
           feed={game.feed}
           onTimetable={(timetable) => setGame(edit(game, timetable))}
           paused={game.paused}
+          temporary={Boolean(life && isTemporary(life, cohort.week))}
+          onPause={(key) => setGame(pause(game, key))}
           onDropPaused={(key) => setGame({ ...game, paused: game.paused.filter((k) => k !== key) })}
           pausedFor={game.pausedFor}
           onSpeed={(speed) => setGame({ ...game, speed, pausedFor: null })}
@@ -262,18 +264,15 @@ function noticeEntries(cohort: Cohort, player: number): FeedEntry[] {
   return [{ week: cohort.week, text: describeEvent(event).lines.join("") }];
 }
 
-/**
- * A timetable edit. While something temporary needs room, removed tiles are paused rather than
- * dropped; adding a paused tile back resumes it.
- */
+/** A timetable edit; adding a paused tile back resumes it. */
 function edit(game: Game, timetable: readonly RoutineKey[]): Game {
-  const life = game.cohort.lives[game.player];
-  const removed = game.timetable.filter(
-    (key) => !timetable.includes(key) && !isLimited(routineOf(key)),
-  );
-  const kept = game.paused.filter((key) => !timetable.includes(key));
-  const pausing = life && isTemporary(life, game.cohort.week) ? removed : [];
-  return { ...game, timetable, paused: [...kept, ...pausing.filter((k) => !kept.includes(k))] };
+  return { ...game, timetable, paused: game.paused.filter((key) => !timetable.includes(key)) };
+}
+
+/** Takes a tile out until nothing temporary needs room, when it comes back. */
+function pause(game: Game, key: RoutineKey): Game {
+  const paused = game.paused.includes(key) ? game.paused : [...game.paused, key];
+  return { ...game, timetable: game.timetable.filter((k) => k !== key), paused };
 }
 
 /** Whether an event's hours are booked or a limited-time window is open, so room is temporary. */

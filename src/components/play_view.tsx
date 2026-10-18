@@ -17,7 +17,9 @@ import {
   budgetLine,
   CANNOT_PAY,
   CHOSEN_LABEL,
-  dropPausedLabel,
+  pausedAsk,
+  removeAsk,
+  REMOVE_CHOICES,
   PAUSED_CHIP,
   PAUSED_TILE,
   removeLabel,
@@ -70,6 +72,8 @@ interface Props {
   readonly feed: readonly FeedEntry[];
   readonly onTimetable: (timetable: readonly RoutineKey[]) => void;
   readonly paused: readonly RoutineKey[];
+  readonly temporary: boolean;
+  readonly onPause: (key: RoutineKey) => void;
   readonly onDropPaused: (key: RoutineKey) => void;
   readonly onSpeed: (speed: Speed) => void;
   readonly onStep: () => void;
@@ -114,7 +118,9 @@ export function PlayView(props: Props) {
             week={week}
             timetable={props.timetable}
             paused={props.paused}
+            temporary={props.temporary}
             onChange={props.onTimetable}
+            onPause={props.onPause}
             onDropPaused={props.onDropPaused}
           />
           <div className="actions">
@@ -326,7 +332,9 @@ function Timetable({
   week,
   timetable,
   paused,
+  temporary,
   onChange,
+  onPause,
   onDropPaused,
 }: {
   life: Life;
@@ -334,16 +342,22 @@ function Timetable({
   timetable: readonly RoutineKey[];
   /** Tiles resting while something temporary needs room; they come back afterwards. */
   paused: readonly RoutineKey[];
+  /** Whether an event's hours or a limited-time window need room now. */
+  temporary: boolean;
   onChange: (timetable: readonly RoutineKey[]) => void;
+  onPause: (key: RoutineKey) => void;
   onDropPaused: (key: RoutineKey) => void;
 }) {
   const preview = planWeek(life, week, timetable);
+  // While an event needs room, taking a tile out asks whether it rests until then or goes.
+  const [asking, setAsking] = useState<{ key: RoutineKey; paused: boolean } | null>(null);
+  const takeOut = (key: RoutineKey) => {
+    if (temporary) setAsking({ key, paused: false });
+    else onChange(timetable.filter((k) => k !== key));
+  };
   const toggle = (spec: RoutineSpec) => {
-    onChange(
-      timetable.includes(spec.key)
-        ? timetable.filter((key) => key !== spec.key)
-        : [...timetable, spec.key],
-    );
+    if (timetable.includes(spec.key)) takeOut(spec.key);
+    else onChange([...timetable, spec.key]);
   };
   const oneOffHours = life.oneOff.weeks > 0 ? life.oneOff.hours / life.oneOff.weeks : 0;
   // A tab chosen before limited-time tiles opened gives way to them once.
@@ -380,7 +394,7 @@ function Timetable({
                   type="button"
                   className="chip"
                   aria-label={removeLabel(routineTileLabel(key))}
-                  onClick={() => onChange(timetable.filter((k) => k !== key))}
+                  onClick={() => takeOut(key)}
                 >
                   {routineTileLabel(key)} <span aria-hidden="true">×</span>
                 </button>
@@ -391,14 +405,29 @@ function Timetable({
                 <button
                   type="button"
                   className="chip paused"
-                  aria-label={dropPausedLabel(routineTileLabel(key))}
-                  onClick={() => onDropPaused(key)}
+                  aria-label={pausedAsk(routineTileLabel(key))}
+                  onClick={() => setAsking({ key, paused: true })}
                 >
                   {routineTileLabel(key)} <span aria-hidden="true">{PAUSED_CHIP}</span>
                 </button>
               </li>
             ))}
           </ul>
+        ) : null}
+        {asking ? (
+          <RemoveQuestion
+            tile={routineTileLabel(asking.key)}
+            paused={asking.paused}
+            onAnswer={(answer) => {
+              if (answer === "pause") onPause(asking.key);
+              if (answer === "drop" && asking.paused) onDropPaused(asking.key);
+              if (answer === "drop" && !asking.paused) {
+                onChange(timetable.filter((k) => k !== asking.key));
+              }
+              if (answer === "resume") onChange([...timetable, asking.key]);
+              setAsking(null);
+            }}
+          />
         ) : null}
       </div>
       <div className="tabs" role="tablist">
@@ -585,6 +614,42 @@ function OptionRoom({
       {room.cost ? <span className="room-cost">{room.cost}</span> : null}
       {savings ? <span className="room-savings">{savings}</span> : null}
     </span>
+  );
+}
+
+type RemoveAnswer = "pause" | "drop" | "resume" | "keep";
+
+/** Whether a tile taken out rests until the event is over or goes for good. */
+function RemoveQuestion({
+  tile,
+  paused,
+  onAnswer,
+}: {
+  tile: string;
+  paused: boolean;
+  onAnswer: (answer: RemoveAnswer) => void;
+}) {
+  const answers: RemoveAnswer[] = paused ? ["resume", "drop", "keep"] : ["pause", "drop", "keep"];
+  return (
+    <div
+      className="remove-question"
+      role="group"
+      aria-label={paused ? pausedAsk(tile) : removeAsk(tile)}
+    >
+      <p>{paused ? pausedAsk(tile) : removeAsk(tile)}</p>
+      <div className="remove-answers">
+        {answers.map((answer) => (
+          <button
+            key={answer}
+            type="button"
+            className={answer === "keep" ? "toggle remove-keep" : "toggle"}
+            onClick={() => onAnswer(answer)}
+          >
+            {REMOVE_CHOICES[answer]}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 

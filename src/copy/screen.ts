@@ -83,15 +83,25 @@ export const CHOSEN_LABEL = "選んだ札";
 export function removeLabel(tile: string): string {
   return `${tile}を外す`;
 }
-/** On a paused chip: it rests until the event is over, and × removes it for good. */
-export const PAUSED_CHIP = "⏸ 予定後に戻る ×";
-/** On a paused tile in the tabs: tapping it brings it back now. */
-export const PAUSED_TILE = "休み中・押すと今すぐ戻す";
+export const PAUSED_CHIP = "⏸ 予定後に戻る";
+export const PAUSED_TILE = "休み中";
 
-/** What a paused chip does, for screen readers, e.g. "研究・ゼミを完全に外す". */
-export function dropPausedLabel(tile: string): string {
-  return `${tile}を完全に外す`;
+/** Asked when a tile is taken out while an event needs room. */
+export function removeAsk(tile: string): string {
+  return `${tile}を外す？`;
 }
+
+/** Asked when a paused chip is tapped. */
+export function pausedAsk(tile: string): string {
+  return `${tile}は予定が終わったら戻る`;
+}
+
+export const REMOVE_CHOICES = {
+  pause: "予定のあいだだけ休む",
+  drop: "やめる",
+  resume: "今すぐ戻す",
+  keep: "そのまま",
+} as const;
 
 export const TIMETABLE_RESTORED = "予定が終わったので，時間割を元に戻した";
 export const LIMITED_TITLE = "★ 今だけ";
