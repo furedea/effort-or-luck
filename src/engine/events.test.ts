@@ -69,7 +69,10 @@ describe("autumn events", () => {
     const ill = withEvent("sick");
 
     expect(ill.length).toBeGreaterThan(0);
-    for (const m of ill) expect([m.lostWeeklyAt, m.lostWeeksAt]).toEqual([SICK_HOURS / 2, 2]);
+    for (const m of ill) {
+      expect([m.lostWeeklyAt, m.lostWeeksAt]).toEqual([SICK_HOURS / 2, 2]);
+      expect(m.life.lostReason).toBe("sick");
+    }
   });
 
   it("can send a self home for a family illness, costing money and a week's hours", () => {

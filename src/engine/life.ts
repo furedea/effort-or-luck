@@ -1,4 +1,4 @@
-import type { Boost, LogFact, OfferMonth, Stat } from "./facts";
+import type { Boost, LogFact, LostReason, OfferMonth, Stat } from "./facts";
 import {
   ALLOWANCE_DISTRIBUTION,
   DIFFICULTY,
@@ -42,6 +42,7 @@ export interface Life {
   /** Hours lost each week to illness, a trip home, or deadlines, for `lostWeeks` more weeks. */
   lostWeekly: number;
   lostWeeks: number;
+  lostReason: LostReason | null;
   /** Hours of a one-off choice, such as an internship, spread over its remaining weeks. */
   oneOff: { hours: number; weeks: number };
   internApplications: number;
@@ -77,6 +78,7 @@ export function makeLife(seed: number, difficulty: Difficulty = "normal"): Life 
     longInternApplied: false,
     lostWeekly: 0,
     lostWeeks: 0,
+    lostReason: null,
     oneOff: { hours: 0, weeks: 0 },
     internApplications: 0,
     intern: "none",
@@ -115,9 +117,10 @@ export function weekBudget(life: Life): number {
 }
 
 /** Loses `weekly` hours each week for the next `weeks` weeks. */
-export function loseHours(life: Life, weekly: number, weeks: number): void {
+export function loseHours(life: Life, weekly: number, weeks: number, reason: LostReason): void {
   life.lostWeekly = weekly;
   life.lostWeeks = weeks;
+  life.lostReason = reason;
 }
 
 export function tripYen(life: Life): number {

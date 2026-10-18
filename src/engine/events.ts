@@ -339,7 +339,7 @@ function drawAutumnEvent(life: Life): AutumnEvent {
   }
   threshold += AUTUMN_EVENT.sick;
   if (roll < threshold) {
-    loseHours(life, SICK_HOURS / 2, 2);
+    loseHours(life, SICK_HOURS / 2, 2, "sick");
     life.log.push({ kind: "sick" });
     shock(life, "sick");
     return { kind: "sick" };
@@ -347,7 +347,7 @@ function drawAutumnEvent(life: Life): AutumnEvent {
   threshold += AUTUMN_EVENT.familyIllness;
   if (roll < threshold) {
     life.money = Math.max(0, life.money - FAMILY_TRIP_YEN);
-    loseHours(life, FAMILY_TRIP_HOURS, 1);
+    loseHours(life, FAMILY_TRIP_HOURS, 1, "family");
     life.log.push({ kind: "familyIllness" });
     shock(life, "familyIllness");
     return { kind: "familyIllness" };
