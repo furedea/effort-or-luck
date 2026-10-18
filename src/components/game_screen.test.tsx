@@ -424,6 +424,22 @@ test("keeps the chosen speed after declining, even in a week already over", () =
   expect(stepButton(host)).toBeNull();
 });
 
+test("keeps flowing into the next week after a choice that books no hours", () => {
+  const host = toFirstChoice();
+  const takesNoTime = () =>
+    [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")]
+      .filter((button) => !/\d+時間/.test(button.querySelector(".cost")?.textContent ?? ""))
+      .at(-1);
+
+  click(takesNoTime()!);
+  passMs(300);
+  // An event in the next week hides the speeds; declining it shows whether time kept flowing.
+  const next = takesNoTime();
+  if (next) click(next);
+
+  expect(stepButton(host)).toBeNull();
+});
+
 test("keeps the chosen speed after a choice that fits the week", () => {
   const host = toFirstChoice();
   const options = [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")];
@@ -619,7 +635,10 @@ describe("the weekly timetable", () => {
   });
 
   it("gives the price of tiles that cost or pay money", () => {
-    const host = firstWeek();
+    // Easy starts with savings, so the paid tile is affordable whatever the draw.
+    const host = mountRaw();
+    chooseDifficulty(host, "やさしい");
+    startYear(host);
 
     expect(tile(host, "就活講座").querySelector(".activity-cost")?.textContent).toBe(
       "週4時間・5,000円",
@@ -627,6 +646,17 @@ describe("the weekly timetable", () => {
     expect(tile(host, "バイト").querySelector(".activity-cost")?.textContent).toBe(
       "週8時間・+9,000円",
     );
+  });
+
+  it("cannot choose a paid tile the savings do not cover, and says why", () => {
+    const host = mountRaw();
+    chooseDifficulty(host, "きびしい");
+    startYear(host);
+
+    const course = tile(host, "就活講座");
+
+    expect(course.disabled).toBe(true);
+    expect(course.querySelector(".activity-cost")?.textContent).toBe("5,000円・お金が足りない");
   });
 
   it("clears every tile at once", () => {

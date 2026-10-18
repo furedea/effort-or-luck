@@ -491,20 +491,29 @@ function Timetable({
             {specs.map((spec) => {
               const chosen = timetable.includes(spec.key);
               const dropped = preview.dropped.includes(spec.key);
+              // A paid tile the savings left this week cannot cover is not offered at all.
+              const unaffordable = !chosen && spec.weeklyMoney > life.money - preview.paid;
               return (
                 <button
                   key={spec.key}
                   type="button"
-                  className={["activity", chosen ? "chosen" : "", dropped ? "dropped" : ""]
+                  className={[
+                    "activity",
+                    chosen ? "chosen" : "",
+                    dropped || unaffordable ? "dropped" : "",
+                  ]
                     .filter(Boolean)
                     .join(" ")}
                   aria-pressed={chosen}
                   aria-label={routineDetail(spec)}
+                  disabled={unaffordable}
                   onClick={() => toggle(spec)}
                 >
                   <span className="activity-name">{routineTileLabel(spec.key)}</span>
                   <span className="activity-cost">
-                    {dropped ? CANNOT_PAY : tileCost(spec, week)}
+                    {dropped || unaffordable
+                      ? `${yen(spec.weeklyMoney)}・${CANNOT_PAY}`
+                      : tileCost(spec, week)}
                   </span>
                   <span className="activity-effects">{routineEffects(spec)}</span>
                 </button>

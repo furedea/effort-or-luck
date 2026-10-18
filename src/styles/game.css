@@ -761,6 +761,10 @@ main {
 .activity.dropped .activity-cost {
   color: var(--shu);
 }
+.activity:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
 .ended-count {
   margin: 0;
   font-size: 13px;
