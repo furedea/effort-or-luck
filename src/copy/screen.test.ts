@@ -91,7 +91,14 @@ describe("why auto play paused", () => {
   it("gives the hours over and what to do", () => {
     expect(pauseLines({ kind: "over", hours: 4 })).toEqual([
       "今週の予定が4時間オーバーした．",
-      "札を外すか，睡眠を削って進む",
+      "活動を外すか，睡眠を削って進む",
+    ]);
+  });
+
+  it("says how many hours an event's end frees", () => {
+    expect(pauseLines({ kind: "bookingEnded", hours: 15 })).toEqual([
+      "予定が終わり，週15時間あいた．",
+      "活動を入れ直せる",
     ]);
   });
 });

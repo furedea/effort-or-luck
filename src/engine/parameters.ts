@@ -2,7 +2,7 @@
 // that always choosing the middle option lands near the surveyed June 1st offer rate.
 
 /** Bump whenever a change alters results, so shared links from older rules are reported as old. */
-export const RULES_VERSION = 21;
+export const RULES_VERSION = 22;
 
 export const WAGE_YEN_PER_HOUR = 1100;
 export const MONTHLY_EXPENSE_YEN = 130_000;
@@ -107,7 +107,7 @@ export const STARTING_STATS = {
 export const DIFFICULTY = {
   easy: { statShift: 15, driftFactor: 0.7 },
   normal: { statShift: 0, driftFactor: 1 },
-  hard: { statShift: -20, driftFactor: 1.37 },
+  hard: { statShift: -20, driftFactor: 1.44 },
 } as const;
 export type Difficulty = keyof typeof DIFFICULTY;
 /** Weekly drift when nothing is done for a stat; research drifts faster in the final year. */
