@@ -66,6 +66,16 @@ function keepFlowing(host: HTMLElement) {
   passMs(300);
 }
 
+test("opens on a title screen that explains the game above the difficulty choice", () => {
+  const host = mountRaw();
+
+  expect(host.querySelector(".title-screen h1")?.textContent).toBe("努力か，運か");
+  expect(host.querySelector(".title-screen .lead")?.textContent).toBe(
+    "就活の1年を過ごす．最後に，同じ選び方をした100人の自分と比べる．",
+  );
+  expect(host.querySelector(".title-screen .difficulty")).not.toBeNull();
+});
+
 test("asks for a difficulty before the year starts", () => {
   const host = mountRaw();
 

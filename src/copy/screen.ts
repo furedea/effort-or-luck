@@ -31,6 +31,10 @@ export const SOURCES_TITLE = "数字の出典と仮定";
 export const BACK_TO_GAME = "ゲームに戻る";
 export const PLAY_AGAIN = "もう一度";
 export const DIFFICULTY_TITLE = "難しさを選ぶ";
+export const TITLE_LEAD = [
+  "就活の1年を過ごす．",
+  "最後に，同じ選び方をした100人の自分と比べる．",
+] as const;
 export const DIFFICULTY_LABELS = {
   easy: "やさしい",
   normal: "ふつう",

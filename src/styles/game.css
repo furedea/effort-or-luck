@@ -87,7 +87,41 @@ main {
 .play {
   display: grid;
   grid-template-rows: auto auto auto 1fr;
-  row-gap: 20px;
+  row-gap: 28px;
+}
+.title-screen {
+  grid-row: 1 / -1;
+  display: grid;
+  align-content: center;
+  row-gap: 28px;
+}
+.title-hero {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 34px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-align: center;
+}
+.lead {
+  display: grid;
+  row-gap: 4px;
+  margin: 0;
+  font-family: var(--display);
+  font-size: 16px;
+  line-height: 1.8;
+  text-align: center;
+  color: var(--sub);
+}
+.difficulty {
+  display: grid;
+  row-gap: 10px;
+}
+.difficulty-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sub);
 }
 .reveal {
   display: grid;
@@ -125,7 +159,7 @@ main {
 }
 .play-head {
   display: grid;
-  row-gap: 6px;
+  row-gap: 12px;
 }
 .feed-block {
   display: grid;
@@ -334,7 +368,7 @@ main {
 .event,
 .timetable {
   display: grid;
-  row-gap: 12px;
+  row-gap: 16px;
 }
 .timetable-head {
   display: flex;
