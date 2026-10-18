@@ -40,5 +40,5 @@ export const EVENT_WEEKS = {
   finals: weekOfMonthStart(12) + 2,
 } as const;
 
-/** From January on, the final year's research load grows. */
-export const FINAL_STRETCH_FROM = weekOfMonthStart(9);
+/** The final year starts the following April, and with it a heavier research load. */
+export const FINAL_STRETCH_FROM = weekOfMonthStart(12);

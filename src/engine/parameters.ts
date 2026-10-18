@@ -2,7 +2,7 @@
 // that always choosing the middle option lands near the surveyed June 1st offer rate.
 
 /** Bump whenever a change alters results, so shared links from older rules are reported as old. */
-export const RULES_VERSION = 16;
+export const RULES_VERSION = 17;
 
 export const WAGE_YEN_PER_HOUR = 1100;
 export const MONTHLY_EXPENSE_YEN = 130_000;
@@ -65,9 +65,9 @@ export const AUTUMN_EVENT = {
 export const FAMILY_TRIP_YEN = 20_000;
 export const FAMILY_TRIP_HOURS = 15;
 export const LAPTOP_REPAIR_YEN = 50_000;
-export const THESIS_CRUNCH_CHANCE = 0.3;
-export const THESIS_CRUNCH_HOURS = 20;
-export const THESIS_CRUNCH_RESEARCH = 15;
+export const TERM_CRUNCH_CHANCE = 0.3;
+export const TERM_CRUNCH_HOURS = 20;
+export const TERM_CRUNCH_RESEARCH = 15;
 /**
  * Chance that a company pays a regional self's travel to a final interview. マイナビ 2025年卒
  * 学生就職モニター調査 (6月): 67.9% of students received travel or lodging from companies, from
@@ -87,9 +87,9 @@ export const DIFFICULTY = {
   hard: { statShift: -15, driftFactor: 1.3 },
 } as const;
 export type Difficulty = keyof typeof DIFFICULTY;
-/** Weekly drift when nothing is done for a stat; research drifts faster in the fourth year. */
+/** Weekly drift when nothing is done for a stat; research drifts faster in the final year. */
 export const WEEKLY_DRIFT = { health: -0.5, mind: -0.6, social: -0.8, research: -0.4 } as const;
-export const FOURTH_YEAR_RESEARCH_DRIFT = -1.2;
+export const FINAL_YEAR_RESEARCH_DRIFT = -1.2;
 /** Weekly hours of part-time and job hunting together beyond which health wears down. */
 export const HEALTHY_WORKLOAD_WEEKLY_HOURS = 30;
 export const HEALTH_PER_OVERLOAD_HOUR = 0.15;

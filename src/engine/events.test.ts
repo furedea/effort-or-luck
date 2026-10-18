@@ -8,7 +8,7 @@ import {
   LAPTOP_REPAIR_YEN,
   SENIOR_TALK_CHANCE,
   SICK_HOURS,
-  THESIS_CRUNCH_HOURS,
+  TERM_CRUNCH_HOURS,
 } from "./parameters";
 import { SMALL_EVENTS } from "./small_events";
 import { liveWeek } from "./week";
@@ -83,14 +83,13 @@ describe("autumn events", () => {
   });
 });
 
-test("the March thesis crunch takes hours for four weeks from some selves", () => {
+test("the March term crunch takes hours for four weeks from some selves", () => {
   const entries = momentsAt("entries", middlePolicy, 3000);
   const busy = entries.filter((m) => factsOf(m, "entries").busy);
 
   expect(busy.length).toBeGreaterThan(0);
   expect(entries.length - busy.length).toBeGreaterThan(0);
-  for (const m of busy)
-    expect([m.lostWeeklyAt, m.lostWeeksAt]).toEqual([THESIS_CRUNCH_HOURS / 4, 4]);
+  for (const m of busy) expect([m.lostWeeklyAt, m.lostWeeksAt]).toEqual([TERM_CRUNCH_HOURS / 4, 4]);
 });
 
 test("companies paying travel lower a regional self's in-person finals cost", () => {

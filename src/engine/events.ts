@@ -16,9 +16,9 @@ import {
   SENIOR_TALK_CHANCE,
   SHOP_CLOSED_LOSS_YEN,
   SICK_HOURS,
-  THESIS_CRUNCH_CHANCE,
-  THESIS_CRUNCH_HOURS,
-  THESIS_CRUNCH_RESEARCH,
+  TERM_CRUNCH_CHANCE,
+  TERM_CRUNCH_HOURS,
+  TERM_CRUNCH_RESEARCH,
   TRAVEL_REIMBURSED_CHANCE,
   WEEKLY_HOURS,
 } from "./parameters";
@@ -393,11 +393,11 @@ function keepGoing(life: Life) {
 
 function entries(life: Life) {
   if (!isActive(life)) return null;
-  const busy = life.rng() < THESIS_CRUNCH_CHANCE;
+  const busy = life.rng() < TERM_CRUNCH_CHANCE;
   if (busy) {
-    loseHours(life, THESIS_CRUNCH_HOURS / 4, 4);
-    life.log.push({ kind: "thesisCrunch" });
-    setBack(life, "research", THESIS_CRUNCH_RESEARCH);
+    loseHours(life, TERM_CRUNCH_HOURS / 4, 4);
+    life.log.push({ kind: "termCrunch" });
+    setBack(life, "research", TERM_CRUNCH_RESEARCH);
   }
   const entry = (key: OptionKey, count: number, hours: number) =>
     option(key, { hours, weeks: 4 }, (x) => {

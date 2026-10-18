@@ -85,7 +85,7 @@ export function liveWeek(
       .reduce((sum, spec) => sum + spec.weeklyHours, 0);
   liveThroughPeriod(life, {
     weeks: 1,
-    fourthYear: week >= FINAL_STRETCH_FROM,
+    finalYear: week >= FINAL_STRETCH_FROM,
     taken: outcome.taken.map((spec) => restedFor(spec, outcome.shortHours)),
     jobHours: hoursOf("job") + oneOffHours,
     extraWorkHours: hoursOf("work"),

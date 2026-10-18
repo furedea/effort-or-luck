@@ -1,7 +1,7 @@
 import { makeLife } from "./life";
 import {
   DIFFICULTY,
-  FOURTH_YEAR_RESEARCH_DRIFT,
+  FINAL_YEAR_RESEARCH_DRIFT,
   HEALTH_PER_OVERLOAD_HOUR,
   HEALTHY_WORKLOAD_WEEKLY_HOURS,
   MIND_PER_JOB_HOUR,
@@ -26,7 +26,7 @@ describe("living through a period", () => {
 
     liveThroughPeriod(life, {
       weeks: 4,
-      fourthYear: false,
+      finalYear: false,
       taken: [],
       jobHours: 0,
       extraWorkHours: 0,
@@ -38,12 +38,12 @@ describe("living through a period", () => {
     expect(life.stats.health).toBeCloseTo(STARTING_STATS.health + WEEKLY_DRIFT.health * 4);
   });
 
-  it("drifts research faster in the fourth year", () => {
+  it("drifts research faster in the final year", () => {
     const life = richLife();
 
     liveThroughPeriod(life, {
       weeks: 4,
-      fourthYear: true,
+      finalYear: true,
       taken: [],
       jobHours: 0,
       extraWorkHours: 0,
@@ -52,7 +52,7 @@ describe("living through a period", () => {
     });
 
     expect(life.stats.research).toBeCloseTo(
-      STARTING_STATS.research + FOURTH_YEAR_RESEARCH_DRIFT * 4,
+      STARTING_STATS.research + FINAL_YEAR_RESEARCH_DRIFT * 4,
     );
   });
 
@@ -61,7 +61,7 @@ describe("living through a period", () => {
 
     liveThroughPeriod(life, {
       weeks: 4,
-      fourthYear: false,
+      finalYear: false,
       taken: [friends],
       jobHours: 0,
       extraWorkHours: 0,
@@ -78,7 +78,7 @@ describe("living through a period", () => {
 
     liveThroughPeriod(life, {
       weeks: 4,
-      fourthYear: false,
+      finalYear: false,
       taken: [],
       jobHours,
       extraWorkHours: 0,
@@ -102,7 +102,7 @@ describe("the end of the year", () => {
 
     liveThroughPeriod(life, {
       weeks: 4,
-      fourthYear: false,
+      finalYear: false,
       taken: [],
       jobHours: 0,
       extraWorkHours: 0,
@@ -129,7 +129,7 @@ describe("the end of the year", () => {
     life.stats.social = 1;
     liveThroughPeriod(life, {
       weeks: 4,
-      fourthYear: false,
+      finalYear: false,
       taken: [],
       jobHours: 0,
       extraWorkHours: 0,
@@ -140,7 +140,7 @@ describe("the end of the year", () => {
 
     liveThroughPeriod(life, {
       weeks: 4,
-      fourthYear: false,
+      finalYear: false,
       taken: [],
       jobHours: 0,
       extraWorkHours: 0,
@@ -171,7 +171,7 @@ describe("difficulty", () => {
       const before = life.stats.social;
       liveThroughPeriod(life, {
         weeks: 1,
-        fourthYear: false,
+        finalYear: false,
         taken: [],
         jobHours: 0,
         extraWorkHours: 0,
@@ -200,7 +200,7 @@ describe("hours taken from sleep", () => {
 
     liveThroughPeriod(life, {
       weeks: 1,
-      fourthYear: false,
+      finalYear: false,
       taken: [],
       jobHours: 0,
       extraWorkHours: 0,
@@ -218,7 +218,7 @@ test("hours left over in the week help health and mind a little, up to ten hours
     const life = makeLife(1);
     liveThroughPeriod(life, {
       weeks: 1,
-      fourthYear: false,
+      finalYear: false,
       taken: [],
       jobHours: 0,
       extraWorkHours: 0,
