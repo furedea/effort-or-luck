@@ -52,6 +52,38 @@ export function startCohort(baseSeed: number, difficulty: Difficulty = "normal")
   };
 }
 
+/**
+ * The self the player lives as. Difficulty picks the circumstances: easy is a metro self on the
+ * largest allowance, hard a regional self on little or none, normal anyone. When no self fits,
+ * the nearest ones are taken. `draw` is a random number in [0, 1).
+ */
+export function pickPlayer(cohort: Cohort, difficulty: Difficulty, draw: number): number {
+  const all = cohort.lives.map((_, i) => i);
+  const fitting = all.filter((i) => fitsDifficulty(cohort.lives[i]!, difficulty));
+  const pool = fitting.length ? fitting : nearest(cohort, difficulty);
+  return pool[Math.floor(draw * pool.length)] ?? 0;
+}
+
+const HARD_ALLOWANCE_LIMIT_YEN = 30_000;
+
+function fitsDifficulty(life: Life, difficulty: Difficulty): boolean {
+  if (difficulty === "easy") return life.metro && life.allowance === maxAllowance();
+  if (difficulty === "hard") return !life.metro && life.allowance <= HARD_ALLOWANCE_LIMIT_YEN;
+  return true;
+}
+
+/** The selves closest to the difficulty's circumstances: by allowance first, then region. */
+function nearest(cohort: Cohort, difficulty: Difficulty): number[] {
+  const score = (life: Life) =>
+    (difficulty === "easy" ? 1 : -1) * (life.allowance * 2 + Number(life.metro));
+  const best = Math.max(...cohort.lives.map(score));
+  return cohort.lives.flatMap((life, i) => (score(life) === best ? [i] : []));
+}
+
+function maxAllowance(): number {
+  return Math.max(...ALLOWANCE_DISTRIBUTION.map(([amount]) => amount));
+}
+
 export function isOver(cohort: Cohort): boolean {
   return cohort.week > WEEKS;
 }

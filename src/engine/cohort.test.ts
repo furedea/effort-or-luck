@@ -3,6 +3,7 @@ import {
   choose,
   COHORT_SIZE,
   isOver,
+  pickPlayer,
   replayYear,
   revealByAllowance,
   setTimetable,
@@ -147,4 +148,28 @@ test("every self, and every replayed path, lives at the chosen difficulty", () =
   expect(new Set([...cohort.lives, ...most, ...least].map((life) => life.difficulty))).toEqual(
     new Set(["hard"]),
   );
+});
+
+describe("choosing whom the player lives as", () => {
+  const cohort = startCohort(5);
+
+  it("is a metro self on the largest allowance when easy", () => {
+    for (const draw of [0, 0.5, 0.99]) {
+      const life = cohort.lives[pickPlayer(cohort, "easy", draw)]!;
+      expect([life.metro, life.allowance]).toEqual([true, 120_000]);
+    }
+  });
+
+  it("is a regional self on little or no allowance when hard", () => {
+    for (const draw of [0, 0.5, 0.99]) {
+      const life = cohort.lives[pickPlayer(cohort, "hard", draw)]!;
+      expect(life.metro).toBe(false);
+      expect(life.allowance).toBeLessThanOrEqual(30_000);
+    }
+  });
+
+  it("is anyone when normal", () => {
+    expect(pickPlayer(cohort, "normal", 0)).toBe(0);
+    expect(pickPlayer(cohort, "normal", 0.999)).toBe(COHORT_SIZE - 1);
+  });
 });
