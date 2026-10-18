@@ -74,7 +74,7 @@ export function describeEvent({ facts }: Event): EventText {
       return {
         lines: [
           facts.passed
-            ? "長期インターンに受かった．6月から札を入れられる．"
+            ? "長期インターンに受かった．6月から時間割に入れられる．"
             : "長期インターンは落ちた．",
         ],
       };

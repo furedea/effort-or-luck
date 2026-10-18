@@ -69,15 +69,15 @@ export function pauseLines(reason: PauseReason): string[] {
     return [`${reason.tile}が出た．`, `入れるなら今（あと${reason.weeks}週）`];
   }
   const over = `今週の予定が${Number(reason.hours.toFixed(1))}時間オーバーした．`;
-  if (reason.kind === "restoredOver") return ["予定が終わり，休んでいた札を戻した．", over];
-  return [over, "札を外すか，睡眠を削って進む"];
+  if (reason.kind === "restoredOver") return ["予定が終わり，休んでいた活動を戻した．", over];
+  return [over, "活動を外すか，睡眠を削って進む"];
 }
 export const SPEED_LABELS = { step: "1週ずつ", normal: "▶ 自動", double: "▶▶ 2倍" } as const;
 export const TIMETABLE_TITLE = "毎週の過ごし方";
 export const CARD_TITLES = { event: "出来事" } as const;
 export const CLEAR_ALL = "全部外す";
 
-export const CHOSEN_LABEL = "選んだ札";
+export const CHOSEN_LABEL = "選んだ活動";
 
 /** What a chip of a chosen tile does, for screen readers, e.g. "説明会を外す". */
 export function removeLabel(tile: string): string {
