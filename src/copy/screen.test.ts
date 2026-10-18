@@ -90,8 +90,8 @@ describe("why auto play paused", () => {
 
   it("gives the hours over and what to do", () => {
     expect(pauseLines({ kind: "over", hours: 4 })).toEqual([
-      "今週が4時間はみ出た．",
-      "札を外すか，そのまま進む",
+      "今週の予定が4時間オーバーした．",
+      "札を外すか，睡眠を削って進む",
     ]);
   });
 });

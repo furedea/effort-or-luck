@@ -79,7 +79,10 @@ export function pauseLines(reason: PauseReason): string[] {
   if (reason.kind === "limited") {
     return [`${reason.tile}が出た．`, `入れるなら今（あと${reason.weeks}週）`];
   }
-  return [`今週が${Number(reason.hours.toFixed(1))}時間はみ出た．`, "札を外すか，そのまま進む"];
+  return [
+    `今週の予定が${Number(reason.hours.toFixed(1))}時間オーバーした．`,
+    "札を外すか，睡眠を削って進む",
+  ];
 }
 export const SPEED_LABELS = { step: "1週ずつ", normal: "▶ 自動", double: "▶▶ 2倍" } as const;
 export const TIMETABLE_TITLE = "毎週の過ごし方";
