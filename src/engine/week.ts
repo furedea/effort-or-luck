@@ -6,8 +6,7 @@ import { liveThroughPeriod } from "./wellbeing";
 
 // One week: a booked one-off comes first, then the timetable in the order it was set. Hours
 // beyond the week's free hours come out of sleep and cost health; a routine the self cannot pay
-// for is dropped that week. Booked hours rest the last routines that week instead of cutting
-// further into sleep, unless the player chose to cut sleep for them. Allowance and scholarship minus living costs move savings at the start
+// for is dropped that week, and a tile the player rests for a booking is skipped while it lasts. Allowance and scholarship minus living costs move savings at the start
 // of each month, so savings grow only through part-time work.
 
 export interface WeekOutcome {
@@ -26,21 +25,22 @@ export interface WeekOutcome {
 }
 
 /** What the timetable would take and give this week, without changing the life. */
-export function planWeek(
-  life: Life,
-  week: number,
-  timetable: readonly RoutineKey[],
-  cutsSleep = false,
-): WeekOutcome {
+export function planWeek(life: Life, week: number, timetable: readonly RoutineKey[]): WeekOutcome {
   const budget = weekBudget(life);
   const oneOffHours = life.oneOff.weeks > 0 ? life.oneOff.hours / life.oneOff.weeks : 0;
   let hours = oneOffHours;
   let paid = 0;
   const taken: RoutineSpec[] = [];
   const dropped: RoutineKey[] = [];
+  const resting = life.oneOff.weeks > 0 ? life.oneOff.resting : [];
+  const rested: RoutineKey[] = [];
   for (const key of new Set(timetable)) {
     const spec = routineOf(key);
     if (!isAvailable(spec, week, life)) continue;
+    if (resting.includes(key)) {
+      rested.push(key);
+      continue;
+    }
     if (taken.some((other) => areAlternatives(spec, other))) continue;
     if (paid + spec.weeklyMoney > life.money) {
       dropped.push(key);
@@ -51,27 +51,19 @@ export function planWeek(
     paid += spec.weeklyMoney;
   }
   // Hours lost to illness or family leave no time for the last routines; they are skipped rather
-  // than squeezed out of sleep. Booked hours do the same, down to the hours the timetable alone
-  // takes, so sleep the player already gave up stays given up.
-  const skipped: RoutineKey[] = [];
-  const limit = restLimit(life, budget, hours - oneOffHours, cutsSleep);
-  while (hours > limit && taken.length) {
-    const last = taken.pop()!;
-    skipped.unshift(last.key);
-    hours -= last.weeklyHours;
-    paid -= last.weeklyMoney;
+  // than squeezed out of sleep.
+  const skipped: RoutineKey[] = [...rested];
+  if (life.lostWeeks > 0) {
+    while (hours > budget && taken.length) {
+      const last = taken.pop()!;
+      skipped.unshift(last.key);
+      hours -= last.weeklyHours;
+      paid -= last.weeklyMoney;
+    }
   }
   const earned = taken.reduce((sum, spec) => sum + spec.weeklyPay, 0);
   const shortHours = Math.max(0, hours - budget);
   return { budget, taken, dropped, skipped, hours, shortHours, paid, earned };
-}
-
-/** The hours the week may take before its last routines rest. */
-function restLimit(life: Life, budget: number, routineHours: number, cutsSleep: boolean): number {
-  if (life.lostWeeks > 0) return budget;
-  const booked = life.oneOff.weeks > 0 && life.oneOff.hours > 0;
-  if (booked && !cutsSleep) return Math.max(budget, routineHours);
-  return Number.POSITIVE_INFINITY;
 }
 
 /** Rest cannot happen in hours taken from sleep, so its effect shrinks by the hours over. */
@@ -87,10 +79,9 @@ export function liveWeek(
   life: Life,
   week: number,
   timetable: readonly RoutineKey[],
-  cutsSleep = false,
 ): WeekOutcome | null {
   if (!isActive(life)) return null;
-  const outcome = planWeek(life, week, timetable, cutsSleep);
+  const outcome = planWeek(life, week, timetable);
   const monthly = dateOf(week).weekOfMonth === 1 ? monthlyIncomeYen(life) : 0;
   life.money = Math.max(0, life.money + monthly + outcome.earned - outcome.paid);
   for (const spec of outcome.taken) practise(life, spec);
@@ -109,7 +100,11 @@ export function liveWeek(
     spareHours: Math.max(0, outcome.budget - outcome.hours),
   });
   if (life.oneOff.weeks > 0) {
-    life.oneOff = { hours: life.oneOff.hours - oneOffHours, weeks: life.oneOff.weeks - 1 };
+    life.oneOff = {
+      ...life.oneOff,
+      hours: life.oneOff.hours - oneOffHours,
+      weeks: life.oneOff.weeks - 1,
+    };
   }
   if (life.lostWeeks > 0) life.lostWeeks -= 1;
   return outcome;

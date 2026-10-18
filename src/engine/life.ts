@@ -1,4 +1,4 @@
-import type { Boost, LogFact, LostReason, OfferMonth, Stat } from "./facts";
+import type { Boost, LogFact, LostReason, OfferMonth, RoutineKey, Stat } from "./facts";
 import {
   ALLOWANCE_DISTRIBUTION,
   DIFFICULTY,
@@ -43,8 +43,11 @@ export interface Life {
   lostWeekly: number;
   lostWeeks: number;
   lostReason: LostReason | null;
-  /** Hours of a one-off choice, such as an internship, spread over its remaining weeks. */
-  oneOff: { hours: number; weeks: number };
+  /**
+   * Hours of a one-off choice, such as an internship, spread over its remaining weeks, and the
+   * tiles the player rests to make room for them meanwhile.
+   */
+  oneOff: { hours: number; weeks: number; resting: readonly RoutineKey[] };
   internApplications: number;
   intern: InternKind;
   invited: boolean;
@@ -79,7 +82,7 @@ export function makeLife(seed: number, difficulty: Difficulty = "normal"): Life 
     lostWeekly: 0,
     lostWeeks: 0,
     lostReason: null,
-    oneOff: { hours: 0, weeks: 0 },
+    oneOff: { hours: 0, weeks: 0, resting: [] },
     internApplications: 0,
     intern: "none",
     invited: false,

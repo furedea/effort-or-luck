@@ -3,7 +3,9 @@ import {
   endedCount,
   optionRoom,
   pauseLines,
-  restingLine,
+  restingTile,
+  restPickTitle,
+  restStatusLine,
   lostHoursLine,
   monthlyBreakdown,
   slackLine,
@@ -63,7 +65,7 @@ test("a falling stat is warned about with its value", () => {
 
 describe("what an option leaves of the week", () => {
   it("gives the hours left when it fits", () => {
-    expect(optionRoom({ spare: 1, short: 0, resting: [] })).toEqual({
+    expect(optionRoom({ spare: 1, short: 0, need: 0 })).toEqual({
       over: false,
       caption: "今週の残り",
       value: "1時間",
@@ -71,25 +73,38 @@ describe("what an option leaves of the week", () => {
     });
   });
 
-  it("names the tiles that rest this week when they make room", () => {
-    expect(optionRoom({ spare: 3, short: 0, resting: ["説明会", "SNS・動画"] })).toEqual({
+  it("gives the hours short and asks for tiles to rest when it does not fit", () => {
+    expect(optionRoom({ spare: 0, short: 7, need: 7 })).toEqual({
       over: true,
-      caption: "今週は休み",
-      value: "説明会・SNS・動画",
-      cost: null,
+      caption: "時間がたりない",
+      value: "週7時間",
+      cost: "休む活動を選ぶ",
     });
   });
 
-  it("gives the sleep cut when hours still run over", () => {
-    expect(optionRoom({ spare: 0, short: 4.5, resting: [] })).toEqual({
+  it("gives the sleep a timetable already over cuts, when the option adds nothing", () => {
+    expect(optionRoom({ spare: 0, short: 4.5, need: 0 })).toEqual({
       over: true,
       caption: "睡眠を削る",
       value: "4.5時間",
       cost: "健康↓・心↓",
     });
-    expect(optionRoom({ spare: 0, short: 2, resting: ["説明会"] }).cost).toBe(
-      "睡眠も2時間削る・健康↓・心↓",
-    );
+  });
+});
+
+describe("choosing tiles to rest for an option", () => {
+  it("says for how long they rest", () => {
+    expect(restPickTitle(3)).toBe("予定の3週，休む活動を選ぶ");
+    expect(restPickTitle(1)).toBe("今週休む活動を選ぶ");
+  });
+
+  it("says whether the week fits or what sleep the rest costs", () => {
+    expect(restStatusLine(0)).toBe("これで収まる");
+    expect(restStatusLine(2.5)).toBe("あと2.5時間は睡眠を削る・健康↓・心↓");
+  });
+
+  it("marks a resting tile with the weeks left", () => {
+    expect(restingTile(2)).toBe("休み・あと2週");
   });
 });
 
@@ -129,10 +144,6 @@ test("a self who ran out of study repeats the year, and one out of research lose
   expect(endedCount({ study: 2, research: 1 })).toBe(
     "途中で終わった人：ゼミに居場所がなくなった 1 人・留年 2 人",
   );
-});
-
-test("tiles resting for booked hours are listed for the week", () => {
-  expect(restingLine(["説明会", "SNS・動画"])).toBe("今週休む：説明会・SNS・動画");
 });
 
 test("hours lost this week say why and for how long", () => {

@@ -252,8 +252,12 @@ test("stops only for choices, listing other happenings while time flows", () => 
   const stopsWithoutChoice: string[] = [];
   for (let guard = 0; guard < 400 && !host.querySelector(".event .next"); guard++) {
     const event = host.querySelector(".event");
-    const option = event?.querySelector<HTMLButtonElement>(".opt:not([disabled])");
-    if (event && !event.querySelector(".opt")) stopsWithoutChoice.push(when(host) ?? "");
+    const option =
+      event?.querySelector<HTMLButtonElement>(".opt:not([disabled])") ??
+      event?.querySelector<HTMLButtonElement>(".rest-confirm");
+    if (event && !event.querySelector(".opt, .rest-picker")) {
+      stopsWithoutChoice.push(when(host) ?? "");
+    }
     if (option) click(option);
     else keepFlowing(host);
   }
@@ -305,44 +309,76 @@ test("shows the hour bar at an event", () => {
   expect(host.querySelector(".event .bar")).not.toBeNull();
 });
 
-test("rests the last tiles in a week its booking runs over, unless the player cuts sleep", () => {
-  // 37 of 40 hours, so most options that take hours run the week over.
+test("asks which tiles rest when an option's hours do not fit, and rests them meanwhile", () => {
+  // 37 of 40 hours, so most options that take hours do not fit.
   const host = toFirstChoice((h) => {
     for (const name of ["研究・ゼミ", "友達と遊ぶ", "ゆっくり休む", "SNS・動画"]) {
       click(tileNamed(h, name));
     }
   });
-  const runsOver = () =>
-    [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")].find((button) =>
-      button.querySelector(".room-block.over"),
+  const doesNotFit = () =>
+    [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")].find(
+      (button) => button.querySelector(".room-caption")?.textContent === "時間がたりない",
     );
-  for (let guard = 0; guard < 100 && !runsOver(); guard++) {
+  for (let guard = 0; guard < 100 && !doesNotFit(); guard++) {
     const options = [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")];
     if (options.length) click(options.at(-1)!);
     else keepFlowing(host);
   }
-  const option = runsOver()!;
-  expect(option.querySelector(".room-caption")?.textContent).toBe("今週は休み");
-  expect(option.querySelector(".room-hours")?.textContent).toMatch(/SNS・動画$/);
+  const option = doesNotFit()!;
+  expect(option.querySelector(".room-hours")?.textContent).toMatch(/^週\d+(\.\d)?時間$/);
 
   click(option);
 
-  expect(stepButton(host)).toBeNull();
-  const choice = (label: string) =>
-    [...host.querySelectorAll<HTMLButtonElement>(".cut-sleep button")].find(
-      (button) => button.textContent === label,
+  const picker = host.querySelector(".rest-picker")!;
+  const pick = (name: string) =>
+    [...picker.querySelectorAll<HTMLButtonElement>(".rest-tiles button")].find((button) =>
+      button.textContent?.startsWith(name),
     )!;
-  expect(choice("今週は休む").getAttribute("aria-pressed")).toBe("true");
-  expect(host.querySelector(".cut-sleep .resting")?.textContent).toMatch(/^今週休む：.*SNS・動画$/);
-  expect(tileNamed(host, "SNS・動画").querySelector(".activity-cost")?.textContent).toBe(
-    "今週は休み",
+  expect(picker.querySelector(".rest-status")?.textContent).toMatch(/睡眠を削る/);
+  for (const name of ["SNS・動画", "ゆっくり休む"]) click(pick(name));
+  expect(pick("SNS・動画").getAttribute("aria-pressed")).toBe("true");
+  expect(picker.querySelector(".rest-status")?.textContent).toBe("これで収まる");
+
+  click(
+    [...picker.querySelectorAll<HTMLButtonElement>("button")].find(
+      (b) => b.textContent === "これで決める",
+    )!,
   );
 
-  click(choice("睡眠を削ってやる"));
+  expect(host.querySelector(".event")).toBeNull();
+  expect(stepButton(host)).toBeNull();
+  expect(tileNamed(host, "SNS・動画").querySelector(".activity-cost")?.textContent).toMatch(
+    /^休み・あと\d+週$/,
+  );
+  expect(host.querySelector(".time-over")).toBeNull();
+});
 
-  expect(choice("睡眠を削ってやる").getAttribute("aria-pressed")).toBe("true");
-  expect(host.querySelector(".cut-sleep .resting")).toBeNull();
-  expect(host.querySelector(".time-over")).not.toBeNull();
+test("goes back from choosing tiles to rest to the event's options", () => {
+  const host = toFirstChoice((h) => {
+    for (const name of ["研究・ゼミ", "友達と遊ぶ", "ゆっくり休む", "SNS・動画"]) {
+      click(tileNamed(h, name));
+    }
+  });
+  const doesNotFit = () =>
+    [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")].find(
+      (button) => button.querySelector(".room-caption")?.textContent === "時間がたりない",
+    );
+  for (let guard = 0; guard < 100 && !doesNotFit(); guard++) {
+    const options = [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")];
+    if (options.length) click(options.at(-1)!);
+    else keepFlowing(host);
+  }
+  click(doesNotFit()!);
+
+  click(
+    [...host.querySelectorAll<HTMLButtonElement>(".rest-picker button")].find(
+      (b) => b.textContent === "戻る",
+    )!,
+  );
+
+  expect(host.querySelector(".rest-picker")).toBeNull();
+  expect(doesNotFit()).toBeDefined();
 });
 
 test("keeps the chosen speed after declining, even in a week already over", () => {

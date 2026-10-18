@@ -3,7 +3,6 @@ import {
   COHORT_SIZE,
   isOver,
   replayYear,
-  setCutsSleep,
   setTimetable,
   startCohort,
   step,
@@ -35,7 +34,6 @@ type Result<T> =
 const DECISION_SEPARATOR = ".";
 const TIMETABLE_MARK = "t";
 const CHOICE_MARK = "o";
-const CUT_SLEEP_MARK = "z";
 /** Options outnumber one base-36 digit, so each takes two. */
 const OPTION_DIGITS = 2;
 // Links name routines and options by position, so reordering them needs a RULES_VERSION bump.
@@ -108,13 +106,9 @@ export function replay({
       cohort = setTimetable(cohort, decision.timetable);
       continue;
     }
-    if (decision.kind === "cutSleep") {
-      cohort = setCutsSleep(cohort, decision.cutsSleep);
-      continue;
-    }
     const offered = cohort.events[player]?.options.find((o) => o.key === decision.option);
     if (!offered || offered.shortfall) return failure("unreadable");
-    cohort = choose(cohort, decision.option);
+    cohort = choose(cohort, decision.option, decision.resting);
   }
   while (!isOver(cohort)) {
     if (awaitsChoice(cohort, player)) return failure("unreadable");
@@ -131,37 +125,43 @@ function awaitsChoice(cohort: Cohort, player: number): boolean {
   return Boolean(cohort.events[player]?.options.length);
 }
 
-/** A decision as its week, a mark, and base-36 indices, e.g. "12t0156", "9o02", or "20z1". */
+/**
+ * A decision as its week, a mark, and base-36 indices, e.g. "12t0156", or "9o02" and "9o0215"
+ * for a choice that rests routines 1 and 5.
+ */
 function encodeDecision(decision: Decision): string {
-  if (decision.kind === "cutSleep") {
-    return `${decision.week}${CUT_SLEEP_MARK}${decision.cutsSleep ? 1 : 0}`;
-  }
   if (decision.kind === "choice") {
     const index = OPTION_KEYS.indexOf(decision.option).toString(36).padStart(OPTION_DIGITS, "0");
-    return `${decision.week}${CHOICE_MARK}${index}`;
+    return `${decision.week}${CHOICE_MARK}${index}${routineDigits(decision.resting)}`;
   }
-  const routines = decision.timetable.map((key) => ROUTINE_KEYS.indexOf(key).toString(36));
-  return `${decision.week}${TIMETABLE_MARK}${routines.join("")}`;
+  return `${decision.week}${TIMETABLE_MARK}${routineDigits(decision.timetable)}`;
+}
+
+function routineDigits(keys: readonly RoutineKey[]): string {
+  return keys.map((key) => ROUTINE_KEYS.indexOf(key).toString(36)).join("");
 }
 
 function decodeDecision(text: string): Decision | null {
-  const match = text.match(/^(\d{1,2})([toz])([0-9a-z]*)$/);
+  const match = text.match(/^(\d{1,2})([to])([0-9a-z]*)$/);
   if (!match) return null;
   const [, weekText = "", mark, indices = ""] = match;
   const week = Number(weekText);
-  const digits = indices.split("").map((digit) => Number.parseInt(digit, 36));
-  if (mark === CUT_SLEEP_MARK) {
-    return /^[01]$/.test(indices) ? { week, kind: "cutSleep", cutsSleep: indices === "1" } : null;
-  }
   if (mark === CHOICE_MARK) {
-    const option =
-      indices.length === OPTION_DIGITS ? OPTION_KEYS[Number.parseInt(indices, 36)] : undefined;
-    return option ? { week, kind: "choice", option } : null;
+    const option = OPTION_KEYS[Number.parseInt(indices.slice(0, OPTION_DIGITS), 36)];
+    const resting = decodeRoutines(indices.slice(OPTION_DIGITS));
+    if (indices.length < OPTION_DIGITS || !option || !resting) return null;
+    return { week, kind: "choice", option, resting };
   }
-  const timetable = digits.map((digit) => ROUTINE_KEYS[digit]);
-  if (timetable.some((key) => key === undefined)) return null;
-  if (new Set(timetable).size !== timetable.length) return null;
-  return { week, kind: "timetable", timetable: timetable.filter((key) => key !== undefined) };
+  const timetable = decodeRoutines(indices);
+  return timetable ? { week, kind: "timetable", timetable } : null;
+}
+
+/** Routines named by one base-36 digit each, or null for an unknown or repeated one. */
+function decodeRoutines(digits: string): RoutineKey[] | null {
+  const keys = digits.split("").map((digit) => ROUTINE_KEYS[Number.parseInt(digit, 36)]);
+  if (keys.some((key) => key === undefined)) return null;
+  if (new Set(keys).size !== keys.length) return null;
+  return keys.filter((key) => key !== undefined);
 }
 
 function failure(error: LinkError): { ok: false; error: LinkError } {

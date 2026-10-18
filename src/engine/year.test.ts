@@ -5,7 +5,7 @@ import { autoLive, followDecisions, middlePolicy, mostPolicy, type Decision } fr
 
 const decisions: Decision[] = [
   { week: 0, kind: "timetable", timetable: ["friends"] },
-  { week: 9, kind: "choice", option: "esFive" },
+  { week: 9, kind: "choice", option: "esFive", resting: ["friends"] },
   { week: 20, kind: "timetable", timetable: ["rest", "research"] },
 ];
 
@@ -19,13 +19,13 @@ describe("following recorded decisions", () => {
     expect(policy.timetable(life, 20)).toEqual(["rest", "research"]);
   });
 
-  it("wants the recorded option at its week and meets other events the middle way", () => {
+  it("wants the recorded option and rested tiles at its week, meeting other events the middle way", () => {
     const policy = followDecisions(decisions);
     const life = makeLife(1);
     eventAt(life, 0);
     const event = eventAt(life, 9)!;
 
-    expect(policy.choose(life, event, 9)).toEqual({ key: "esFive", want: 2 });
+    expect(policy.choose(life, event, 9)).toEqual({ key: "esFive", want: 2, resting: ["friends"] });
     expect(policy.choose(life, event, 10)).toEqual(middlePolicy.choose(life, event, 10));
   });
 });

@@ -55,50 +55,32 @@ describe("a week's timetable", () => {
 
   it("counts a booked one-off before the timetable", () => {
     const life = richLife();
-    life.oneOff = { hours: 30, weeks: 3 };
+    life.oneOff = { hours: 30, weeks: 3, resting: [] };
 
     expect(planWeek(life, 0, ["friends"]).hours).toBe(10 + routineOf("friends").weeklyHours);
   });
-});
 
-describe("a week with booked hours that do not fit", () => {
-  // 40 free hours: friends 10, rest 10, sns 7 make 27, so a 30-hour booking runs 17 over.
-  const timetable = ["friends", "rest", "sns"] as const;
-  function bookedLife(hours: number): Life {
+  it("rests the tiles chosen for a booking while it lasts, then takes them again", () => {
     const life = richLife();
-    life.oneOff = { hours, weeks: 1 };
-    return life;
-  }
+    life.oneOff = { hours: 20, weeks: 2, resting: ["sns"] };
 
-  it("rests the routines set last until the week fits, by default", () => {
-    const outcome = planWeek(bookedLife(30), 0, timetable);
+    const booked = planWeek(life, 0, ["friends", "sns"]);
+    liveWeek(life, 0, ["friends", "sns"]);
+    liveWeek(life, 1, ["friends", "sns"]);
 
-    expect(outcome.skipped).toEqual(["rest", "sns"]);
-    expect(outcome.shortHours).toBe(0);
-  });
-
-  it("takes every routine out of sleep instead when the player cuts sleep", () => {
-    const outcome = planWeek(bookedLife(30), 0, timetable, true);
-
-    expect(outcome.skipped).toEqual([]);
-    expect(outcome.shortHours).toBe(17);
-  });
-
-  it("keeps the sleep the timetable already cut, resting only what the booking adds", () => {
-    // The timetable takes 48 hours, 8 over; a 10-hour booking rests research to get back to 48.
-    const over = ["selfAnalysis", "infoSessions", "friends", "rest", "sns", "research"] as const;
-
-    const outcome = planWeek(bookedLife(10), 0, over);
-
-    expect(outcome.skipped).toEqual(["research"]);
-    expect(outcome.shortHours).toBe(8);
+    expect(booked.taken.map((spec) => spec.key)).toEqual(["friends"]);
+    expect(booked.skipped).toEqual(["sns"]);
+    expect(planWeek(life, 2, ["friends", "sns"]).taken.map((spec) => spec.key)).toEqual([
+      "friends",
+      "sns",
+    ]);
   });
 });
 
 describe("living a week", () => {
   it("earns what paid routines pay and uses up one-offs and lost hours", () => {
     const life = richLife();
-    life.oneOff = { hours: 30, weeks: 3 };
+    life.oneOff = { hours: 30, weeks: 3, resting: [] };
     life.lostWeekly = 5;
     life.lostWeeks = 2;
     const before = life.money;
@@ -109,7 +91,7 @@ describe("living a week", () => {
     expect(life.money).toBe(
       before + monthlyIncomeYen(life) + (outcome?.earned ?? 0) - (outcome?.paid ?? 0),
     );
-    expect(life.oneOff).toEqual({ hours: 20, weeks: 2 });
+    expect(life.oneOff).toEqual({ hours: 20, weeks: 2, resting: [] });
     expect(life.lostWeeks).toBe(1);
   });
 

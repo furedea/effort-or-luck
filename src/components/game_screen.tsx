@@ -17,7 +17,6 @@ import {
   pickPlayer,
   isOver,
   replayYear,
-  setCutsSleep,
   setTimetable,
   startCohort,
   step,
@@ -114,12 +113,10 @@ export function GameScreen() {
           speed={game.speed}
           feed={game.feed}
           onTimetable={(timetable) => setGame(edit(game, timetable))}
-          cutsSleep={cohort.cutsSleep}
-          onCutsSleep={(cuts) => setGame({ ...game, cohort: setCutsSleep(cohort, cuts) })}
           pausedFor={game.pausedFor}
           onSpeed={(speed) => setGame({ ...game, speed, pausedFor: null })}
           onStep={() => setGame(advance(game))}
-          onChoose={(option: OptionKey) => setGame(decide(game, option))}
+          onChoose={(option, resting) => setGame(decide(game, option, resting))}
           onNext={() => setGame(acknowledge(game))}
         />
       ) : null}
@@ -189,8 +186,8 @@ function openedLimited(week: number) {
   return ROUTINES.filter((spec) => isLimited(spec) && spec.from === week);
 }
 
-/** Takes an option; booked hours that do not fit rest routines or cut sleep as the player set. */
-function decide(game: Game, option: OptionKey): Game {
+/** Takes an option, resting the tiles `resting` while its hours last. */
+function decide(game: Game, option: OptionKey, resting: readonly RoutineKey[]): Game {
   const event = stopAt(game);
   const taken = event?.options.find((o) => o.key === option);
   const choice =
@@ -202,7 +199,7 @@ function decide(game: Game, option: OptionKey): Game {
           },
         ]
       : [];
-  const cohort = choose(withTimetable(game.cohort, game.timetable), option);
+  const cohort = choose(withTimetable(game.cohort, game.timetable), option, resting);
   return { ...game, cohort, feed: [...choice, ...game.feed] };
 }
 

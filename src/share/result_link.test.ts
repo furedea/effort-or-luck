@@ -43,11 +43,13 @@ describe("a share link", () => {
     expect(parse(encode(params))).toEqual({ ok: true, value: params });
   });
 
-  it("carries a choice to cut sleep for booked hours and replays with it", () => {
+  it("carries the tiles rested for a choice and replays with them", () => {
     const { params: played } = play(7, 3, [middlePolicy]);
     const params = {
       ...played,
-      decisions: [{ week: 0, kind: "cutSleep", cutsSleep: true } as const, ...played.decisions],
+      decisions: played.decisions.map((d) =>
+        d.kind === "choice" ? { ...d, resting: ["friends", "sns"] as const } : d,
+      ),
     };
 
     expect(parse(encode(params))).toEqual({ ok: true, value: params });

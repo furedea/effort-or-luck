@@ -137,17 +137,21 @@ export function weekStatusLine(used: number, budget: number, money: number): str
   return `${budgetLine(used, budget)}・貯金 ${yen(Math.round(money))}`;
 }
 
-/** What an option leaves of the week: hours to spare, the tiles that rest, or the sleep cut. */
-export function optionRoom(plan: { spare: number; short: number; resting: readonly string[] }): {
+/** What an option leaves of the week: hours to spare, hours short, or the sleep cut. */
+export function optionRoom(plan: { spare: number; short: number; need: number }): {
   over: boolean;
   caption: string;
   value: string;
   cost: string | null;
 } {
   const hours = (n: number) => `${Number(n.toFixed(1))}時間`;
-  if (plan.resting.length) {
-    const cost = plan.short > 0 ? `睡眠も${hours(plan.short)}削る・健康↓・心↓` : null;
-    return { over: true, caption: "今週は休み", value: plan.resting.join("・"), cost };
+  if (plan.need > 0) {
+    return {
+      over: true,
+      caption: "時間がたりない",
+      value: `週${hours(plan.need)}`,
+      cost: "休む活動を選ぶ",
+    };
   }
   if (plan.short > 0) {
     return { over: true, caption: "睡眠を削る", value: hours(plan.short), cost: "健康↓・心↓" };
@@ -155,14 +159,23 @@ export function optionRoom(plan: { spare: number; short: number; resting: readon
   return { over: false, caption: "今週の残り", value: hours(plan.spare), cost: null };
 }
 
-/** Booked hours that do not fit: rest the last tiles this week, or take them out of sleep. */
-export const CUT_SLEEP_PROMPT = "予定で入りきらない活動は";
-export const CUT_SLEEP_LABELS = { rest: "今週は休む", cut: "睡眠を削ってやる" } as const;
-export const RESTING_TILE = "今週は休み";
+/** The prompt for tiles to rest while an option's hours last. */
+export function restPickTitle(weeks: number): string {
+  return weeks > 1 ? `予定の${weeks}週，休む活動を選ぶ` : "今週休む活動を選ぶ";
+}
 
-/** The tiles resting this week for booked hours, e.g. "今週休む：説明会・SNS・動画". */
-export function restingLine(tiles: readonly string[]): string {
-  return `今週休む：${tiles.join("・")}`;
+/** Whether the rested tiles make room, or the sleep the rest of the hours costs. */
+export function restStatusLine(shortHours: number): string {
+  if (shortHours <= 0) return "これで収まる";
+  return `あと${Number(shortHours.toFixed(1))}時間は睡眠を削る・健康↓・心↓`;
+}
+
+export const REST_PICK_CONFIRM = "これで決める";
+export const REST_PICK_BACK = "戻る";
+
+/** A tile resting for a booking, with the weeks it has left, e.g. "休み・あと2週". */
+export function restingTile(weeks: number): string {
+  return `休み・あと${weeks}週`;
 }
 
 /** Savings after an option that costs or pays money. */
