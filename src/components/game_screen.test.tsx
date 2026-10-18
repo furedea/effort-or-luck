@@ -392,7 +392,7 @@ describe("tiles taken out while an event's hours need room", () => {
   const pressed = (host: HTMLElement, name: string) =>
     tileNamed(host, name).getAttribute("aria-pressed");
   const pausedChips = (host: HTMLElement) =>
-    [...host.querySelectorAll(".chosen-chips .chip.paused > span")].map((c) => c.textContent);
+    [...host.querySelectorAll(".chosen-chips .chip.paused")].map((c) => c.textContent);
   /** Lives on, declining events, for up to `weeks` weeks or until `done`. */
   function liveOn(host: HTMLElement, done: () => boolean, weeks = 40) {
     for (let guard = 0; guard < weeks * 3 && !done(); guard++) {
@@ -419,15 +419,14 @@ describe("tiles taken out while an event's hours need room", () => {
     expect(pressed(host, "ゆっくり休む")).toBe("true");
   });
 
-  it("go for good when the paused chip's やめる is tapped", () => {
+  it("come back at once when their paused chip is tapped", () => {
     const host = bookHours();
     click(tileNamed(host, "説明会"));
 
-    click(host.querySelector<HTMLButtonElement>(".chosen-chips .chip-drop")!);
-    liveOn(host, () => false, 12);
+    click(host.querySelector<HTMLButtonElement>(".chosen-chips .chip.paused")!);
 
     expect(pausedChips(host)).toEqual([]);
-    expect(pressed(host, "説明会")).toBe("false");
+    expect(pressed(host, "説明会")).toBe("true");
   });
 });
 

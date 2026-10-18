@@ -674,29 +674,6 @@ main {
   opacity: 0.55;
   border-style: dashed;
 }
-.chip.paused {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding-right: 4px;
-  cursor: default;
-}
-.chip.paused {
-  opacity: 1;
-}
-.chip.paused > span {
-  opacity: 0.55;
-}
-.chip-drop {
-  padding: 0 8px;
-  font: inherit;
-  font-size: 11px;
-  color: var(--shu);
-  background: none;
-  border: 1px solid var(--rule);
-  border-radius: 999px;
-  cursor: pointer;
-}
 .chip span {
   color: var(--sub);
 }

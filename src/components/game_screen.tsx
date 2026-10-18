@@ -123,7 +123,6 @@ export function GameScreen() {
           paused={game.paused}
           temporary={Boolean(life && isTemporary(life, cohort.week))}
           onPause={(key) => setGame(pause(game, key))}
-          onDropPaused={(key) => setGame({ ...game, paused: game.paused.filter((k) => k !== key) })}
           pausedFor={game.pausedFor}
           onSpeed={(speed) => setGame({ ...game, speed, pausedFor: null })}
           onStep={() => setGame(advance(game))}

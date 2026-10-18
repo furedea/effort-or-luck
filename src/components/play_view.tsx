@@ -17,8 +17,7 @@ import {
   budgetLine,
   CANNOT_PAY,
   CHOSEN_LABEL,
-  dropLabel,
-  DROP_FOR_GOOD,
+  resumeLabel,
   PAUSED_CHIP,
   PAUSED_TILE,
   removeLabel,
@@ -73,7 +72,6 @@ interface Props {
   readonly paused: readonly RoutineKey[];
   readonly temporary: boolean;
   readonly onPause: (key: RoutineKey) => void;
-  readonly onDropPaused: (key: RoutineKey) => void;
   readonly onSpeed: (speed: Speed) => void;
   readonly onStep: () => void;
   readonly onChoose: (option: OptionKey) => void;
@@ -120,7 +118,6 @@ export function PlayView(props: Props) {
             temporary={props.temporary}
             onChange={props.onTimetable}
             onPause={props.onPause}
-            onDropPaused={props.onDropPaused}
           />
           <div className="actions">
             {props.pausedFor ? (
@@ -334,7 +331,6 @@ function Timetable({
   temporary,
   onChange,
   onPause,
-  onDropPaused,
 }: {
   life: Life;
   week: number;
@@ -345,7 +341,6 @@ function Timetable({
   temporary: boolean;
   onChange: (timetable: readonly RoutineKey[]) => void;
   onPause: (key: RoutineKey) => void;
-  onDropPaused: (key: RoutineKey) => void;
 }) {
   const preview = planWeek(life, week, timetable);
   // While an event needs room, a tile taken out rests and comes back afterwards by default.
@@ -399,17 +394,14 @@ function Timetable({
               </li>
             ))}
             {paused.map((key) => (
-              <li key={key} className="chip paused">
-                <span>
-                  {routineTileLabel(key)} {PAUSED_CHIP}
-                </span>
+              <li key={key}>
                 <button
                   type="button"
-                  className="chip-drop"
-                  aria-label={dropLabel(routineTileLabel(key))}
-                  onClick={() => onDropPaused(key)}
+                  className="chip paused"
+                  aria-label={resumeLabel(routineTileLabel(key))}
+                  onClick={() => onChange([...timetable, key])}
                 >
-                  {DROP_FOR_GOOD}
+                  {routineTileLabel(key)} <span aria-hidden="true">{PAUSED_CHIP}</span>
                 </button>
               </li>
             ))}
