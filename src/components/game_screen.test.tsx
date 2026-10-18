@@ -573,7 +573,10 @@ describe("the weekly timetable", () => {
   });
 
   it("gives the price of tiles that cost or pay money", () => {
-    const host = firstWeek();
+    // Easy starts with savings, so the paid tile is affordable whatever the draw.
+    const host = mountRaw();
+    chooseDifficulty(host, "やさしい");
+    startYear(host);
 
     expect(tile(host, "就活講座").querySelector(".activity-cost")?.textContent).toBe(
       "週4時間・5,000円",
