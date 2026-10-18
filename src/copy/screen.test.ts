@@ -3,6 +3,7 @@ import {
   endedCount,
   optionRoom,
   pauseLines,
+  monthlyBreakdown,
   overflowLine,
   statBars,
   statusItems,
@@ -84,5 +85,28 @@ describe("why auto play paused", () => {
       "今週が4時間はみ出た．",
       "札を外すか，そのまま進む",
     ]);
+  });
+});
+
+describe("the monthly money flow", () => {
+  it("sums allowance, scholarship, and living costs into one monthly figure with its parts", () => {
+    expect(monthlyBreakdown({ allowance: 30_000, scholarship: 50_000 })).toEqual({
+      summary: "毎月 −5万円",
+      rows: [
+        { label: "仕送り", value: "+3万円" },
+        { label: "奨学金", value: "+5万円" },
+        { label: "生活費・家賃込み", value: "−13万円" },
+      ],
+    });
+  });
+
+  it("leaves out a scholarship not borrowed and shows a surplus with a plus", () => {
+    expect(monthlyBreakdown({ allowance: 140_000, scholarship: 0 })).toEqual({
+      summary: "毎月 +1万円",
+      rows: [
+        { label: "仕送り", value: "+14万円" },
+        { label: "生活費・家賃込み", value: "−13万円" },
+      ],
+    });
   });
 });

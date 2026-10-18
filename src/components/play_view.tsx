@@ -21,7 +21,9 @@ import {
   CARD_TITLES,
   CLEAR_ALL,
   LIMITED_TITLE,
+  HISTORY_TITLE,
   LOW_NOTE,
+  monthlyBreakdown,
   NEXT,
   optionRoom,
   oneOffLine,
@@ -150,11 +152,43 @@ export function PlayView(props: Props) {
 function Feed({ entries }: { entries: readonly FeedEntry[] }) {
   const [latest] = entries;
   if (!latest) return null;
+  // The latest line stays in view; the whole history opens from it without taking room.
   return (
-    <p className="feed-entry" aria-live="polite">
-      <span className="feed-when">{weekLabel(latest.week)}</span>
-      {latest.text}
-    </p>
+    <details className="history">
+      <summary>
+        <span className="feed-entry" aria-live="polite">
+          <span className="feed-when">{weekLabel(latest.week)}</span>
+          {latest.text}
+        </span>
+        <span className="history-open">{HISTORY_TITLE}</span>
+      </summary>
+      <ul>
+        {entries.map(({ week, text }, k) => (
+          <li key={k}>
+            <span className="feed-when">{weekLabel(week)}</span>
+            {text}
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+/** The monthly flow under savings; its parts open on demand. */
+function MoneyDetail({ life }: { life: Life }) {
+  const { summary, rows } = monthlyBreakdown(life);
+  return (
+    <details className="money-detail">
+      <summary>{summary}</summary>
+      <dl>
+        {rows.map(({ label, value }) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </details>
   );
 }
 
@@ -173,6 +207,7 @@ function Status({ life }: { life: Life }) {
           </div>
         ))}
       </dl>
+      <MoneyDetail life={life} />
       <dl className="stat-bars">
         {statBars(life.stats).map(({ stat, label, value, low }) => (
           <div key={stat} className={low ? "stat-bar low" : "stat-bar"}>

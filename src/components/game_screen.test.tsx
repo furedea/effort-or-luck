@@ -132,6 +132,28 @@ test("keeps the top slim: the date beside the progress, and only the latest happ
   expect(host.querySelectorAll(".feed-entry")).toHaveLength(1);
 });
 
+test("shows the monthly money flow under savings, with its parts on demand", () => {
+  const host = mount();
+
+  expect(host.querySelector(".money-detail summary")?.textContent).toMatch(/^毎月 [−+]/);
+  expect(host.querySelector(".money-detail dl")?.textContent).toContain("生活費・家賃込み");
+});
+
+test("keeps every happening and choice in a history opened from the latest line", () => {
+  const host = mount();
+  startYear(host);
+  click(speedButton(host, "▶▶ 2倍"));
+  for (let guard = 0; guard < 100 && !host.querySelector(".event .opt"); guard++) {
+    keepFlowing(host);
+  }
+  const label = host.querySelector(".event .opt:not([disabled]) .label")?.textContent ?? "";
+  click(host.querySelector<HTMLButtonElement>(".event .opt:not([disabled])")!);
+
+  const history = [...host.querySelectorAll(".history li")].map((n) => n.textContent);
+  expect(history[0]).toContain(`→ ${label}`);
+  expect(host.querySelector(".history summary")?.textContent).toContain(`→ ${label}`);
+});
+
 test("opens on the first week with the opening notice", () => {
   const host = mount();
 

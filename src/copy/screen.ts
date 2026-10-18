@@ -177,6 +177,27 @@ export function statusItems(status: { money: number; offers: number }): StatusIt
   ];
 }
 
+/** The monthly money flow for the status card, with its parts, e.g. "毎月 −5万円". */
+export function monthlyBreakdown(money: { allowance: number; scholarship: number }) {
+  const signed = (value: number) => (value < 0 ? `−${yen(-value)}` : `+${yen(value)}`);
+  const net = money.allowance + money.scholarship - MONTHLY_EXPENSE_YEN;
+  return {
+    summary: `毎月 ${signed(net)}`,
+    rows: [
+      { label: "仕送り", value: signed(money.allowance) },
+      ...(money.scholarship ? [{ label: "奨学金", value: signed(money.scholarship) }] : []),
+      { label: "生活費・家賃込み", value: signed(-MONTHLY_EXPENSE_YEN) },
+    ],
+  };
+}
+
+export const HISTORY_TITLE = "これまで";
+
+/** A choice in the history, e.g. "ゴールデンウィーク，友達に旅行に誘われた．→ 行く". */
+export function choiceLine(situation: string, option: string): string {
+  return `${situation} → ${option}`;
+}
+
 const LOW_STAT = 25;
 
 /** The four stats as bars, flagged when close to zero. */

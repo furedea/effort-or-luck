@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 
 import "../styles/game.css";
-import { describeEvent, routineTileLabel } from "../copy/scenes";
+import { describeEvent, optionLabel, routineTileLabel } from "../copy/scenes";
 import {
+  choiceLine,
   limitedLine,
   type PauseReason,
   PLAY_AGAIN,
@@ -217,7 +218,18 @@ function openedLimited(week: number) {
  * on the timetable so the player can drop something or accept losing sleep.
  */
 function decide(game: Game, option: OptionKey): Game {
-  const takesHours = Boolean(stopAt(game)?.options.find((o) => o.key === option)?.hours);
+  const event = stopAt(game);
+  const taken = event?.options.find((o) => o.key === option);
+  const takesHours = Boolean(taken?.hours);
+  const choice =
+    event && taken
+      ? [
+          {
+            week: game.cohort.week,
+            text: choiceLine(describeEvent(event).lines[0] ?? "", optionLabel(taken, event.facts)),
+          },
+        ]
+      : [];
   const cohort = choose(withTimetable(game.cohort, game.timetable), option);
   const life = cohort.lives[game.player];
   const shortHours =
@@ -229,6 +241,7 @@ function decide(game: Game, option: OptionKey): Game {
     speed: over ? "step" : game.speed,
     pausedFor: over && game.speed !== "step" ? { kind: "over", hours: shortHours } : game.pausedFor,
     beforeTemporary: takesHours ? (game.beforeTemporary ?? game.timetable) : game.beforeTemporary,
+    feed: [...choice, ...game.feed],
   };
 }
 
