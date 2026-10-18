@@ -60,15 +60,11 @@ export const SPEED_LABELS = { step: "1週ずつ", normal: "▶ 自動", double: 
 export const FEED_TITLE = "これまで";
 export const TIMETABLE_TITLE = "毎週の過ごし方";
 export const CLEAR_ALL = "全部外す";
+export const TIMETABLE_RESTORED = "予定が終わったので，時間割を元に戻した";
 export const LIMITED_TITLE = "★ 今だけ";
 
 export function weeksLeftLine(weeks: number): string {
   return `あと${weeks}週`;
-}
-
-/** Hours an event booked have ended, e.g. "予定が終わり，週5時間あいた．時間割を見直そう". */
-export function bookingEndedLine(weeklyHours: number): string {
-  return `予定が終わり，週${Number(weeklyHours.toFixed(1))}時間あいた．時間割を見直そう`;
 }
 
 /** A limited-time tile that has just appeared, e.g. "★ 今だけ：夏インターンのES対策（あと4週）". */

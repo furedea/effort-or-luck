@@ -266,9 +266,10 @@ test("keeps the chosen speed after a choice that fits the week", () => {
   expect(stepButton(host)).toBeNull();
 });
 
-test("returns to one week per press when hours booked for an event end", () => {
+test("puts back the tiles dropped for an event's hours when they end, without stopping", () => {
   const host = mount();
   startYear(host);
+  click(tileNamed(host, "説明会"));
   click(speedButton(host, "▶▶ 2倍"));
   const takesHours = () =>
     [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")].find((button) =>
@@ -280,13 +281,15 @@ test("returns to one week per press when hours booked for an event end", () => {
     else keepFlowing(host);
   }
   click(takesHours()!);
+  click(tileNamed(host, "説明会"));
+  expect(tileNamed(host, "説明会").getAttribute("aria-pressed")).toBe("false");
 
-  for (let guard = 0; guard < 6 && !stepButton(host); guard++) passMs(300);
+  const restored = () => host.querySelector(".feed li")?.textContent?.includes("元に戻した");
+  for (let guard = 0; guard < 6 && !restored(); guard++) passMs(300);
 
-  expect(stepButton(host)).not.toBeNull();
-  expect(host.querySelector(".feed li")?.textContent).toMatch(
-    /予定が終わり，週\d+(\.\d)?時間あいた/,
-  );
+  expect(restored()).toBe(true);
+  expect(tileNamed(host, "説明会").getAttribute("aria-pressed")).toBe("true");
+  expect(stepButton(host)).toBeNull();
 });
 
 test("moves focus to an event when time stops for it", () => {
