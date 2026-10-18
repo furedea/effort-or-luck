@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 import {
   describeEvent,
   optionCost,
   optionLabel,
   routineDetail,
+  routineEffects,
   routineTileLabel,
   shortfallReason,
   weekLabel,
@@ -14,6 +15,7 @@ import {
   barLegendItem,
   budgetLine,
   CANNOT_PAY,
+  CLEAR_ALL,
   FEED_TITLE,
   LIMITED_TITLE,
   LOW_NOTE,
@@ -268,10 +270,8 @@ function Timetable({
   timetable: readonly RoutineKey[];
   onChange: (timetable: readonly RoutineKey[]) => void;
 }) {
-  const [pressed, setPressed] = useState<RoutineSpec | null>(null);
   const preview = planWeek(life, week, timetable);
   const toggle = (spec: RoutineSpec) => {
-    setPressed(spec);
     onChange(
       timetable.includes(spec.key)
         ? timetable.filter((key) => key !== spec.key)
@@ -281,11 +281,18 @@ function Timetable({
   const oneOffHours = life.oneOff.weeks > 0 ? life.oneOff.hours / life.oneOff.weeks : 0;
   return (
     <div className="timetable">
-      <h3 className="activity-section">{TIMETABLE_TITLE}</h3>
+      <div className="timetable-head">
+        <h3 className="activity-section">{TIMETABLE_TITLE}</h3>
+        <button
+          type="button"
+          className="toggle clear-all"
+          disabled={timetable.length === 0}
+          onClick={() => onChange([])}
+        >
+          {CLEAR_ALL}
+        </button>
+      </div>
       <WeekBar budget={preview.budget} preview={preview} oneOffHours={oneOffHours} />
-      <p className="activity-detail" aria-live="polite">
-        {pressed ? routineDetail(pressed) : ""}
-      </p>
       {groups(week).map(({ key, title, specs }) => (
         <div className={key === "limited" ? "activity-group limited" : "activity-group"} key={key}>
           <h4 className="activity-section">{title}</h4>
@@ -310,6 +317,7 @@ function Timetable({
                 >
                   <span className="activity-name">{routineTileLabel(spec.key)}</span>
                   <span className="activity-cost">{dropped ? CANNOT_PAY : cost}</span>
+                  <span className="activity-effects">{routineEffects(spec)}</span>
                 </button>
               );
             })}
@@ -326,7 +334,7 @@ function groups(week: number) {
   const limited = open.filter(isLimited);
   return [
     ...(limited.length ? [{ key: "limited", title: LIMITED_TITLE, specs: limited }] : []),
-    ...(["job", "life", "work"] as const).map((kind) => ({
+    ...(["job", "study", "life", "work"] as const).map((kind) => ({
       key: kind,
       title: SECTION[kind],
       specs: open.filter((spec) => spec.kind === kind && !isLimited(spec)),
@@ -375,6 +383,7 @@ function HourBar({
   const hours: Record<BarPart, number> = {
     oneOff: oneOffHours,
     job: hoursOf("job"),
+    study: hoursOf("study"),
     life: hoursOf("life"),
     work: hoursOf("work"),
     over: preview.shortHours,

@@ -3,10 +3,10 @@ import { useEffect, useState } from "react";
 import "../styles/game.css";
 import { describeEvent, routineTileLabel } from "../copy/scenes";
 import {
-  bookingEndedLine,
   limitedLine,
   PLAY_AGAIN,
   shareText,
+  TIMETABLE_RESTORED,
   TITLE,
   warningLine,
 } from "../copy/screen";
@@ -55,6 +55,8 @@ interface Game {
   readonly feed: readonly FeedEntry[];
   /** Stats already warned about, so each warning comes once. */
   readonly warned: readonly Stat[];
+  /** The timetable when an event booked hours, put back once they end. */
+  readonly beforeBooking: readonly RoutineKey[] | null;
   readonly yearEnd: YearEnd | null;
 }
 
@@ -134,6 +136,7 @@ function newGame(difficulty: Difficulty): Game {
     speed: "step",
     feed: [],
     warned: [],
+    beforeBooking: null,
     yearEnd: null,
   };
 }
@@ -156,17 +159,23 @@ function advance(game: Game): Game {
     falling && life ? [{ week: cohort.week, text: warningLine(falling, life.stats[falling]) }] : [];
   const living = Boolean(life && isActive(life));
   const appeared = living ? limitedEntries(cohort.week) : [];
-  const freed =
-    living && booked.weeks === 1
-      ? [{ week: cohort.week, text: bookingEndedLine(booked.hours) }]
-      : [];
+  // Tiles dropped to make room for an event's hours come back once those hours end.
+  const ended = booked.weeks === 1 ? game.beforeBooking : null;
+  const restored = living && ended && !sameTimetable(ended, game.timetable) ? ended : null;
   return {
     ...game,
     cohort,
-    // Limited-time preparation would pass within seconds at speed, and the hours an event booked
-    // free up a timetable that may have been emptied for it, so time waits for the player.
-    speed: appeared.length || freed.length ? "step" : game.speed,
-    feed: [...appeared, ...freed, ...warnings, ...noticeEntries(cohort, game.player), ...game.feed],
+    timetable: restored ?? game.timetable,
+    beforeBooking: booked.weeks === 1 ? null : game.beforeBooking,
+    // Limited-time preparation would pass within seconds at speed, so time waits for the player.
+    speed: appeared.length ? "step" : game.speed,
+    feed: [
+      ...appeared,
+      ...(restored ? [{ week: cohort.week, text: TIMETABLE_RESTORED }] : []),
+      ...warnings,
+      ...noticeEntries(cohort, game.player),
+      ...game.feed,
+    ],
     warned: falling ? [...game.warned, falling] : game.warned,
   };
 }
@@ -180,14 +189,21 @@ function limitedEntries(week: number): FeedEntry[] {
 }
 
 /**
- * Takes an option. When it runs the week over the free hours, time waits on the timetable so the
- * player can drop something or accept losing sleep.
+ * Takes an option. When an option that takes hours runs the week over the free hours, time waits
+ * on the timetable so the player can drop something or accept losing sleep.
  */
 function decide(game: Game, option: OptionKey): Game {
+  const takesHours = Boolean(stopAt(game)?.options.find((o) => o.key === option)?.hours);
   const cohort = choose(withTimetable(game.cohort, game.timetable), option);
   const life = cohort.lives[game.player];
-  const over = life ? planWeek(life, cohort.week, game.timetable).shortHours > 0 : false;
-  return { ...game, cohort, speed: over ? "step" : game.speed };
+  const over =
+    takesHours && life ? planWeek(life, cohort.week, game.timetable).shortHours > 0 : false;
+  return {
+    ...game,
+    cohort,
+    speed: over ? "step" : game.speed,
+    beforeBooking: takesHours ? game.timetable : game.beforeBooking,
+  };
 }
 
 /** Moves on from a stopping notice; after the results, the year is over. */
@@ -211,10 +227,11 @@ function noticeEntries(cohort: Cohort, player: number): FeedEntry[] {
 }
 
 function withTimetable(cohort: Cohort, timetable: readonly RoutineKey[]): Cohort {
-  const same =
-    timetable.length === cohort.timetable.length &&
-    timetable.every((key, i) => cohort.timetable[i] === key);
-  return same ? cohort : setTimetable(cohort, timetable);
+  return sameTimetable(timetable, cohort.timetable) ? cohort : setTimetable(cohort, timetable);
+}
+
+function sameTimetable(a: readonly RoutineKey[], b: readonly RoutineKey[]): boolean {
+  return a.length === b.length && a.every((key, i) => b[i] === key);
 }
 
 function warningFor(life: Life, warned: readonly Stat[]): Stat | null {

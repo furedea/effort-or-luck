@@ -281,6 +281,9 @@ main {
 .bar-job {
   background: var(--suit);
 }
+.bar-study {
+  background: color-mix(in srgb, var(--suit) 55%, var(--suit-soft));
+}
 .bar-life {
   background: var(--suit-soft);
 }
@@ -333,6 +336,12 @@ main {
   display: grid;
   row-gap: 12px;
 }
+.timetable-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.timetable-head .activity-section,
 .timetable > .activity-section {
   margin: 0;
   font-size: 14px;
@@ -451,11 +460,13 @@ main {
   color: var(--sub);
   font-variant-numeric: tabular-nums;
 }
-.activity-detail {
-  min-height: 1.6em;
-  margin: 0;
-  font-size: 12px;
+.activity-effects {
+  font-size: 11px;
   color: var(--sub);
+}
+.activity.chosen .activity-effects {
+  color: var(--paper);
+  opacity: 0.85;
 }
 .activity.dropped .activity-cost {
   color: var(--shu);

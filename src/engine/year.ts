@@ -26,7 +26,10 @@ export interface Policy {
 }
 
 const JOB_ROUTINES = ROUTINES.filter((spec) => spec.kind === "job").map((spec) => spec.key);
-const LIFE_ROUTINES = ROUTINES.filter((spec) => spec.kind === "life").map((spec) => spec.key);
+/** Study and time for oneself: everything but job hunting and part-time work. */
+const LIFE_ROUTINES = ROUTINES.filter((spec) => spec.kind === "study" || spec.kind === "life").map(
+  (spec) => spec.key,
+);
 /**
  * What the middle way wants, in priority order: research and friends to keep going, then job
  * hunting, then rest; it takes only what fits the week, without paid extras.

@@ -9,6 +9,7 @@ import {
   optionCost,
   optionLabel,
   routineDetail,
+  routineEffects,
   weekLabel,
 } from "./scenes";
 
@@ -104,6 +105,7 @@ describe("the opening notice", () => {
       "地方で一人暮らし．",
       "生活費は月13万円．仕送りと奨学金は合わせて月12万円．",
       "毎月の初めに1万円ずつ貯金が減る．",
+      "バイトは時給1,100円．週3時間働けば埋まる．",
     ]);
     expect(intro().table).toEqual([
       { label: "自由な時間", value: "週 40 時間" },
@@ -145,4 +147,20 @@ test("every small choice has its own lines and option labels", () => {
     expect(describeEvent(event).lines.length).toBeGreaterThan(0);
     for (const option of event.options) expect(optionLabel(option, event.facts)).toBeTruthy();
   }
+});
+
+describe("what a tile raises and lowers, in short", () => {
+  it.each([
+    ["selfAnalysis", "通過率↑・心↓"],
+    ["infoSessions", "通過率↑・早期選考↑・心↓"],
+    ["jobCourse", "通過率↑・心↓・お金↓"],
+    ["certification", "書類↑・お金↓"],
+    ["friends", "通過率↑・心↑・人間関係↑"],
+    ["research", "研究↑"],
+    ["rest", "健康↑・心↑"],
+    ["extraWork", "お金↑"],
+    ["summerEsPrep", "夏インターン↑・心↓"],
+  ] as const)("%s: %s", (key, effects) => {
+    expect(routineEffects(routineOf(key))).toBe(effects);
+  });
 });
