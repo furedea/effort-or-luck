@@ -549,7 +549,7 @@ describe("the weekly timetable", () => {
       "お金",
     ]);
     click(tabNamed(host, "学業"));
-    expect(names()).toEqual(["資格の勉強", "研究・ゼミ"]);
+    expect(names()).toEqual(["資格の勉強", "研究・ゼミ", "授業の予習・復習"]);
   });
 
   it("keeps every tab's tiles stacked in one place, so switching tabs keeps the height", () => {
@@ -636,6 +636,6 @@ describe("the weekly timetable", () => {
     const host = firstWeek();
 
     const labels = [...host.querySelectorAll(".stat-bar dt")].map((node) => node.textContent);
-    expect(labels).toEqual(["健康", "心の余裕", "人間関係", "研究"]);
+    expect(labels).toEqual(["健康", "心の余裕", "人間関係", "研究", "勉強"]);
   });
 });

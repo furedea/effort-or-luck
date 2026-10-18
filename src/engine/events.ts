@@ -16,15 +16,13 @@ import {
   SENIOR_TALK_CHANCE,
   SHOP_CLOSED_LOSS_YEN,
   SICK_HOURS,
-  TERM_CRUNCH_CHANCE,
-  TERM_CRUNCH_HOURS,
-  TERM_CRUNCH_RESEARCH,
+  TERM_EXAM,
   TRAVEL_REIMBURSED_CHANCE,
   WEEKLY_HOURS,
 } from "./parameters";
 import { countSuccesses } from "./random";
 import { SMALL_EVENTS, type SmallOption } from "./small_events";
-import { nudge, setBack, shock } from "./wellbeing";
+import { nudge, shock } from "./wellbeing";
 
 interface EventOption {
   readonly key: OptionKey;
@@ -89,12 +87,15 @@ export const OPTION_EFFORT = {
   obSkip: 0,
   homeGo: 1,
   homeStay: 2,
-  midtermPrep: 1,
-  midtermMinimal: 2,
   studyJoin: 1,
   studySkip: 0,
   applyIntern: 2,
   skipInternCall: 0,
+  // Exams take time from job hunting: the all-in path gives them up, the middle way prepares
+  // somewhat, and living for oneself prepares well.
+  examHard: 0,
+  examSome: 1,
+  examSkip: 2,
 } as const satisfies Record<OptionKey, Effort>;
 
 type EventBuilder = (life: Life) => { facts: EventFacts; options: readonly EventOption[] } | null;
@@ -105,6 +106,8 @@ const SCHEDULE: readonly (readonly [number, EventBuilder])[] = [
   [EVENT_WEEKS.longInternCall, longInternCall],
   [EVENT_WEEKS.longInternCall + 1, longInternResult],
   [EVENT_WEEKS.internEs, internEs],
+  [EVENT_WEEKS.firstTermExam, termExam("first")],
+  [EVENT_WEEKS.secondTermExam, termExam("second")],
   [weekOfMonthStart(4), summerIntern],
   [weekOfMonthStart(6), autumn],
   [weekOfMonthStart(7), winterIntern],
@@ -234,6 +237,30 @@ function longInternResult(life: Life) {
   return {
     facts: { id: "longInternResult", passed: life.longInternAccepted } as const,
     options: [],
+  };
+}
+
+/** Reports and exams at the end of a term; the options' study changes are shown before choosing. */
+function termExam(term: "first" | "second"): EventBuilder {
+  const prepared = (key: OptionKey, hours: number, study: number): EventOption => ({
+    key,
+    effort: OPTION_EFFORT[key],
+    hours,
+    weeks: hours ? 2 : 1,
+    money: 0,
+    stats: { study },
+    apply: (x) => nudge(x, { study }),
+  });
+  return (life) => {
+    if (!isActive(life)) return null;
+    return {
+      facts: { id: "termExam", term } as const,
+      options: [
+        prepared("examHard", TERM_EXAM.hard.hours, TERM_EXAM.hard.study),
+        prepared("examSome", TERM_EXAM.some.hours, TERM_EXAM.some.study),
+        prepared("examSkip", 0, TERM_EXAM.skip.study),
+      ],
+    };
   };
 }
 
@@ -393,19 +420,13 @@ function keepGoing(life: Life) {
 
 function entries(life: Life) {
   if (!isActive(life)) return null;
-  const busy = life.rng() < TERM_CRUNCH_CHANCE;
-  if (busy) {
-    loseHours(life, TERM_CRUNCH_HOURS / 4, 4);
-    life.log.push({ kind: "termCrunch" });
-    setBack(life, "research", TERM_CRUNCH_RESEARCH);
-  }
   const entry = (key: OptionKey, count: number, hours: number) =>
     option(key, { hours, weeks: 4 }, (x) => {
       x.entries = count;
       if (count >= 20) x.prep += 1;
     });
   return {
-    facts: { id: "entries", busy } as const,
+    facts: { id: "entries" } as const,
     options: [
       entry("entryTwenty", 20, 40),
       entry("entryEight", 8, 16),

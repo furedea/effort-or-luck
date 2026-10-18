@@ -35,6 +35,8 @@ export function weekOfMonthStart(monthsSinceStart: number): number {
 export const EVENT_WEEKS = {
   longInternCall: weekOfMonthStart(1) + 2,
   internEs: weekOfMonthStart(2),
+  firstTermExam: weekOfMonthStart(3) + 3,
+  secondTermExam: weekOfMonthStart(9) + 3,
   early: weekOfMonthStart(8) + 1,
   entries: weekOfMonthStart(11),
   finals: weekOfMonthStart(12) + 2,

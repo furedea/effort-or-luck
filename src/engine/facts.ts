@@ -3,7 +3,7 @@
 export type OfferMonth = "december" | "may";
 
 /** The four things a self must keep above zero; reaching zero ends the year. */
-export type Stat = "health" | "mind" | "social" | "research";
+export type Stat = "health" | "mind" | "social" | "research" | "study";
 
 /** How hard an event option pushes: 2 is the most effortful, -1 means stepping out. */
 export type Effort = -1 | 0 | 1 | 2;
@@ -36,7 +36,8 @@ export type RoutineKey =
   | "earlyPrep"
   | "entryPrep"
   | "finalPrep"
-  | "moreWork";
+  | "moreWork"
+  | "coursework";
 
 /** Selection stages that limited-time preparation raises the pass rate of. */
 export type Boost = "internEs" | "early" | "entryEs" | "final";
@@ -49,7 +50,6 @@ export type SmallEventId =
   | "extraShift"
   | "obChance"
   | "yearEnd"
-  | "midterm"
   | "studyGroup";
 
 export type EventFacts =
@@ -80,7 +80,8 @@ export type EventFacts =
   | { readonly id: "early"; readonly result: "notInvited" | "passed" | "failed" }
   | { readonly id: "seniorTalk" }
   | { readonly id: "keepGoing" }
-  | { readonly id: "entries"; readonly busy: boolean }
+  | { readonly id: "entries" }
+  | { readonly id: "termExam"; readonly term: "first" | "second" }
   | {
       readonly id: "finals";
       readonly entries: number;
@@ -137,12 +138,13 @@ export type OptionKey =
   | "obSkip"
   | "homeGo"
   | "homeStay"
-  | "midtermPrep"
-  | "midtermMinimal"
   | "studyJoin"
   | "studySkip"
   | "applyIntern"
-  | "skipInternCall";
+  | "skipInternCall"
+  | "examHard"
+  | "examSome"
+  | "examSkip";
 
 export type LogFact =
   | { readonly kind: "profile"; readonly allowance: number; readonly metro: boolean }
@@ -156,7 +158,6 @@ export type LogFact =
   | { readonly kind: "laptopBroken" }
   | { readonly kind: "earlyOffer" }
   | { readonly kind: "seniorTalk" }
-  | { readonly kind: "termCrunch" }
   | { readonly kind: "missed"; readonly event: EventId; readonly option: OptionKey }
   | { readonly kind: "over"; readonly stat: Stat }
   | { readonly kind: "june"; readonly offers: number };

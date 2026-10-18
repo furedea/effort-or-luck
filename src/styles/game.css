@@ -343,8 +343,8 @@ main {
 /* The four stats side by side, each its label over a bar and its value. */
 .stat-bars {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0 12px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0 10px;
   margin: 0;
 }
 .stat-bar {
