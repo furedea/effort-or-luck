@@ -516,6 +516,7 @@ function OptionRoom({
         <span className="room-caption">{room.caption}</span>
         <span className="room-hours">{room.hours}</span>
       </span>
+      {room.cost ? <span className="room-cost">{room.cost}</span> : null}
       {savings ? <span className="room-savings">{savings}</span> : null}
     </span>
   );

@@ -121,11 +121,17 @@ export function weekStatusLine(used: number, budget: number, money: number): str
 }
 
 /** The hours an option leaves in the week, or runs over it by, for a badge beside the option. */
-export function optionRoom(hoursLeft: number): { over: boolean; caption: string; hours: string } {
+export function optionRoom(hoursLeft: number): {
+  over: boolean;
+  caption: string;
+  hours: string;
+  /** What running over costs; the option can still be chosen. */
+  cost: string | null;
+} {
   const hours = `${Number(Math.abs(hoursLeft).toFixed(1))}時間`;
   return hoursLeft >= 0
-    ? { over: false, caption: "今週の残り", hours }
-    : { over: true, caption: "今週オーバー", hours };
+    ? { over: false, caption: "今週の残り", hours, cost: null }
+    : { over: true, caption: "今週オーバー", hours, cost: "睡眠を削る・健康↓" };
 }
 
 /** Savings after an option that costs or pays money. */

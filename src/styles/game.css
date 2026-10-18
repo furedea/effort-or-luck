@@ -13,6 +13,7 @@
   --c-study: #2b8a3e;
   --c-life: #e5a50a;
   --c-work: #868e96;
+  --warn: #b26b00;
   --display: "BIZ UDPMincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
   --body: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
 }
@@ -30,6 +31,7 @@
     --c-study: #5fc675;
     --c-life: #f2c94c;
     --c-work: #9aa1ad;
+    --warn: #f2c94c;
     color-scheme: dark;
   }
 }
@@ -46,6 +48,7 @@
   --c-study: #5fc675;
   --c-life: #f2c94c;
   --c-work: #9aa1ad;
+  --warn: #f2c94c;
   color-scheme: dark;
 }
 
@@ -364,12 +367,12 @@ main {
 .tab-work::before {
   background: var(--c-work);
 }
-/* Stripes keep over hours apart from the blues, not only by color. */
+/* Amber stripes mark over hours: a warning, apart from the other parts not only by color. */
 .bar-over {
   background: repeating-linear-gradient(
     -45deg,
-    var(--shu) 0 4px,
-    color-mix(in srgb, var(--shu) 45%, transparent) 4px 8px
+    var(--warn) 0 4px,
+    color-mix(in srgb, var(--warn) 45%, transparent) 4px 8px
   );
 }
 .bar-legend {
@@ -487,9 +490,15 @@ main {
   font-weight: 700;
   line-height: 1.2;
 }
+/* Running over is a warning, not a block: the option stays selectable, so it is amber, and red
+   is kept for options that cannot be taken. */
 .room-block.over .room-caption,
-.room-block.over .room-hours {
-  color: var(--shu);
+.room-block.over .room-hours,
+.room-cost {
+  color: var(--warn);
+}
+.room-cost {
+  font-size: 11px;
 }
 .room-savings {
   font-size: 11px;
@@ -506,6 +515,7 @@ main {
   font-variant-numeric: tabular-nums;
 }
 .opt:disabled {
+  opacity: 0.55;
   cursor: default;
   background: transparent;
   color: var(--sub);
