@@ -83,8 +83,8 @@ export const CHOSEN_LABEL = "選んだ札";
 export function removeLabel(tile: string): string {
   return `${tile}を外す`;
 }
-export const PAUSED_CHIP = "⏸ 予定後に戻る";
-export const PAUSED_TILE = "休み中";
+export const PAUSED_CHIP = "⏸ 休み中";
+export const PAUSED_TILE = "休み中・予定が終わったら戻る";
 
 /** What tapping a paused chip does, for screen readers, e.g. "研究・ゼミを今すぐ戻す". */
 export function resumeLabel(tile: string): string {

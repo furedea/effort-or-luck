@@ -409,8 +409,10 @@ describe("tiles taken out while an event's hours need room", () => {
 
     click(tileNamed(host, "説明会"));
     click(tileNamed(host, "ゆっくり休む"));
-    expect(pausedChips(host)).toEqual(["説明会 ⏸ 予定後に戻る"]);
-    expect(tileNamed(host, "説明会").querySelector(".activity-cost")?.textContent).toBe("休み中");
+    expect(pausedChips(host)).toEqual(["説明会 ⏸ 休み中"]);
+    expect(tileNamed(host, "説明会").querySelector(".activity-cost")?.textContent).toBe(
+      "休み中・予定が終わったら戻る",
+    );
 
     // The chips show only with the timetable, not while an event is on screen.
     liveOn(host, () => Boolean(host.querySelector(".timetable")) && pausedChips(host).length === 0);
