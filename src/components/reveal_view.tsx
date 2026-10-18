@@ -3,6 +3,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import {
   actualRate,
   ALLOWANCE_HEADER,
+  BY_ALLOWANCE,
   allowanceRow,
   bandSummary,
   blockedCount,
@@ -17,9 +18,11 @@ import {
   longRunRate,
   LUCK_PART,
   luckLead,
+  NOTES_TITLE,
   offeredCount,
   offeredFraction,
   pathLabel,
+  pathRate,
   profileText,
   resultLine,
   sourceCredit,
@@ -55,14 +58,8 @@ interface Props {
 }
 
 /** The conclusion first: how much luck and effort each moved the offer rate this year. */
-function GapSummary({
-  paths,
-  ranks,
-}: {
-  paths: Readonly<Record<Path, readonly Life[]>>;
-  ranks: readonly number[];
-}) {
-  const { luck, effort, verdict } = gapSummary(revealGaps(paths.same, ranks, paths));
+function GapSummary({ summary }: { summary: ReturnType<typeof gapSummary> }) {
+  const { luck, effort, verdict } = summary;
   return (
     <div className="reveal-summary">
       <p className="gap-luck">
@@ -80,8 +77,10 @@ function GapSummary({
 
 export function RevealView(props: Props) {
   const { paths, ranks, player, blocked, decisions, difficulty, subject, actions } = props;
+  const longRun = useLongRun(decisions, difficulty);
   const you = paths.same[player];
   const heading = useRef<HTMLHeadingElement>(null);
+  const summary = gapSummary(revealGaps(paths.same, ranks, paths));
   useEffect(() => {
     heading.current?.focus({ preventScroll: true });
   }, []);
@@ -94,24 +93,31 @@ export function RevealView(props: Props) {
         <p className="you">{resultLine(subject, you?.offers.length ?? 0)}</p>
         <p className="profile">{you ? profileText(you.log) : ""}</p>
       </header>
-      <GapSummary paths={paths} ranks={ranks} />
+      <GapSummary summary={summary} />
       <details className="reveal-details">
         <summary>{DETAILS_TITLE}</summary>
-        <p className="effort-definition">{EFFORT_DEFINITION}</p>
         <LuckPart
           lives={paths.same}
           ranks={ranks}
           player={player}
-          blocked={blocked}
-          decisions={decisions}
-          difficulty={difficulty}
+          gap={summary.luck.text}
+          longRun={longRun}
           subject={subject}
         />
-        <EffortPart paths={paths} ranks={ranks} subject={subject} />
-        <aside className="stat">
-          <p>{actualRate()}</p>
-          <cite>{sourceCredit(STATISTICS.offersJuneActual.source)}</cite>
-        </aside>
+        <EffortPart paths={paths} ranks={ranks} gap={summary.effort.text} subject={subject} />
+        <div className="card reveal-notes">
+          <h3 className="card-title">{NOTES_TITLE}</h3>
+          <ul>
+            <li className="effort-definition">{EFFORT_DEFINITION}</li>
+            <li className="blocked-count">{blockedCount(blocked)}</li>
+            <li className="ended-count">{endedCount(endedByStat(paths.same))}</li>
+            <li className="long-run-note">{longRun ? LONG_RUN_NOTE : LONG_RUN_PENDING}</li>
+            <li className="stat">
+              {actualRate()}
+              <cite>{sourceCredit(STATISTICS.offersJuneActual.source)}</cite>
+            </li>
+          </ul>
+        </div>
       </details>
       <div className="reveal-actions">
         {actions}
@@ -128,17 +134,18 @@ function LuckPart(props: {
   lives: readonly Life[];
   ranks: readonly number[];
   player: number;
-  blocked: number;
-  decisions: readonly Decision[];
-  difficulty: Difficulty;
+  /** The luck gap, as in the summary. */
+  gap: string;
+  /** The long-run rate for each allowance, or null while it is computed. */
+  longRun: readonly number[] | null;
   subject: Subject;
 }) {
-  const { lives, ranks, player, blocked, decisions, difficulty, subject } = props;
+  const { lives, ranks, player, gap, longRun, subject } = props;
   const rows = revealByAllowance(lives, ranks);
-  const longRun = useLongRun(decisions, difficulty);
   return (
-    <div className="part">
+    <div className="card part">
       <h3 className="part-title">{LUCK_PART}</h3>
+      <p className="part-gap">{gap}</p>
       <p className="part-lead">{luckLead(subject, lives.length)}</p>
       <div className="bands">
         {rows.map((row, rank) => (
@@ -176,9 +183,6 @@ function LuckPart(props: {
           </div>
         ))}
       </div>
-      <p className="blocked-count">{blockedCount(blocked)}</p>
-      <p className="ended-count">{endedCount(endedByStat(lives))}</p>
-      <p className="long-run-note">{longRun ? LONG_RUN_NOTE : LONG_RUN_PENDING}</p>
     </div>
   );
 }
@@ -187,44 +191,68 @@ function LuckPart(props: {
 function EffortPart(props: {
   paths: Readonly<Record<Path, readonly Life[]>>;
   ranks: readonly number[];
+  /** The effort gap, as in the summary. */
+  gap: string;
   subject: Subject;
 }) {
-  const { paths, ranks, subject } = props;
+  const { paths, ranks, gap, subject } = props;
   const columns = PATHS.map((path) => revealByAllowance(paths[path], ranks));
   const rows = columns[0] ?? [];
   return (
-    <div className="part">
+    <div className="card part">
       <h3 className="part-title">{EFFORT_PART}</h3>
+      <p className="part-gap">{gap}</p>
       <p className="part-lead">{effortLead(paths.same.length)}</p>
-      <table className="effort-table">
-        <thead>
-          <tr>
-            <th scope="col">{ALLOWANCE_HEADER}</th>
-            {PATHS.map((path) => (
-              <th scope="col" key={path} className={path === "same" ? "yours" : ""}>
-                {pathLabel(path, subject)}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, rank) => (
-            <tr key={row.amount}>
-              <th scope="row">{allowanceRow(row.amount)}</th>
-              {columns.map((column, k) => {
-                const cell = column[rank];
-                return (
-                  <td key={PATHS[k]} className={PATHS[k] === "same" ? "yours" : ""}>
-                    {cell ? offeredFraction(cell.offered, cell.members.length) : ""}
-                  </td>
-                );
-              })}
+      <ul className="path-bars">
+        {PATHS.map((path) => {
+          const rate = offerRate(paths[path]);
+          return (
+            <li key={path} className={path === "same" ? "path-bar yours" : "path-bar"}>
+              <span className="path-label">{pathLabel(path, subject)}</span>
+              <span className="path-track" aria-hidden="true">
+                <span style={{ width: `${rate * 100}%` }} />
+              </span>
+              <span className="path-rate">{pathRate(rate)}</span>
+            </li>
+          );
+        })}
+      </ul>
+      <details className="effort-detail">
+        <summary>{BY_ALLOWANCE}</summary>
+        <table className="effort-table">
+          <thead>
+            <tr>
+              <th scope="col">{ALLOWANCE_HEADER}</th>
+              {PATHS.map((path) => (
+                <th scope="col" key={path} className={path === "same" ? "yours" : ""}>
+                  {pathLabel(path, subject)}
+                </th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((row, rank) => (
+              <tr key={row.amount}>
+                <th scope="row">{allowanceRow(row.amount)}</th>
+                {columns.map((column, k) => {
+                  const cell = column[rank];
+                  return (
+                    <td key={PATHS[k]} className={PATHS[k] === "same" ? "yours" : ""}>
+                      {cell ? offeredFraction(cell.offered, cell.members.length) : ""}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </details>
     </div>
   );
+}
+
+function offerRate(lives: readonly Life[]): number {
+  return lives.length ? lives.filter((life) => life.offers.length > 0).length / lives.length : 0;
 }
 
 function endedByStat(lives: readonly Life[]): Partial<Record<Stat, number>> {

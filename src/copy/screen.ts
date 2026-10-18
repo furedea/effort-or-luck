@@ -24,7 +24,9 @@ export const EFFORT_DEFINITION =
 export const LUCK_PART = "① 努力をそろえて，運だけ変えると";
 export const EFFORT_PART = "② 運をそろえて，努力だけ変えると";
 export const ALLOWANCE_HEADER = "仕送り";
-export const DETAILS_TITLE = "詳しく見る";
+export const DETAILS_TITLE = "内訳を見る";
+export const NOTES_TITLE = "注";
+export const BY_ALLOWANCE = "仕送り別に見る";
 
 /** The reveal's conclusion: the luck gap, the effort gap, and which was larger. */
 export function gapSummary(gaps: { luck: number; effort: number }) {
@@ -273,6 +275,11 @@ export function effortLead(size: number): string {
 
 export function pathLabel(path: Path, subject: Subject): string {
   return path === "same" ? SUBJECT[subject] : path === "most" ? "就活に全部使う" : "自分のことだけ";
+}
+
+/** A path's offer rate across all 100 selves, e.g. "63%". */
+export function pathRate(rate: number): string {
+  return `${Math.round(rate * 100)}%`;
 }
 
 export function offeredFraction(offered: number, total: number): string {
