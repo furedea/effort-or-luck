@@ -96,6 +96,15 @@ test("starts the stats from the chosen difficulty", () => {
   expect(health).toBe("55");
 });
 
+test("groups the situation and the event into titled cards, with buttons below them", () => {
+  const host = mount();
+
+  const titles = [...host.querySelectorAll(".card > .card-title")].map((n) => n.textContent);
+  expect(titles).toEqual(["いまの状況", "出来事"]);
+  expect(host.querySelector(".card .stat-bars")).not.toBeNull();
+  expect(host.querySelector(".card .next")).toBeNull();
+});
+
 test("opens on the first week with the opening notice", () => {
   const host = mount();
 

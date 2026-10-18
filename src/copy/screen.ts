@@ -59,6 +59,7 @@ export const STEP = "次の週へ";
 export const SPEED_LABELS = { step: "1週ずつ", normal: "▶ 自動", double: "▶▶ 2倍" } as const;
 export const FEED_TITLE = "これまで";
 export const TIMETABLE_TITLE = "毎週の過ごし方";
+export const CARD_TITLES = { status: "いまの状況", event: "出来事" } as const;
 export const CLEAR_ALL = "全部外す";
 export const TIMETABLE_RESTORED = "予定が終わったので，時間割を元に戻した";
 export const LIMITED_TITLE = "★ 今だけ";
