@@ -14,6 +14,7 @@ import {
   ALLOWANCE_CUT_YEN,
   FAMILY_TRIP_YEN,
   LAPTOP_REPAIR_YEN,
+  MONTHLY_EXPENSE_YEN,
   PASS,
   SHOP_CLOSED_LOSS_YEN,
   TRIP_YEN,
@@ -57,7 +58,7 @@ export function describeEvent({ facts }: Event): EventText {
         lines: [
           ...INTRO_LINES,
           `${region(facts.metro)}で一人暮らし．`,
-          ...(facts.weeklyGapYen ? [LIVING_GAP_LINE] : []),
+          ...(facts.weeklyGapYen ? livingGapLines(facts) : []),
         ],
         table: introTable(facts),
         next: "始める",
@@ -194,8 +195,15 @@ const INTRO_LINES = [
   `6月1日（面接解禁）までに，同級生の${Math.round(JUNE_OFFER_RATE * 10)}割が内定を持つ．`,
 ];
 
-const LIVING_GAP_LINE =
-  "仕送りと奨学金だけでは生活費が足りない．バイトをしないと，毎週その分だけ貯金が減る．";
+/** How living costs compare with allowance and scholarship, and what the gap does. */
+function livingGapLines(facts: Facts<"intro">): string[] {
+  const income = facts.allowance + facts.scholarship;
+  const sources = facts.scholarship ? "仕送りと奨学金は合わせて" : "仕送りは";
+  return [
+    `生活費は月${yen(MONTHLY_EXPENSE_YEN)}．${sources}月${yen(income)}なので，週${yen(facts.weeklyGapYen)}足りない．`,
+    "バイトをしないと，毎週その分だけ貯金が減る．",
+  ];
+}
 
 /** The self's situation; allowance and scholarship are left to the status panel. */
 function introTable(facts: Facts<"intro">): TableRow[] {

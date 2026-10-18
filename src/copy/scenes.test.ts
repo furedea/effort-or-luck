@@ -102,7 +102,8 @@ describe("the opening notice", () => {
   it("says where the self lives and what a living-cost gap means, then sets out the figures", () => {
     expect(intro().lines.slice(2)).toEqual([
       "地方で一人暮らし．",
-      "仕送りと奨学金だけでは生活費が足りない．バイトをしないと，毎週その分だけ貯金が減る．",
+      "生活費は月13万円．仕送りと奨学金は合わせて月12万円なので，週2,308円足りない．",
+      "バイトをしないと，毎週その分だけ貯金が減る．",
     ]);
     expect(intro().table).toEqual([
       { label: "自由な時間", value: "週 40 時間" },
