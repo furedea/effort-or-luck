@@ -1,4 +1,4 @@
-import { WEEKS } from "./calendar";
+import { EVENT_WEEKS, WEEKS } from "./calendar";
 import { eventAt, pickOption, resolve, type Event } from "./events";
 import type { EventFacts, EventId, Stat } from "./facts";
 import { makeLife, tripYen, weekBudget, type Life } from "./life";
@@ -198,5 +198,56 @@ describe("small choices", () => {
     expect(life.money).toBe(before.money - option.money);
     expect(life.prep).toBeCloseTo(before.prep + (option.prep ?? 0));
     expect(life.oneOff).toEqual({ hours: option.hours, weeks: option.weeks });
+  });
+});
+
+describe("the long internship", () => {
+  function callFor(life: Life): Event {
+    const event = eventAt(life, EVENT_WEEKS.longInternCall);
+    if (event?.facts.id !== "longInternCall") throw new Error("expected the long internship call");
+    return event;
+  }
+
+  it("is open only to selves who applied and passed its selection", () => {
+    const outcomes = Array.from({ length: 400 }, (_, i) => {
+      const life = makeLife(1 + i);
+      const event = callFor(life);
+      resolve(
+        life,
+        event,
+        event.options.find((o) => o.key === "applyIntern")!,
+        "applyIntern",
+      );
+      return life;
+    });
+    const accepted = outcomes.filter((life) => life.longInternAccepted);
+
+    expect(accepted.length).toBeGreaterThan(0);
+    expect(accepted.length).toBeLessThan(outcomes.length);
+    const skipped = makeLife(1);
+    const event = callFor(skipped);
+    resolve(
+      skipped,
+      event,
+      event.options.find((o) => o.key === "skipInternCall")!,
+      "skipInternCall",
+    );
+    expect(skipped.longInternAccepted).toBe(false);
+  });
+
+  it("tells the result the next week", () => {
+    const life = makeLife(3);
+    const event = callFor(life);
+    resolve(
+      life,
+      event,
+      event.options.find((o) => o.key === "applyIntern")!,
+      "applyIntern",
+    );
+
+    expect(eventAt(life, EVENT_WEEKS.longInternCall + 1)?.facts).toEqual({
+      id: "longInternResult",
+      passed: life.longInternAccepted,
+    });
   });
 });

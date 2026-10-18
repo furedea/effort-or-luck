@@ -26,7 +26,14 @@ describe("a week's timetable", () => {
   it("takes hours beyond the budget from sleep, without paying for them", () => {
     const life = richLife();
     const budget = weekBudget(life);
-    const timetable = ["longIntern", "friends", "rest", "sns", "research"] as const;
+    const timetable = [
+      "selfAnalysis",
+      "infoSessions",
+      "friends",
+      "rest",
+      "sns",
+      "research",
+    ] as const;
     const hours = timetable.reduce((sum, key) => sum + routineOf(key).weeklyHours, 0);
 
     const outcome = planWeek(life, 0, timetable);
@@ -122,4 +129,15 @@ test("savings stay in round thousands of yen week after week", () => {
   for (let week = 0; week < 10; week++) liveWeek(life, week, ["extraWork", "certification"]);
 
   expect(Number.isInteger(life.money / 1_000)).toBe(true);
+});
+
+test("the long internship tile counts only for a self accepted into it", () => {
+  const life = richLife();
+  const june = weekOfMonthStart(2);
+
+  expect(planWeek(life, june, ["longIntern"]).taken).toEqual([]);
+  life.longInternAccepted = true;
+  expect(planWeek(life, june, ["longIntern"]).taken.map((spec) => spec.key)).toEqual([
+    "longIntern",
+  ]);
 });

@@ -380,8 +380,11 @@ test("puts back the tiles dropped for an event's hours when they end, without st
   for (let guard = 0; guard < 6 && !restored(); guard++) passMs(300);
 
   expect(restored()).toBe(true);
-  expect(tileNamed(host, "説明会").getAttribute("aria-pressed")).toBe("true");
   expect(stepButton(host)).toBeNull();
+  // The next event may already be on screen; declining it shows the timetable again.
+  const decline = () => host.querySelectorAll<HTMLButtonElement>(".event .opt").item(1);
+  if (decline()) click(decline());
+  expect(tileNamed(host, "説明会").getAttribute("aria-pressed")).toBe("true");
 });
 
 test("puts back tiles dropped for a limited-time tile once it closes, and keeps tiles added", () => {

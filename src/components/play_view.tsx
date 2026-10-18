@@ -45,7 +45,7 @@ import { WEEKS } from "../engine/calendar";
 import type { Event, PricedOption } from "../engine/events";
 import type { OptionKey, RoutineKey } from "../engine/facts";
 import type { Life } from "../engine/life";
-import { isLimited, isOpen, ROUTINES, type RoutineSpec } from "../engine/routine";
+import { isAvailable, isLimited, ROUTINES, type RoutineSpec } from "../engine/routine";
 import { planWeek } from "../engine/week";
 
 /** How time moves: one week per press, or on its own at normal or double speed. */
@@ -337,7 +337,7 @@ function Timetable({
   // A tab chosen before limited-time tiles opened gives way to them once.
   const [chosen, setChosen] = useState({ key: "job", week: -1 });
   const setTab = (key: string) => setChosen({ key, week });
-  const shown = groups(week);
+  const shown = groups(week, life);
   const openedAt = Math.max(
     -1,
     ...(shown.find((g) => g.key === "limited")?.specs.map((spec) => spec.from) ?? []),
@@ -440,8 +440,8 @@ function tileCost(spec: RoutineSpec, week: number): string {
 }
 
 /** Open routines grouped for the tiles: limited-time preparation first, when there is any. */
-function groups(week: number) {
-  const open = ROUTINES.filter((spec) => isOpen(spec, week));
+function groups(week: number, life: Life) {
+  const open = ROUTINES.filter((spec) => isAvailable(spec, week, life));
   const limited = open.filter(isLimited);
   return [
     ...(limited.length ? [{ key: "limited", title: LIMITED_TITLE, specs: limited }] : []),

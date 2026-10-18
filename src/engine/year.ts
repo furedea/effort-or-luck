@@ -3,7 +3,7 @@ import { eventAt, OPTION_EFFORT, pickOption, resolve, type Event } from "./event
 import type { Effort, OptionKey, RoutineKey } from "./facts";
 import { makeLife, neededWorkHours, weekBudget, type Life } from "./life";
 import type { Difficulty } from "./parameters";
-import { isOpen, ROUTINES, routineOf } from "./routine";
+import { isAvailable, ROUTINES, routineOf } from "./routine";
 import { liveWeek } from "./week";
 
 // A whole year lived by a policy: a timetable for every week and a choice at every event.
@@ -115,7 +115,7 @@ function withinBudget(priorities: readonly RoutineKey[], life: Life, week: numbe
   let room = weekBudget(life) - oneOff;
   return priorities.filter((key) => {
     const spec = routineOf(key);
-    if (!isOpen(spec, week) || spec.weeklyHours > room) return false;
+    if (!isAvailable(spec, week, life) || spec.weeklyHours > room) return false;
     room -= spec.weeklyHours;
     return true;
   });

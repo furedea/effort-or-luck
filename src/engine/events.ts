@@ -92,6 +92,8 @@ export const OPTION_EFFORT = {
   midtermMinimal: 2,
   studyJoin: 1,
   studySkip: 0,
+  applyIntern: 2,
+  skipInternCall: 0,
 } as const satisfies Record<OptionKey, Effort>;
 
 type EventBuilder = (life: Life) => { facts: EventFacts; options: readonly EventOption[] } | null;
@@ -99,6 +101,8 @@ type EventBuilder = (life: Life) => { facts: EventFacts; options: readonly Event
 /** The week each event comes in. The result comes after the last week. */
 const SCHEDULE: readonly (readonly [number, EventBuilder])[] = [
   [0, intro],
+  [EVENT_WEEKS.longInternCall, longInternCall],
+  [EVENT_WEEKS.longInternCall + 1, longInternResult],
   [EVENT_WEEKS.internEs, internEs],
   [weekOfMonthStart(4), summerIntern],
   [weekOfMonthStart(6), autumn],
@@ -208,6 +212,28 @@ function intro(life: Life) {
     money: life.money,
   };
   return { facts, options: [] };
+}
+
+function longInternCall(life: Life) {
+  if (!isActive(life)) return null;
+  return {
+    facts: { id: "longInternCall" } as const,
+    options: [
+      option("applyIntern", { hours: 5 }, (x) => {
+        x.longInternApplied = true;
+        x.longInternAccepted = x.rng() < documentChance(PASS.longIntern, x);
+      }),
+      option("skipInternCall"),
+    ],
+  };
+}
+
+function longInternResult(life: Life) {
+  if (!isActive(life) || !life.longInternApplied) return null;
+  return {
+    facts: { id: "longInternResult", passed: life.longInternAccepted } as const,
+    options: [],
+  };
 }
 
 function internEs(life: Life) {

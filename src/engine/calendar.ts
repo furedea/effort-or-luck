@@ -33,6 +33,7 @@ export function weekOfMonthStart(monthsSinceStart: number): number {
 
 /** Weeks of the events that limited-time preparation leads up to. */
 export const EVENT_WEEKS = {
+  longInternCall: weekOfMonthStart(1) + 2,
   internEs: weekOfMonthStart(2),
   early: weekOfMonthStart(8) + 1,
   entries: weekOfMonthStart(11),

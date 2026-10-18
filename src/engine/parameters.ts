@@ -2,7 +2,7 @@
 // that always choosing the middle option lands near the surveyed June 1st offer rate.
 
 /** Bump whenever a change alters results, so shared links from older rules are reported as old. */
-export const RULES_VERSION = 14;
+export const RULES_VERSION = 15;
 
 export const WAGE_YEN_PER_HOUR = 1100;
 export const MONTHLY_EXPENSE_YEN = 130_000;
@@ -32,6 +32,8 @@ export const SICK_HOURS = 25;
 export const MAX_PASS_PROBABILITY = 0.9;
 export const PASS = {
   internEs: 0.3,
+  /** The long internship's written selection. */
+  longIntern: 0.35,
   inviteAfterFaceIntern: 0.7,
   inviteAfterOnlineIntern: 0.35,
   early: 0.25,
