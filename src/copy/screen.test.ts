@@ -94,8 +94,8 @@ describe("the timetable followed while a booking lasts", () => {
   });
 
   it("says whether the week fits or what sleep the hours over cost", () => {
-    expect(restStatusLine(0)).toBe("これで収まる");
-    expect(restStatusLine(2.5)).toBe("あと2.5時間は睡眠を削る・健康↓・心↓");
+    expect(restStatusLine(0)).toBe("時間内に収まる");
+    expect(restStatusLine(2.5)).toBe("2.5時間オーバー：睡眠を削る・健康↓・心↓");
   });
 });
 

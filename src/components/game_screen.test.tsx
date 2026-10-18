@@ -351,9 +351,9 @@ test("sets a timetable for the booking when an option's hours do not fit, then r
   click(tileNamed(host, "友達と遊ぶ"));
   click(tileNamed(host, "ゆっくり休む"));
   click(tileNamed(host, "自己分析"));
-  expect(host.querySelector(".actions .rest-status")?.textContent).toBe("これで収まる");
+  expect(host.querySelector(".actions .rest-status")?.textContent).toBe("時間内に収まる");
 
-  click(actionNamed(host, "これで決める"));
+  click(actionNamed(host, "この時間割で進む"));
 
   expect(host.querySelector(".event")).toBeNull();
   expect(stepButton(host)).toBeNull();
@@ -396,7 +396,7 @@ test("goes back from the booking's timetable to the event's options", () => {
   const { host, option } = toOptionThatDoesNotFit();
   click(option);
 
-  click(actionNamed(host, "戻る"));
+  click(actionNamed(host, "選択肢に戻る"));
 
   expect(host.querySelector(".timetable.booking")).toBeNull();
   expect(host.querySelector(".event .opt")).not.toBeNull();

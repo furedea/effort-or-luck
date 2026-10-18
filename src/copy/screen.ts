@@ -164,12 +164,12 @@ export const BOOKING_NOTE = "予定が終わると，いつもの時間割に戻
 
 /** Whether the week fits, or the sleep the hours over cost. */
 export function restStatusLine(shortHours: number): string {
-  if (shortHours <= 0) return "これで収まる";
-  return `あと${Number(shortHours.toFixed(1))}時間は睡眠を削る・健康↓・心↓`;
+  if (shortHours <= 0) return "時間内に収まる";
+  return `${Number(shortHours.toFixed(1))}時間オーバー：睡眠を削る・健康↓・心↓`;
 }
 
-export const REST_PICK_CONFIRM = "これで決める";
-export const REST_PICK_BACK = "戻る";
+export const REST_PICK_CONFIRM = "この時間割で進む";
+export const REST_PICK_BACK = "選択肢に戻る";
 
 /** What the week's slack does: hours over cost health and mind, hours left over help them. */
 export function slackLine(shortHours: number, spareHours: number): string | null {
