@@ -80,8 +80,7 @@ function workFor(life: Life): RoutineKey[] {
   const long = routineOf("moreWork").weeklyHours;
   if (needed === 0) return [];
   if (needed <= short) return ["extraWork"];
-  if (needed <= long) return ["moreWork"];
-  return ["moreWork", "extraWork"];
+  return ["moreWork"];
 }
 
 /**

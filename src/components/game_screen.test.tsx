@@ -635,6 +635,16 @@ describe("the weekly timetable", () => {
     expect(host.querySelector<HTMLButtonElement>(".clear-all")?.disabled).toBe(true);
   });
 
+  it("lets only one amount of part-time work be chosen", () => {
+    const host = firstWeek();
+
+    click(tile(host, "バイト"));
+    click(tile(host, "バイト（多め）"));
+
+    expect(tile(host, "バイト（多め）").getAttribute("aria-pressed")).toBe("true");
+    expect(tile(host, "バイト").getAttribute("aria-pressed")).toBe("false");
+  });
+
   it("says on each tile what it raises and lowers", () => {
     const host = firstWeek();
 

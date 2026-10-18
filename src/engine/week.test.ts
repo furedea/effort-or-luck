@@ -169,3 +169,9 @@ describe("unnatural trades the week rules out", () => {
     expect(outcome.hours).toBeLessThanOrEqual(outcome.budget);
   });
 });
+
+test("part-time work is one choice: a second part-time tile in the timetable is ignored", () => {
+  const outcome = planWeek(richLife(), 0, ["extraWork", "moreWork"]);
+
+  expect(outcome.taken.map((spec) => spec.key)).toEqual(["extraWork"]);
+});

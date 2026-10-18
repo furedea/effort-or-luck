@@ -48,7 +48,14 @@ import { WEEKS } from "../engine/calendar";
 import type { Event, PricedOption } from "../engine/events";
 import type { OptionKey, RoutineKey } from "../engine/facts";
 import type { Life } from "../engine/life";
-import { isAvailable, isLimited, ROUTINES, type RoutineSpec } from "../engine/routine";
+import {
+  areAlternatives,
+  isAvailable,
+  isLimited,
+  routineOf,
+  ROUTINES,
+  type RoutineSpec,
+} from "../engine/routine";
 import { planWeek } from "../engine/week";
 
 /** How time moves: one week per press, or on its own at normal or double speed. */
@@ -350,7 +357,8 @@ function Timetable({
   };
   const toggle = (spec: RoutineSpec) => {
     if (timetable.includes(spec.key)) takeOut(spec.key);
-    else onChange([...timetable, spec.key]);
+    // Part-time amounts are one choice: picking one replaces the other.
+    else onChange([...timetable.filter((k) => !areAlternatives(spec, routineOf(k))), spec.key]);
   };
   const oneOffHours = life.oneOff.weeks > 0 ? life.oneOff.hours / life.oneOff.weeks : 0;
   // A tab chosen before limited-time tiles opened gives way to them once.
