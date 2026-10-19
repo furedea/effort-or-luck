@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import "../styles/game.css";
 import { LINK_ERRORS, PLAY_YOURSELF, TITLE } from "../copy/screen";
 import type { Cohort, YearEnd } from "../engine/cohort";
+import { LINKS } from "../links";
 import { parse, replay, type LinkError } from "../share/result_link";
 import { RevealView } from "./reveal_view";
 
@@ -26,7 +27,7 @@ export function ShareScreen() {
   }, []);
 
   const playLink = (
-    <a className="next" href="/">
+    <a className="next" href={LINKS.game}>
       {PLAY_YOURSELF}
     </a>
   );

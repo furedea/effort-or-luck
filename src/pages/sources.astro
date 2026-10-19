@@ -2,6 +2,7 @@
 import { assumptionsNote, BACK_TO_GAME, SOURCES_TITLE } from "../copy/screen";
 import { SOURCES } from "../data/statistics";
 import BaseLayout from "../layouts/base_layout.astro";
+import { LINKS } from "../links";
 import "../styles/game.css";
 ---
 
@@ -12,6 +13,6 @@ import "../styles/game.css";
       {Object.values(SOURCES).map((source) => <li>{source}</li>)}
     </ul>
     <p>{assumptionsNote()}</p>
-    <a href="/">{BACK_TO_GAME}</a>
+    <a href={LINKS.game}>{BACK_TO_GAME}</a>
   </main>
 </BaseLayout>

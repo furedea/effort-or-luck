@@ -37,6 +37,7 @@ import type { Stat } from "../engine/facts";
 import type { Life } from "../engine/life";
 import type { Difficulty } from "../engine/parameters";
 import type { Decision } from "../engine/year";
+import { LINKS } from "../links";
 import { useLongRun } from "./use_long_run";
 
 const PATHS: readonly Path[] = ["least", "same", "most"];
@@ -121,7 +122,7 @@ export function RevealView(props: Props) {
       </details>
       <div className="reveal-actions">
         {actions}
-        <a className="sources-link" href="/sources">
+        <a className="sources-link" href={LINKS.sources}>
           {SOURCES_LINK}
         </a>
       </div>

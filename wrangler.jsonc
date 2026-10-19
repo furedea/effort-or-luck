@@ -1,0 +1,12 @@
+// A Worker of static assets only, routed to furedea.com/effort-or-luck/. The pages build into
+// dist/effort-or-luck/, so asset paths match the URL paths, and dist/_headers applies to them.
+{
+  "name": "effort-or-luck",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    "html_handling": "auto-trailing-slash",
+  },
+  "routes": [{ "pattern": "furedea.com/effort-or-luck*", "zone_name": "furedea.com" }],
+  "workers_dev": false,
+}

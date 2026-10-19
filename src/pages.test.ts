@@ -26,6 +26,29 @@ test("sources page credits every source and states that pass rates are assumptio
   expect(html).toContain("交通費や宿泊費の支給");
 });
 
+test("the sources page links back to the game under the site's sub-path", async () => {
+  const container = await AstroContainer.create();
+
+  const html = await container.renderToString(SourcesPage);
+
+  expect(html).toContain('href="/effort-or-luck/"');
+});
+
+test("pages describe themselves for search and sharing, with no font from another host", async () => {
+  const container = await AstroContainer.create();
+
+  const html = await container.renderToString(SourcesPage);
+
+  expect(html).toMatch(/<meta name="description" content="[^"]+"/);
+  expect(html).toMatch(/<meta property="og:title" content="[^"]+"/);
+  expect(html).toMatch(/<meta property="og:description" content="[^"]+"/);
+  expect(html).toMatch(
+    /<link rel="icon" type="image\/svg\+xml" href="\/effort-or-luck\/favicon\.svg"/,
+  );
+  expect(html).not.toContain("fonts.googleapis.com");
+  expect(html).not.toContain("fonts.gstatic.com");
+});
+
 test("pages extend under the phone's home bar, so fixed buttons can keep clear of it", async () => {
   const container = await AstroContainer.create();
 

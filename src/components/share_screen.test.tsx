@@ -60,16 +60,18 @@ test("a shared link shows the same reveal the player saw", async () => {
   window.history.replaceState({}, "", new URL(link).pathname + new URL(link).search);
   const shared = mount(<ShareScreen />);
 
-  expect(new URL(link).pathname).toBe("/share");
+  expect(new URL(link).pathname).toBe("/effort-or-luck/share/");
   expect(summary(shared)).toEqual(summary(game));
   expect(shared.querySelector(".you")?.textContent).toMatch(/^この人には/);
 });
 
 test("an unreadable link explains itself and offers to play", () => {
-  window.history.replaceState({}, "", "/share?r=1&s=!!");
+  window.history.replaceState({}, "", "/effort-or-luck/share/?r=1&s=!!");
 
   const shared = mount(<ShareScreen />);
 
   expect(shared.querySelector(".link-error")?.textContent).toBeTruthy();
-  expect(shared.querySelector<HTMLAnchorElement>("a.next")?.getAttribute("href")).toBe("/");
+  expect(shared.querySelector<HTMLAnchorElement>("a.next")?.getAttribute("href")).toBe(
+    "/effort-or-luck/",
+  );
 });
