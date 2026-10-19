@@ -475,6 +475,9 @@ test("the reveal opens with the offers, the luck and effort gaps, and which was 
     /^→ この1年は，(運|努力)の差のほうが大きかった$/,
   );
   expect(host.querySelector(".reveal-details > summary")?.textContent).toBe("内訳を見る");
+  expect(host.querySelector<HTMLAnchorElement>(".sources-link")?.getAttribute("href")).toBe(
+    "/effort-or-luck/sources/",
+  );
 });
 
 test("describes each allowance row in words for screen readers", () => {

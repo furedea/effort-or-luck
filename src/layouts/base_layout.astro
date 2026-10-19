@@ -1,9 +1,18 @@
 ---
+import "@fontsource/biz-udpgothic/400.css";
+import "@fontsource/biz-udpgothic/700.css";
+import "@fontsource/biz-udpmincho/400.css";
+import "@fontsource/biz-udpmincho/700.css";
+
+import { DESCRIPTION, TITLE } from "../copy/screen";
+import { LINKS } from "../links";
+
 interface Props {
   title: string;
 }
 
 const { title } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url).href;
 ---
 
 <!doctype html>
@@ -12,12 +21,16 @@ const { title } = Astro.props;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>{title}</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=BIZ+UDPMincho:wght@400;700&display=swap"
-    />
+    <meta name="description" content={DESCRIPTION} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/svg+xml" href={LINKS.favicon} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={TITLE} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={DESCRIPTION} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content="ja_JP" />
+    <meta name="twitter:card" content="summary" />
   </head>
   <body>
     <slot />

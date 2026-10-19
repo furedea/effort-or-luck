@@ -29,6 +29,7 @@ import type { OptionKey, RoutineKey, Stat } from "../engine/facts";
 import { isActive, type Life } from "../engine/life";
 import type { Difficulty } from "../engine/parameters";
 import { isLimited, isOpen, ROUTINES, routineOf } from "../engine/routine";
+import { LINKS } from "../links";
 import { encode } from "../share/result_link";
 import { DifficultyPicker } from "./difficulty_picker";
 import { PlayView, type FeedEntry, type Speed } from "./play_view";
@@ -248,7 +249,7 @@ function warningFor(life: Life, warned: readonly Stat[]): Stat | null {
 
 function shareUrl({ seed, player, cohort }: Game): string {
   const { difficulty, decisions } = cohort;
-  return `${window.location.origin}/share${encode({ seed, player, difficulty, decisions })}`;
+  return `${window.location.origin}${LINKS.share}${encode({ seed, player, difficulty, decisions })}`;
 }
 
 function randomSeed(): number {

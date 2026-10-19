@@ -17,6 +17,8 @@ import { describeLog, STAT_LABELS } from "./scenes";
 export type Path = "least" | "same" | "most";
 
 export const TITLE = "努力か，運か";
+export const DESCRIPTION =
+  "同じ選択，違う運．100人のあなたが就活の1年を生きる．内定を決めるのは努力か，運か．";
 export const NEXT = "次へ";
 export const YEAR_END = "6月1日";
 export const EFFORT_DEFINITION =
