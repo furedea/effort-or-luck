@@ -11,12 +11,20 @@ import {
   type NetworkAsset,
 } from "./asset_budget";
 
-// Preliminary limits, to be replaced by measured sizes plus a margin.
+// Measured transfers in CI plus about 15%. Fonts dominate: each page loads only the BIZ UD
+// subsets its text needs, and the game screen needs the most. The React island is the scripts.
 const PAGE_BUDGET: AssetBudget = {
-  total: { size: 5_000_000, count: 200 },
-  script: { size: 1_000_000, count: 20 },
-  image: { size: 100_000, count: 5 },
-  font: { size: 3_000_000, count: 150 },
+  total: { size: 900_000, count: 45 },
+  script: { size: 105_000, count: 6 },
+  image: { size: 20_000, count: 2 },
+  font: { size: 650_000, count: 43 },
+};
+
+const GAME_SCREEN_BUDGET: AssetBudget = {
+  total: { size: 1_550_000, count: 85 },
+  script: { size: 105_000, count: 6 },
+  image: { size: 20_000, count: 2 },
+  font: { size: 1_200_000, count: 76 },
 };
 
 const GAME_SCREEN = "game screen";
@@ -43,7 +51,7 @@ test(`the ${GAME_SCREEN} remains within its asset budget`, async ({ browser, bas
     });
   });
 
-  expectWithinBudget(GAME_SCREEN, usage, PAGE_BUDGET);
+  expectWithinBudget(GAME_SCREEN, usage, GAME_SCREEN_BUDGET);
 });
 
 async function measureAssets(
