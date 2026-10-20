@@ -6,6 +6,6 @@ export default getViteConfig({
   test: {
     environment: "node",
     globals: true,
-    include: ["src/**/*.test.{ts,tsx}", "src/**/*.spec.{ts,tsx}"],
+    include: ["src/**/*.test.{ts,tsx}", "src/**/*.spec.{ts,tsx}", "tests/**/*.test.ts"],
   },
 });

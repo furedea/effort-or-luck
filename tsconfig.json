@@ -8,6 +8,6 @@
     "exactOptionalPropertyTypes": true,
     "types": ["node", "vitest/globals"]
   },
-  "include": ["src/**/*", "astro.config.ts", "vitest.config.ts"],
+  "include": ["src/**/*", "tests/**/*", "*.config.ts"],
   "exclude": ["coverage", "dist", "node_modules"]
 }

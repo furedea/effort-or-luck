@@ -59,7 +59,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
-          node-version: 22
+          node-version: 22.23.3
           cache: pnpm
 
       - name: Install dependencies
@@ -85,7 +85,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
-          node-version: 22
+          node-version: 22.23.3
           cache: pnpm
 
       - name: Install dependencies
@@ -111,7 +111,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
-          node-version: 22
+          node-version: 22.23.3
           cache: pnpm
 
       - name: Install dependencies
@@ -137,7 +137,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
-          node-version: 22
+          node-version: 22.23.3
           cache: pnpm
 
       - name: Install dependencies
@@ -163,7 +163,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
-          node-version: 22
+          node-version: 22.23.3
           cache: pnpm
 
       - name: Install dependencies
@@ -171,6 +171,44 @@ jobs:
 
       - name: Build static site
         run: pnpm run build
+
+      - name: Verify build output
+        run: pnpm run verify:build
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22.23.3
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps --only-shell chromium
+
+      - name: Build static site
+        run: pnpm run build
+
+      - name: Run end-to-end tests
+        run: pnpm run test:e2e
+
+      - name: Enforce deterministic asset budgets
+        run: pnpm run test:asset-budget
 
   audit:
     runs-on: ubuntu-latest
@@ -189,7 +227,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
-          node-version: 22
+          node-version: 22.23.3
           cache: pnpm
 
       - name: Install dependencies
@@ -200,7 +238,7 @@ jobs:
 
   all-green:
     if: always()
-    needs: [nix-lint, lint, format, typecheck, test, build, audit]
+    needs: [nix-lint, lint, format, typecheck, test, build, e2e, audit]
     runs-on: ubuntu-latest
     timeout-minutes: 1
     permissions: {}

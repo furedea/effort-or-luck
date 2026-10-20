@@ -16,7 +16,13 @@
     "test:watch": "vitest",
     "knip": "knip",
     "knip:production": "knip --production",
-    "check": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run knip"
+    "test:e2e": "playwright test",
+    "test:asset-budget": "playwright test --config=playwright_asset_budget.config.ts",
+    "verify:build": "node scripts/verify_build.mjs",
+    "check": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run knip && pnpm run build && pnpm run verify:build",
+    "check:e2e": "pnpm run build && pnpm run test:e2e",
+    "check:asset-budget": "pnpm run build && pnpm run test:asset-budget",
+    "check:full": "pnpm run check && pnpm run test:e2e && pnpm run test:asset-budget"
   },
   "dependencies": {
     "@astrojs/react": "7.0.1",
@@ -28,6 +34,8 @@
   },
   "devDependencies": {
     "@astrojs/check": "0.9.10",
+    "@axe-core/playwright": "4.12.1",
+    "@playwright/test": "1.59.1",
     "@types/node": "26.6.5",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
