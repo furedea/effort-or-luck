@@ -5,6 +5,7 @@ import { pickDifficulty } from "../game_driver";
 import { builtRoutes } from "../site_routes";
 import {
   findAssetBudgetViolations,
+  findBrokenAssets,
   summarizeAssets,
   type AssetBudget,
   type AssetUsage,
@@ -68,6 +69,7 @@ async function measureAssets(
     await session.send("Network.enable");
     await visit(page);
 
+    expect(findBrokenAssets(assets.values()), "assets that did not load").toEqual([]);
     return summarizeAssets(assets.values());
   } finally {
     await context.close();
@@ -76,14 +78,26 @@ async function measureAssets(
 
 function observeNetworkAssets(session: CDPSession): Map<string, NetworkAsset> {
   const assets = new Map<string, NetworkAsset>();
-  session.on("Network.requestWillBeSent", ({ requestId, type }) => {
-    assets.set(requestId, { size: 0, type: type ?? "Other" });
+  session.on("Network.requestWillBeSent", ({ requestId, request, type }) => {
+    assets.set(requestId, { url: request.url, size: 0, type: type ?? "Other" });
+  });
+  session.on("Network.responseReceived", ({ requestId, response }) => {
+    const asset = assets.get(requestId);
+    if (asset !== undefined) asset.status = response.status;
   });
   session.on("Network.loadingFinished", ({ requestId, encodedDataLength }) => {
     const asset = assets.get(requestId);
     if (asset !== undefined) asset.size = encodedDataLength;
   });
-  session.on("Network.loadingFailed", ({ requestId }) => assets.delete(requestId));
+  session.on("Network.loadingFailed", ({ requestId, errorText, canceled }) => {
+    // A request the page itself abandoned, such as on navigation, neither loads nor breaks.
+    if (canceled === true) {
+      assets.delete(requestId);
+      return;
+    }
+    const asset = assets.get(requestId);
+    if (asset !== undefined) asset.failure = errorText;
+  });
   return assets;
 }
 

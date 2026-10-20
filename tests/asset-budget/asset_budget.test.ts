@@ -1,11 +1,16 @@
-import { findAssetBudgetViolations, summarizeAssets, type AssetUsage } from "./asset_budget";
+import {
+  findAssetBudgetViolations,
+  findBrokenAssets,
+  summarizeAssets,
+  type AssetUsage,
+} from "./asset_budget";
 
 test("summarizes tracked network assets for budget evaluation", () => {
   const summary = summarizeAssets([
-    { size: 100, type: "Script" },
-    { size: 200, type: "Image" },
-    { size: 300, type: "Font" },
-    { size: 400, type: "Stylesheet" },
+    { url: "/script", size: 100, type: "Script" },
+    { url: "/image", size: 200, type: "Image" },
+    { url: "/font", size: 300, type: "Font" },
+    { url: "/stylesheet", size: 400, type: "Stylesheet" },
   ]);
 
   expect(summary).toEqual({
@@ -32,6 +37,23 @@ test("reports an asset request count above its budget", () => {
   expect(findAssetBudgetViolations(usage, assetUsage())).toEqual([
     { actual: 2, kind: "font", limit: 1, metric: "count" },
   ]);
+});
+
+test("reports an asset that answered with an HTTP error, whatever it weighed", () => {
+  const broken = findBrokenAssets([
+    { url: "/font.woff2", size: 0, type: "Font", status: 404 },
+    { url: "/script.js", size: 100, type: "Script", status: 200 },
+  ]);
+
+  expect(broken).toEqual(["/font.woff2 answered 404"]);
+});
+
+test("reports an asset whose request failed", () => {
+  const broken = findBrokenAssets([
+    { url: "/script.js", size: 0, type: "Script", failure: "net::ERR_BLOCKED_BY_CLIENT" },
+  ]);
+
+  expect(broken).toEqual(["/script.js failed: net::ERR_BLOCKED_BY_CLIENT"]);
 });
 
 function assetUsage(): AssetUsage {

@@ -14,8 +14,13 @@ type AssetBudgetViolation = {
 };
 
 export type NetworkAsset = {
+  url: string;
   size: number;
   type: string;
+  /** The HTTP status, once a response arrived. */
+  status?: number;
+  /** Why the request failed, if it did. */
+  failure?: string;
 };
 
 export function summarizeAssets(assets: Iterable<NetworkAsset>): AssetUsage {
@@ -41,6 +46,17 @@ export function findAssetBudgetViolations(
         : [],
     ),
   );
+}
+
+/** Assets that answered with an HTTP error or failed to load, which would weigh nothing. */
+export function findBrokenAssets(assets: Iterable<NetworkAsset>): string[] {
+  return [...assets].flatMap((asset) => {
+    if (asset.failure !== undefined) return [`${asset.url} failed: ${asset.failure}`];
+    if (asset.status !== undefined && asset.status >= 400) {
+      return [`${asset.url} answered ${asset.status}`];
+    }
+    return [];
+  });
 }
 
 function emptyAssetUsage(): AssetUsage {
