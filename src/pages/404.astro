@@ -1,0 +1,15 @@
+---
+import { BACK_TO_GAME, NOT_FOUND_NOTE, NOT_FOUND_TITLE, TITLE } from "../copy/screen";
+import BaseLayout from "../layouts/base_layout.astro";
+import { LINKS } from "../links";
+import "../styles/game.css";
+---
+
+<BaseLayout title={`${NOT_FOUND_TITLE} | ${TITLE}`} noindex>
+  <main class="sources">
+    <p class="title">404</p>
+    <h1 class="when">{NOT_FOUND_TITLE}</h1>
+    <p>{NOT_FOUND_NOTE}</p>
+    <a href={LINKS.game}>{BACK_TO_GAME}</a>
+  </main>
+</BaseLayout>

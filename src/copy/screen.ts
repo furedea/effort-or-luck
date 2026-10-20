@@ -43,6 +43,9 @@ export function gapSummary(gaps: { luck: number; effort: number }) {
 export const SOURCES_LINK = "数字の出典と仮定について";
 export const SOURCES_TITLE = "数字の出典と仮定";
 export const BACK_TO_GAME = "ゲームに戻る";
+export const NOT_FOUND_TITLE = "ページが見つかりません";
+export const NOT_FOUND_NOTE = "URL が変わったか，入力に誤りがあるようです．";
+export const OG_IMAGE_ALT = "「努力か，運か」の題字と，内定した人を塗りつぶした100人の点";
 export const PLAY_AGAIN = "もう一度";
 export const DIFFICULTY_TITLE = "難しさを選ぶ";
 export const TITLE_LEAD = ["就活の1年を過ごす．", "内定を決めるのは，努力か，運か．"] as const;

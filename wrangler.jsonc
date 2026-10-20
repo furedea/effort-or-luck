@@ -1,11 +1,13 @@
 // A Worker of static assets only, routed to furedea.com/effort-or-luck/. The pages build into
 // dist/effort-or-luck/, so asset paths match the URL paths, and dist/_headers applies to them.
+// An unknown path gets the nearest 404.html up its directory tree: dist/effort-or-luck/404.html.
 {
   "name": "effort-or-luck",
   "compatibility_date": "2026-10-01",
   "assets": {
     "directory": "./dist",
     "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page",
   },
   "routes": [{ "pattern": "furedea.com/effort-or-luck*", "zone_name": "furedea.com" }],
   "workers_dev": false,
