@@ -2,7 +2,15 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
 import { DETAILS_TITLE, SHARE } from "../../src/copy/screen";
-import { playToReveal, playUntil, recordShares, sharedUrl, startGame } from "../game_driver";
+import {
+  openBookingTimetable,
+  overfillTimetable,
+  playToReveal,
+  playUntil,
+  recordShares,
+  sharedUrl,
+  startGame,
+} from "../game_driver";
 import { builtRoutes } from "../site_routes";
 
 const WCAG_AA_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
@@ -26,6 +34,19 @@ test.describe("game states have no automatically detectable WCAG A or AA violati
   test("a week with the timetable", async ({ page }) => {
     await startGame(page);
     await playUntil(page, page.locator(".actions .step"));
+    await expectNoWcagViolations(page);
+  });
+
+  test("a week whose timetable runs over its hours", async ({ page }) => {
+    await startGame(page);
+    await overfillTimetable(page);
+    await expectNoWcagViolations(page);
+  });
+
+  test("the timetable for a booking that does not fit yet", async ({ page }) => {
+    await startGame(page);
+    await openBookingTimetable(page);
+    await expect(page.locator(".rest-status.over")).toBeVisible();
     await expectNoWcagViolations(page);
   });
 
