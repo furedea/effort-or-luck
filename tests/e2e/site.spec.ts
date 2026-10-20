@@ -52,7 +52,7 @@ test("a played year's share link opens the same result", async ({ page }) => {
 async function revealedResult(page: Page) {
   const reveal = page.locator(".reveal");
   return {
-    offers: (await reveal.locator(".you").innerText()).replace(/^.*?には，/, ""),
+    offers: (await reveal.locator(".reveal-head .you").innerText()).replace(/^.*?には，/, ""),
     profile: await reveal.locator(".profile").innerText(),
     summary: await reveal.locator(".reveal-summary").innerText(),
   };
