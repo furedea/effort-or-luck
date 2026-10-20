@@ -17,3 +17,7 @@ coverage/
 dist/
 
 .astro/
+
+playwright-report/
+performance-results/
+test-results/

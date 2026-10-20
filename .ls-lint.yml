@@ -18,3 +18,5 @@ ignore:
   - "**/{.pnpm-store,.turbo,.vite}"
   - "{dist,build,coverage,.next,out,.nuxt,.output,.svelte-kit}"
   - "**/{dist,build,coverage,.next,out,.nuxt,.output,.svelte-kit}"
+
+  - "{playwright-report,performance-results,test-results}"
