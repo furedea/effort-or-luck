@@ -1,8 +1,11 @@
 import {
   findAssetBudgetViolations,
   findBrokenAssets,
+  recordNetworkEvent,
   summarizeAssets,
   type AssetUsage,
+  type NetworkAsset,
+  type NetworkEvent,
 } from "./asset_budget";
 
 test("summarizes tracked network assets for budget evaluation", () => {
@@ -55,6 +58,60 @@ test("reports an asset whose request failed", () => {
 
   expect(broken).toEqual(["/script.js failed: net::ERR_BLOCKED_BY_CLIENT"]);
 });
+
+describe("network events", () => {
+  const request: NetworkEvent = {
+    kind: "request",
+    requestId: "1",
+    url: "/font.woff2",
+    type: "Font",
+  };
+
+  test("keep an HTTP error that Chromium then reports as a canceled load", () => {
+    const assets = record([
+      request,
+      { kind: "response", requestId: "1", status: 404 },
+      { kind: "failed", requestId: "1", errorText: "net::ERR_ABORTED", canceled: true },
+    ]);
+
+    expect(findBrokenAssets(assets.values())).toEqual(["/font.woff2 answered 404"]);
+  });
+
+  test("drop a canceled load whose response was fine", () => {
+    const assets = record([
+      request,
+      { kind: "response", requestId: "1", status: 200 },
+      { kind: "failed", requestId: "1", errorText: "net::ERR_ABORTED", canceled: true },
+    ]);
+
+    expect([...assets.values()]).toEqual([]);
+  });
+
+  test("report a canceled load that never got a response", () => {
+    const assets = record([
+      request,
+      { kind: "failed", requestId: "1", errorText: "net::ERR_ABORTED", canceled: true },
+    ]);
+
+    expect(findBrokenAssets(assets.values())).toEqual(["/font.woff2 failed: net::ERR_ABORTED"]);
+  });
+
+  test("count a finished load at its transfer size", () => {
+    const assets = record([
+      request,
+      { kind: "response", requestId: "1", status: 200 },
+      { kind: "finished", requestId: "1", size: 300 },
+    ]);
+
+    expect(summarizeAssets(assets.values()).font).toEqual({ size: 300, count: 1 });
+  });
+});
+
+function record(events: NetworkEvent[]): Map<string, NetworkAsset> {
+  const assets = new Map<string, NetworkAsset>();
+  for (const event of events) recordNetworkEvent(assets, event);
+  return assets;
+}
 
 function assetUsage(): AssetUsage {
   return {
