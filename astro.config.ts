@@ -11,4 +11,9 @@ export default defineConfig({
   trailingSlash: "always",
   outDir: `./dist${BASE_PATH}`,
   integrations: [react()],
+  vite: {
+    // Vite inlines small files as data: URLs, which the font-src 'self' policy in deploy/_headers
+    // blocks; small font subsets must stay files.
+    build: { assetsInlineLimit: 0 },
+  },
 });
