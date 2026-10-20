@@ -18,11 +18,13 @@
     "knip:production": "knip --production",
     "test:e2e": "playwright test",
     "test:asset-budget": "playwright test --config=playwright_asset_budget.config.ts",
+    "test:performance": "playwright test --config=playwright_performance.config.ts",
     "verify:build": "node scripts/verify_build.mjs",
     "check": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run knip && pnpm run build && pnpm run verify:build",
     "check:e2e": "pnpm run build && pnpm run test:e2e",
     "check:asset-budget": "pnpm run build && pnpm run test:asset-budget",
-    "check:full": "pnpm run check && pnpm run test:e2e && pnpm run test:asset-budget"
+    "check:performance": "pnpm run build && pnpm run test:performance",
+    "check:full": "pnpm run check && pnpm run test:e2e && pnpm run test:asset-budget && pnpm run test:performance"
   },
   "dependencies": {
     "@astrojs/react": "7.0.1",
