@@ -27,11 +27,12 @@ const COMPRESSIBLE = new Set([".css", ".html", ".js", ".json", ".svg", ".txt"]);
 const rules = parseHeaderRules(readFileSync(join(ROOT, "_headers"), "utf8"));
 
 createServer((request, response) => {
-  const { pathname } = new URL(request.url ?? "/", "http://localhost");
+  const { pathname, search } = new URL(request.url ?? "/", "http://localhost");
   const resolution = resolveAsset(ROOT, pathname);
   const headers = headersFor(rules, pathname);
   if (resolution.kind === "redirect") {
-    response.writeHead(307, { ...headers, Location: resolution.location }).end();
+    // As the Worker does, the redirect keeps the query, which carries a shared result.
+    response.writeHead(307, { ...headers, Location: `${resolution.location}${search}` }).end();
     return;
   }
   if (resolution.kind === "notFound") {
