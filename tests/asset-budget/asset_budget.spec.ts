@@ -90,7 +90,10 @@ function printUsage(name: string, usage: AssetUsage): void {
     transferKb: Math.round(usage.total.size / 1_024),
     requests: usage.total.count,
     scriptKb: Math.round(usage.script.size / 1_024),
+    scripts: usage.script.count,
     imageKb: Math.round(usage.image.size / 1_024),
+    images: usage.image.count,
     fontKb: Math.round(usage.font.size / 1_024),
+    fonts: usage.font.count,
   });
 }
