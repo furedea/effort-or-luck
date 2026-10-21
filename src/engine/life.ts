@@ -119,8 +119,15 @@ export function weekBudget(life: Life): number {
   return Math.max(0, WEEKLY_HOURS - lost);
 }
 
+/** Hours lost each week for a number of weeks, and why. */
+export interface HourLoss {
+  readonly weekly: number;
+  readonly weeks: number;
+  readonly reason: LostReason;
+}
+
 /** Loses `weekly` hours each week for the next `weeks` weeks. */
-export function loseHours(life: Life, weekly: number, weeks: number, reason: LostReason): void {
+export function loseHours(life: Life, { weekly, weeks, reason }: HourLoss): void {
   life.lostWeekly = weekly;
   life.lostWeeks = weeks;
   life.lostReason = reason;

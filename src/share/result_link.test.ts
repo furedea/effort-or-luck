@@ -89,6 +89,8 @@ describe("a share link", () => {
     ["a character that names no option", `?r=${RULES_VERSION}&s=1&p=0&c=9ozz`],
     ["a decision without a week", `?r=${RULES_VERSION}&s=1&p=0&c=t0`],
     ["a seed that is not a number", `?r=${RULES_VERSION}&s=zz!&p=0&c=0t0`],
+    ["a seed beyond 32 bits", `?r=${RULES_VERSION}&s=zzzzzzz&p=0&c=0t0`],
+    ["rules that name no version", "?r=x&s=1&p=0&c=0t0"],
   ])("is unreadable with %s", (_, search) => {
     expect(parse(search)).toEqual({ ok: false, error: "unreadable" });
   });
@@ -108,6 +110,17 @@ describe("a share link", () => {
       ok: false,
       error: "unreadable",
     });
+  });
+
+  it("fails to replay a choice the player was not offered", () => {
+    const params = {
+      seed: 1,
+      player: 0,
+      difficulty: "normal",
+      decisions: [{ week: 0, kind: "choice", option: "stop" }],
+    } as const;
+
+    expect(replay(params)).toEqual({ ok: false, error: "unreadable" });
   });
 
   it("fails to replay when decisions go back in time", () => {

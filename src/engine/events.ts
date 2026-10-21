@@ -1,22 +1,16 @@
+import { drawAutumnEvent } from "./autumn";
 // Events that stop the weeks for a choice or a notice. Each may draw from the life's RNG, so the
 // order of draws here is part of what makes a seed reproducible.
 import { EVENT_WEEKS, weekOfMonthStart, WEEKS } from "./calendar";
-import type { AutumnEvent, Effort, EventFacts, OptionKey, Shortfall, Stat } from "./facts";
-import { isActive, loseHours, neededWorkHours, tripYen, monthlyIncomeYen, type Life } from "./life";
+import { academicFactor, applicationQuality, documentChance, passChance } from "./chances";
+import type { Effort, EventFacts, OptionKey, Shortfall, Stat } from "./facts";
+import { isActive, neededWorkHours, tripYen, monthlyIncomeYen, type Life } from "./life";
 import {
-  ACADEMIC,
-  ALLOWANCE_CUT_YEN,
   APPLICATION_FOCUS,
-  AUTUMN_EVENT,
-  FAMILY_TRIP_HOURS,
-  FAMILY_TRIP_YEN,
-  LAPTOP_REPAIR_YEN,
   MAX_PASS_PROBABILITY,
   PASS,
   SCHOLARSHIP_MONTHS,
   SENIOR_TALK_CHANCE,
-  SHOP_CLOSED_LOSS_YEN,
-  SICK_HOURS,
   TERM_EXAM,
   TRAVEL_REIMBURSED_CHANCE,
   YEAR_LUCK,
@@ -150,13 +144,14 @@ export function pickOption(event: Event, key: OptionKey | null, want: Effort): P
   return picked;
 }
 
+/** The option a self takes at an event, and the one it wanted if any. */
+export interface Taking {
+  readonly option: PricedOption;
+  readonly wanted: OptionKey | null;
+}
+
 /** Takes `option`: pays its money, books its hours for the coming weeks, and applies it. */
-export function resolve(
-  life: Life,
-  event: Event,
-  option: PricedOption,
-  wanted: OptionKey | null,
-): void {
+export function resolve(life: Life, event: Event, { option, wanted }: Taking): void {
   life.money -= option.money;
   life.oneOff = { hours: option.hours, weeks: option.weeks, timetable: null };
   option.apply?.(life);
@@ -319,48 +314,6 @@ function autumn(life: Life) {
   return { facts: { id: "autumn", event: drawAutumnEvent(life) } as const, options: [] };
 }
 
-function drawAutumnEvent(life: Life): AutumnEvent {
-  // Difficulty sets how likely any misfortune is; which one it is keeps its usual odds.
-  const anyMisfortune = Object.values(AUTUMN_EVENT).reduce((sum, chance) => sum + chance, 0);
-  const share = YEAR_LUCK[life.difficulty]?.misfortune ?? anyMisfortune;
-  const drawn = life.rng();
-  if (drawn >= share) return { kind: "calm" };
-  const roll = (drawn / share) * anyMisfortune;
-  let threshold = AUTUMN_EVENT.allowanceCut;
-  if (roll < threshold) {
-    if (life.allowance > 0) {
-      life.allowance = Math.max(0, life.allowance - ALLOWANCE_CUT_YEN);
-      life.log.push({ kind: "allowanceCut" });
-      return { kind: "allowanceCut" };
-    }
-    life.money = Math.max(0, life.money - SHOP_CLOSED_LOSS_YEN);
-    life.log.push({ kind: "shopClosed" });
-    return { kind: "shopClosed" };
-  }
-  threshold += AUTUMN_EVENT.sick;
-  if (roll < threshold) {
-    loseHours(life, SICK_HOURS / 2, 2, "sick");
-    life.log.push({ kind: "sick" });
-    shock(life, "sick");
-    return { kind: "sick" };
-  }
-  threshold += AUTUMN_EVENT.familyIllness;
-  if (roll < threshold) {
-    life.money = Math.max(0, life.money - FAMILY_TRIP_YEN);
-    loseHours(life, FAMILY_TRIP_HOURS, 1, "family");
-    life.log.push({ kind: "familyIllness" });
-    shock(life, "familyIllness");
-    return { kind: "familyIllness" };
-  }
-  threshold += AUTUMN_EVENT.laptopBroken;
-  if (roll < threshold) {
-    life.money = Math.max(0, life.money - LAPTOP_REPAIR_YEN);
-    life.log.push({ kind: "laptopBroken" });
-    return { kind: "laptopBroken" };
-  }
-  return { kind: "calm" };
-}
-
 function winterIntern(life: Life) {
   if (!isActive(life)) return null;
   return {
@@ -520,25 +473,4 @@ function june(life: Life) {
     scholarshipTotal: life.scholarship * SCHOLARSHIP_MONTHS,
   };
   return { facts, options: [] };
-}
-
-/** How much interviews credit what the self has to talk about from research and study. */
-export function academicFactor(life: Life): number {
-  const worked = (life.stats.research + life.stats.study) / 2;
-  return ACADEMIC.floor + (1 - ACADEMIC.floor) * Math.min(1, worked / ACADEMIC.full);
-}
-
-/** How much of each application's chance survives spreading preparation over `count`. */
-export function applicationQuality(count: number, focused: number): number {
-  return count <= focused ? 1 : (focused / count) ** APPLICATION_FOCUS.exponent;
-}
-
-function passChance(base: number, perPrep: number, life: Life): number {
-  return Math.max(0, Math.min(MAX_PASS_PROBABILITY, base + perPrep * life.prep));
-}
-
-/** Pass chance for written screening, raised by both kinds of preparation. */
-function documentChance(base: number, life: Life): number {
-  const raised = base + PASS.documentPerPrep * (life.prep + 2 * life.documentPrep);
-  return Math.max(0, Math.min(MAX_PASS_PROBABILITY, raised));
 }

@@ -56,13 +56,19 @@ export async function overfillTimetable(page: Page): Promise<void> {
   const unpicked = page.locator('.tiles.active .activity[aria-pressed="false"]:not([disabled])');
   for (const tab of await page.locator(".tab").all()) {
     await tab.click();
-    for (let clicks = 0; clicks < MAX_TILE_CLICKS_PER_TAB; clicks += 1) {
-      if (await over.isVisible()) return;
-      if ((await unpicked.count()) === 0) break;
-      await unpicked.first().click();
-    }
+    if (await pickUntilOver(over, unpicked)) return;
   }
   if (!(await over.isVisible())) throw new Error("The timetable never ran over its hours");
+}
+
+/** Picks the open tab's tiles until `over` shows or none is left; whether `over` showed. */
+async function pickUntilOver(over: Locator, unpicked: Locator): Promise<boolean> {
+  for (let clicks = 0; clicks < MAX_TILE_CLICKS_PER_TAB; clicks += 1) {
+    if (await over.isVisible()) return true;
+    if ((await unpicked.count()) === 0) return false;
+    await unpicked.first().click();
+  }
+  return false;
 }
 
 /**

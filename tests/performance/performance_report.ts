@@ -70,8 +70,7 @@ function renderRow(entry: PerformanceReportEntry): string {
     unitWithRange(
       metrics.blockingTime,
       samples.map(({ blockingTime }) => blockingTime),
-      "ms",
-      Math.round,
+      MILLISECONDS,
     ),
     `${samples.length} |`,
   ].join(" | ");
@@ -84,20 +83,23 @@ function statusSymbol(entry: PerformanceReportEntry): string {
   return "❌";
 }
 
+interface Unit {
+  readonly unit: string;
+  readonly format: (value: number) => string | number;
+}
+
+const SECONDS: Unit = { unit: "s", format: seconds };
+const MILLISECONDS: Unit = { unit: "ms", format: Math.round };
+
 function seconds(milliseconds: number): string {
   return (milliseconds / 1_000).toFixed(2);
 }
 
 function secondsWithRange(median: number, samples: number[]): string {
-  return unitWithRange(median, samples, "s", seconds);
+  return unitWithRange(median, samples, SECONDS);
 }
 
-function unitWithRange(
-  median: number,
-  samples: number[],
-  unit: string,
-  format: (value: number) => string | number,
-): string {
+function unitWithRange(median: number, samples: number[], { unit, format }: Unit): string {
   const minimum = Math.min(...samples);
   const maximum = Math.max(...samples);
   const formattedMedian = format(median);

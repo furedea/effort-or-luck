@@ -28,7 +28,7 @@ import type { Event } from "../engine/events";
 import type { OptionKey, RoutineKey, Stat } from "../engine/facts";
 import { isActive, type Life } from "../engine/life";
 import type { Difficulty } from "../engine/parameters";
-import { isLimited, isOpen, ROUTINES, routineOf } from "../engine/routine";
+import { isLimited, isOpen, ROUTINES, routineOf, type RoutineSpec } from "../engine/routine";
 import { LINKS } from "../links";
 import { encode } from "../share/result_link";
 import { DifficultyPicker } from "./difficulty_picker";
@@ -151,39 +151,54 @@ function newGame(difficulty: Difficulty): Game {
  * the player's choices and the end of the year; anything else goes into the feed.
  */
 function advance(game: Game): Game {
-  let cohort = step(withTimetable(game.cohort, game.timetable));
-  const life = cohort.lives[game.player];
-  while (life && !isActive(life) && cohort.week < WEEKS && !cohort.events[game.player]) {
-    cohort = step(cohort);
-  }
+  const stepped = step(withTimetable(game.cohort, game.timetable));
+  const life = stepped.lives[game.player];
+  const cohort = skipEndedWeeks(stepped, game.player);
   if (isOver(cohort)) return { ...game, cohort, yearEnd: replayYear(cohort) };
   const falling = life ? warningFor(life, game.warned) : null;
-  const warnings =
-    falling && life ? [{ week: cohort.week, text: warningLine(falling, life.stats[falling]) }] : [];
+  const warnings = warningEntries(life, falling, cohort.week);
   const living = Boolean(life && isActive(life));
   const opened = living ? openedLimited(cohort.week) : [];
   const appeared = opened.map((spec) => ({
     week: cohort.week,
     text: limitedLine(routineTileLabel(spec.key), spec.until - cohort.week),
   }));
-  const [first] = opened;
-  const limitedPause: PauseReason | null = first
-    ? { kind: "limited", tile: routineTileLabel(first.key), weeks: first.until - cohort.week }
-    : null;
-  // Closed limited-time tiles leave the timetable.
-  const timetable = game.timetable.filter(
-    (key) => !isLimited(routineOf(key)) || isOpen(routineOf(key), cohort.week),
-  );
   return {
     ...game,
     cohort,
-    timetable,
+    timetable: withoutClosed(game.timetable, cohort.week),
     // Limited-time preparation would pass within seconds at speed, so time waits for the player.
     speed: appeared.length ? "step" : game.speed,
-    pausedFor: game.speed === "step" ? null : limitedPause,
+    pausedFor: game.speed === "step" ? null : limitedPause(opened, cohort.week),
     feed: [...appeared, ...warnings, ...noticeEntries(cohort, game.player), ...game.feed],
     warned: falling ? [...game.warned, falling] : game.warned,
   };
+}
+
+/** Once the player's year has ended, steps through the weeks left until an event or the end. */
+function skipEndedWeeks(cohort: Cohort, player: number): Cohort {
+  const life = cohort.lives[player];
+  let current = cohort;
+  while (life && !isActive(life) && current.week < WEEKS && !current.events[player]) {
+    current = step(current);
+  }
+  return current;
+}
+
+function warningEntries(life: Life | undefined, falling: Stat | null, week: number): FeedEntry[] {
+  return falling && life ? [{ week, text: warningLine(falling, life.stats[falling]) }] : [];
+}
+
+function limitedPause(opened: readonly RoutineSpec[], week: number): PauseReason | null {
+  const [first] = opened;
+  return first
+    ? { kind: "limited", tile: routineTileLabel(first.key), weeks: first.until - week }
+    : null;
+}
+
+/** Closed limited-time tiles leave the timetable. */
+function withoutClosed(timetable: readonly RoutineKey[], week: number): RoutineKey[] {
+  return timetable.filter((key) => !isLimited(routineOf(key)) || isOpen(routineOf(key), week));
 }
 
 /** Limited-time preparation that opens this week. */

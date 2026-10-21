@@ -139,7 +139,7 @@ export function setBooking(life: Life, timetable: readonly RoutineKey[]): void {
 /** Meets an event with options by `choice`, falling back to what the life can afford. */
 export function meet(life: Life, event: Event, choice: Choice): void {
   const picked = pickOption(event, choice.key, choice.want);
-  resolve(life, event, picked, choice.key);
+  resolve(life, event, { option: picked, wanted: choice.key });
 }
 
 /** Lives a whole year from `seed` by `policy`. */
