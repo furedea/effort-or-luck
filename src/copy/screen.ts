@@ -8,7 +8,7 @@ import {
   WEEKLY_HOURS,
   type Difficulty,
 } from "../engine/parameters";
-import { yen } from "./format";
+import { grouped, yen } from "./format";
 import { describeLog, STAT_LABELS } from "./scenes";
 
 // Japanese text for the screen around the scenes: the play header and the year-end reveal.
@@ -357,7 +357,7 @@ export function assumptionsNote(): string {
     `授業・課題・睡眠・家事などを除いて自由に使える時間は週 ${WEEKLY_HOURS} 時間とし，生活費のためのバイトもこの中で選ぶ形にしました．仕送りと奨学金で生活費（月 ${yen(MONTHLY_EXPENSE_YEN)}）に足りない分は，毎週貯金から減ります．` +
     "毎週やることの時間・費用・効果，出来事でかかる時間，健康・心の余裕・人間関係・研究の増え方と減り方，" +
     "10月の家族の入院やパソコンの故障，前期末と後期末のレポートと試験，先輩の話を聞く機会（首都圏で起こりやすい），数週ごとの小さな出来事の時間・費用・効果は，すべて仮定です．" +
-    `時給は ${WAGE_YEN_PER_HOUR.toLocaleString("ja-JP")} 円，最初の貯金は ${yen(STARTING_MONEY_YEN)}，首都圏に住む人は ${METRO_SHARE * 10} 割と置きました．`
+    `時給は ${grouped(WAGE_YEN_PER_HOUR)} 円，最初の貯金は ${yen(STARTING_MONEY_YEN)}，首都圏に住む人は ${METRO_SHARE * 10} 割と置きました．`
   );
 }
 

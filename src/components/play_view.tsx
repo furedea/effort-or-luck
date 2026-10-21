@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import { describeEvent, optionCost, optionLabel, shortfallReason, weekLabel } from "../copy/scenes";
 import {
@@ -27,6 +27,7 @@ import type { Life } from "../engine/life";
 import { planWeek, type WeekOutcome } from "../engine/week";
 import { HourBar } from "./hour_bar";
 import { Timetable } from "./timetable";
+import { useFocusNextFrame } from "./use_focus_next_frame";
 
 /** How time moves: one week per press, or on its own at normal or double speed. */
 export type Speed = keyof typeof SPEED_LABELS;
@@ -59,9 +60,7 @@ export function PlayView(props: Props) {
   const { life, week, event, speed, feed } = props;
   const heading = useRef<HTMLHeadingElement>(null);
   // An event replaces the controls the player was using, so keyboard focus moves to it.
-  useEffect(() => {
-    if (event) heading.current?.focus({ preventScroll: true });
-  }, [event]);
+  useFocusNextFrame(heading, event);
   return (
     <section className="play">
       <header className="play-head">
@@ -388,9 +387,7 @@ function withBooking(life: Life, hours: number, weeks: number): Life {
 
 function NextButton({ label, onClick }: { label: string; onClick: () => void }) {
   const ref = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    ref.current?.focus({ preventScroll: true });
-  }, []);
+  useFocusNextFrame(ref, true);
   return (
     <button ref={ref} type="button" className="next" onClick={onClick}>
       {label}

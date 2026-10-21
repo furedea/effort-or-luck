@@ -406,6 +406,18 @@ test("keeps the chosen speed after a choice that fits the week", () => {
   expect(stepButton(host)).toBeNull();
 });
 
+// Focusing forces a layout, so it waits for the next frame rather than lengthening the click.
+test("moves focus to the first event on the next frame after a difficulty is picked", () => {
+  const host = mountRaw();
+  const before = document.activeElement;
+
+  chooseDifficulty(host, "ふつう");
+
+  expect(document.activeElement).toBe(before);
+  passMs(20);
+  expect(document.activeElement).toBe(host.querySelector(".when"));
+});
+
 test("moves focus to an event when time stops for it", () => {
   const host = mount();
   startYear(host);
@@ -414,5 +426,6 @@ test("moves focus to an event when time stops for it", () => {
   for (let guard = 0; guard < 100 && !host.querySelector(".event"); guard++) keepFlowing(host);
 
   expect(host.querySelector(".event")).not.toBeNull();
+  passMs(20);
   expect(document.activeElement).toBe(host.querySelector(".when"));
 });
