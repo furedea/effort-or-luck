@@ -52,65 +52,10 @@ interface EventText {
 }
 
 export function describeEvent({ facts }: Event): EventText {
-  switch (facts.id) {
-    case "intro":
-      return {
-        lines: [
-          "翌年6月1日までの，就活の1年が始まる．",
-          `${region(facts.metro)}で一人暮らし．${livingGap(facts)}`,
-        ],
-        table: introTable(facts),
-        next: "始める",
-      };
-    case "termExam":
-      return {
-        lines: [
-          facts.term === "first" ? "前期のレポートと試験が来る．" : "後期のレポートと試験が来る．",
-        ],
-      };
-    case "longInternCall":
-      return { lines: ["長期インターンの募集が来た．通れば，6月から週16時間働ける．"] };
-    case "longInternResult":
-      return {
-        lines: [
-          facts.passed
-            ? "長期インターンに受かった．6月から時間割に入れられる．"
-            : "長期インターンは落ちた．",
-        ],
-      };
-    case "internEs":
-      return { lines: ["夏インターンの ES の締切が来た．ES は一社 3 時間．"] };
-    case "summerIntern":
-      return { lines: summerLines(facts), ...(facts.intern === "passed" ? {} : { next: "次へ" }) };
-    case "autumn":
-      return { lines: [autumnLine(facts)], next: "次へ" };
-    case "winterIntern":
-      return {
-        lines: [
-          facts.metro
-            ? "冬インターン（3日間）の募集が来た．"
-            : `冬インターン（3日間，東京）の募集が来た．往復と宿で ${yen(TRIP_YEN.regional)}．`,
-        ],
-      };
-    case "early":
-      return { lines: [EARLY[facts.result]], next: "次へ" };
-    case "seniorTalk":
-      return { lines: ["先輩から，会社の話を聞かせてもらえることになった．"] };
-    case "keepGoing":
-      return { lines: ["内定が一つある．就活を続ける？"] };
-    case "entries":
-      return {
-        lines: ["本選考のエントリーが始まった．ES は一社 2 時間．"],
-      };
-    case "finals":
-      return { lines: finalsLines(facts), ...(facts.finals ? {} : { next: "次へ" }) };
-    case "june":
-      return { lines: juneLines(facts), next: "結果を見る" };
-    case "over":
-      return { lines: [ENDINGS[facts.stat]], next: "結果を見る" };
-    default:
-      return { lines: [SMALL_EVENT_LINES[facts.id]] };
-  }
+  if (isSmallEvent(facts)) return { lines: [SMALL_EVENT_LINES[facts.id]] };
+  // Each entry takes its own id's facts, which TypeScript cannot follow through the lookup.
+  const describe = STORY_TEXTS[facts.id] as (facts: EventFacts) => EventText;
+  return describe(facts);
 }
 
 export function optionLabel(option: PricedOption, facts: EventFacts): string {
@@ -209,34 +154,87 @@ export function describeLog(fact: LogFact): string {
       return `仕送り ${yen(fact.allowance)}・${region(fact.metro)}`;
     case "scholarship":
       return `奨学金 月${yen(fact.amount)}`;
-    case "internAllFailed":
-      return "夏のインターンは全部落ちた";
-    case "faceIntern":
-      return "8月，対面インターンに行った";
-    case "allowanceCut":
-      return "10月，仕送りが減った";
-    case "shopClosed":
-      return "10月，バイト先が閉店した";
-    case "sick":
-      return "10月，熱を出した";
-    case "familyIllness":
-      return "10月，家族の入院で帰省した";
-    case "laptopBroken":
-      return "10月，パソコンが壊れた";
-    case "earlyOffer":
-      return "12月，早期選考で内定";
-    case "seniorTalk":
-      return "1月，先輩に話を聞いた";
     case "missed":
       return `お金か時間が足りず「${OPTION_LABELS[fact.option]}」ができなかった`;
     case "over":
       return ENDING_LOG[fact.stat];
     case "june":
       return fact.offers ? `6月1日，内定 ${fact.offers} 社` : "6月1日，内定なし";
+    default:
+      return PLAIN_LOG_LINES[fact.kind];
   }
 }
 
 type Facts<Id extends EventFacts["id"]> = Extract<EventFacts, { id: Id }>;
+
+type StoryEventId = Exclude<EventFacts["id"], SmallEventId>;
+
+const STORY_TEXTS: { readonly [Id in StoryEventId]: (facts: Facts<Id>) => EventText } = {
+  intro: (facts) => ({
+    lines: [
+      "翌年6月1日までの，就活の1年が始まる．",
+      `${region(facts.metro)}で一人暮らし．${livingGap(facts)}`,
+    ],
+    table: introTable(facts),
+    next: "始める",
+  }),
+  termExam: (facts) => ({
+    lines: [
+      facts.term === "first" ? "前期のレポートと試験が来る．" : "後期のレポートと試験が来る．",
+    ],
+  }),
+  longInternCall: () => ({
+    lines: ["長期インターンの募集が来た．通れば，6月から週16時間働ける．"],
+  }),
+  longInternResult: (facts) => ({
+    lines: [
+      facts.passed
+        ? "長期インターンに受かった．6月から時間割に入れられる．"
+        : "長期インターンは落ちた．",
+    ],
+  }),
+  internEs: () => ({ lines: ["夏インターンの ES の締切が来た．ES は一社 3 時間．"] }),
+  summerIntern: (facts) => ({
+    lines: summerLines(facts),
+    ...(facts.intern === "passed" ? {} : { next: "次へ" }),
+  }),
+  autumn: (facts) => ({ lines: [autumnLine(facts)], next: "次へ" }),
+  winterIntern: (facts) => ({
+    lines: [
+      facts.metro
+        ? "冬インターン（3日間）の募集が来た．"
+        : `冬インターン（3日間，東京）の募集が来た．往復と宿で ${yen(TRIP_YEN.regional)}．`,
+    ],
+  }),
+  early: (facts) => ({ lines: [EARLY[facts.result]], next: "次へ" }),
+  seniorTalk: () => ({ lines: ["先輩から，会社の話を聞かせてもらえることになった．"] }),
+  keepGoing: () => ({ lines: ["内定が一つある．就活を続ける？"] }),
+  entries: () => ({ lines: ["本選考のエントリーが始まった．ES は一社 2 時間．"] }),
+  finals: (facts) => ({ lines: finalsLines(facts), ...(facts.finals ? {} : { next: "次へ" }) }),
+  june: (facts) => ({ lines: juneLines(facts), next: "結果を見る" }),
+  over: (facts) => ({ lines: [ENDINGS[facts.stat]], next: "結果を見る" }),
+};
+
+function isSmallEvent(facts: EventFacts): facts is Facts<SmallEventId> {
+  return Object.hasOwn(SMALL_EVENT_LINES, facts.id);
+}
+
+/** Log kinds that carry nothing but their kind. */
+type PlainLogKind = {
+  [Kind in LogFact["kind"]]: keyof Extract<LogFact, { kind: Kind }> extends "kind" ? Kind : never;
+}[LogFact["kind"]];
+
+const PLAIN_LOG_LINES = {
+  internAllFailed: "夏のインターンは全部落ちた",
+  faceIntern: "8月，対面インターンに行った",
+  allowanceCut: "10月，仕送りが減った",
+  shopClosed: "10月，バイト先が閉店した",
+  sick: "10月，熱を出した",
+  familyIllness: "10月，家族の入院で帰省した",
+  laptopBroken: "10月，パソコンが壊れた",
+  earlyOffer: "12月，早期選考で内定",
+  seniorTalk: "1月，先輩に話を聞いた",
+} as const satisfies Record<PlainLogKind, string>;
 
 /** How much living costs exceed allowance and scholarship each month, if they do. */
 function livingGap(facts: Facts<"intro">): string {

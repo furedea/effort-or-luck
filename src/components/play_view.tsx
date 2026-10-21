@@ -1,65 +1,32 @@
 import { useEffect, useRef, useState } from "react";
 
-import { yen } from "../copy/format";
+import { describeEvent, optionCost, optionLabel, shortfallReason, weekLabel } from "../copy/scenes";
 import {
-  describeEvent,
-  optionCost,
-  optionLabel,
-  routineDetail,
-  routineEffects,
-  routineTileLabel,
-  shortfallReason,
-  weekLabel,
-} from "../copy/scenes";
-import {
-  BAR_LABELS,
-  barLegendItem,
-  budgetLine,
-  CANNOT_PAY,
-  CHOSEN_LABEL,
-  removeLabel,
   CARD_TITLES,
-  CLEAR_ALL,
-  LIMITED_TITLE,
   HISTORY_TITLE,
   LOW_NOTE,
-  lostHoursLine,
   monthlyBreakdown,
   NEXT,
   optionRoom,
-  oneOffLine,
-  slackLine,
   PAUSE_HEAD,
   pauseLines,
   REST_PICK_BACK,
   REST_PICK_CONFIRM,
-  BOOKING_NOTE,
-  RESET_TO_USUAL,
-  bookingTitle,
   restStatusLine,
   type PauseReason,
-  SECTION,
   SPEED_LABELS,
   statBars,
   statusItems,
   STEP,
-  TIMETABLE_TITLE,
   weekStatusLine,
-  weeksLeftLine,
 } from "../copy/screen";
 import { WEEKS } from "../engine/calendar";
 import type { Event, PricedOption } from "../engine/events";
-import type { LostReason, OptionKey, RoutineKey } from "../engine/facts";
+import type { OptionKey, RoutineKey } from "../engine/facts";
 import type { Life } from "../engine/life";
-import {
-  areAlternatives,
-  isAvailable,
-  isLimited,
-  routineOf,
-  ROUTINES,
-  type RoutineSpec,
-} from "../engine/routine";
-import { planWeek } from "../engine/week";
+import { planWeek, type WeekOutcome } from "../engine/week";
+import { HourBar } from "./hour_bar";
+import { Timetable } from "./timetable";
 
 /** How time moves: one week per press, or on its own at normal or double speed. */
 export type Speed = keyof typeof SPEED_LABELS;
@@ -270,8 +237,6 @@ function EventPanel({
   onNext: () => void;
 }) {
   const text = describeEvent(event);
-  const preview = planWeek(life, week, timetable);
-  const bookedHours = life.oneOff.weeks > 0 ? life.oneOff.hours / life.oneOff.weeks : 0;
   const [picking, setPicking] = useState<PricedOption | null>(null);
   const [draft, setDraft] = useState<readonly RoutineKey[]>(timetable);
   // An option's hours replace any one-off booked before; the hours it adds beyond the sleep the
@@ -293,37 +258,13 @@ function EventPanel({
     setPicking(option);
   };
   const booked = picking ? withBooking(life, picking.hours, picking.weeks) : null;
-  const draftPlan = booked ? planWeek(booked, week, draft) : null;
   return (
     <div className="event">
-      <div className="card">
-        <h3 className="card-title">{CARD_TITLES.event}</h3>
-        <div className="lines" aria-live="polite">
-          {text.lines.map((line, k) => (
-            <p key={k} style={{ animationDelay: `${k * 0.2}s` }}>
-              {line}
-            </p>
-          ))}
-        </div>
-        {text.table ? (
-          <dl className="status event-table">
-            {text.table.map(({ label, value }) => (
-              <div key={label} className="status-item">
-                <dt>{label}</dt>
-                <dd>{value}</dd>
-              </div>
-            ))}
-          </dl>
-        ) : null}
-        {event.options.length && !picking ? (
-          <div className="week-status-block">
-            <p className="week-status">
-              {weekStatusLine(preview.hours, preview.budget, life.money)}
-            </p>
-            <HourBar budget={preview.budget} preview={preview} oneOffHours={bookedHours} />
-          </div>
-        ) : null}
-      </div>
+      <EventCard
+        text={text}
+        life={life}
+        preview={event.options.length && !picking ? planWeek(life, week, timetable) : null}
+      />
       {picking && booked ? (
         <Timetable
           life={booked}
@@ -334,22 +275,12 @@ function EventPanel({
         />
       ) : null}
       <div className="actions">
-        {picking && draftPlan ? (
-          <>
-            <p className={draftPlan.shortHours > 0 ? "rest-status over" : "rest-status"}>
-              {restStatusLine(draftPlan.shortHours)}
-            </p>
-            <button
-              type="button"
-              className="rest-confirm"
-              onClick={() => onChoose(picking.key, draft)}
-            >
-              {REST_PICK_CONFIRM}
-            </button>
-            <button type="button" className="toggle" onClick={() => setPicking(null)}>
-              {REST_PICK_BACK}
-            </button>
-          </>
+        {picking && booked ? (
+          <RestPick
+            plan={planWeek(booked, week, draft)}
+            onConfirm={() => onChoose(picking.key, draft)}
+            onBack={() => setPicking(null)}
+          />
         ) : event.options.length ? (
           event.options.map((option) => (
             <button
@@ -374,274 +305,68 @@ function EventPanel({
   );
 }
 
-function Timetable({
+/** The event's lines and figures, with the week so far when `preview` is given. */
+function EventCard({
+  text,
   life,
-  week,
-  timetable,
-  onChange,
-  booking = null,
+  preview,
 }: {
+  text: ReturnType<typeof describeEvent>;
   life: Life;
-  week: number;
-  timetable: readonly RoutineKey[];
-  onChange: (timetable: readonly RoutineKey[]) => void;
-  /** The booking this timetable is for, with the usual one to go back to; null for the usual. */
-  booking?: { weeks: number; usual: readonly RoutineKey[] } | null;
+  preview: WeekOutcome | null;
 }) {
-  const preview = planWeek(life, week, timetable);
-  const takeOut = (key: RoutineKey) => onChange(timetable.filter((k) => k !== key));
-  const toggle = (spec: RoutineSpec) => {
-    if (timetable.includes(spec.key)) takeOut(spec.key);
-    // Part-time amounts are one choice: picking one replaces the other.
-    else onChange([...timetable.filter((k) => !areAlternatives(spec, routineOf(k))), spec.key]);
-  };
-  const oneOffHours = life.oneOff.weeks > 0 ? life.oneOff.hours / life.oneOff.weeks : 0;
-  // A tab chosen before limited-time tiles opened gives way to them once.
-  const [chosen, setChosen] = useState({ key: "job", week: -1 });
-  const setTab = (key: string) => setChosen({ key, week });
-  const shown = groups(week, life);
-  const openedAt = Math.max(
-    -1,
-    ...(shown.find((g) => g.key === "limited")?.specs.map((spec) => spec.from) ?? []),
-  );
-  const tab = openedAt > chosen.week ? "limited" : chosen.key;
-  const group = shown.find((g) => g.key === tab) ?? shown[0];
+  const bookedHours = life.oneOff.weeks > 0 ? life.oneOff.hours / life.oneOff.weeks : 0;
   return (
-    <div className={booking ? "card timetable booking" : "card timetable"}>
-      <div className="timetable-head">
-        <h3 className="activity-section">
-          {booking ? bookingTitle(booking.weeks) : TIMETABLE_TITLE}
-        </h3>
-        {booking ? (
-          <button
-            type="button"
-            className="toggle reset-usual"
-            disabled={sameKeys(timetable, booking.usual)}
-            onClick={() => onChange(booking.usual)}
-          >
-            {RESET_TO_USUAL}
-          </button>
-        ) : null}
-        <button
-          type="button"
-          className="toggle clear-all"
-          disabled={timetable.length === 0}
-          onClick={() => onChange([])}
-        >
-          {CLEAR_ALL}
-        </button>
-      </div>
-      {booking ? <p className="booking-note">{BOOKING_NOTE}</p> : null}
-      {/* The bar, its legend, and the chosen tiles read as one block, so they sit close. */}
-      <div className="week-summary">
-        <WeekBar
-          budget={preview.budget}
-          preview={preview}
-          oneOffHours={oneOffHours}
-          lost={
-            life.lostWeeks > 0 && life.lostReason
-              ? { reason: life.lostReason, weekly: life.lostWeekly, weeks: life.lostWeeks }
-              : null
-          }
-        />
-        {timetable.length ? (
-          <ul className="chosen-chips" aria-label={CHOSEN_LABEL}>
-            {timetable.map((key) => (
-              <li key={key} className="chip">
-                <button type="button" className="chip-name" onClick={() => setTab(tabOf(key))}>
-                  {routineTileLabel(key)}
-                </button>
-                <button
-                  type="button"
-                  className="chip-remove"
-                  aria-label={removeLabel(routineTileLabel(key))}
-                  onClick={() => takeOut(key)}
-                >
-                  ×
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </div>
-      <div className="tabs" role="tablist">
-        {shown.map(({ key, title }) => (
-          <button
-            key={key}
-            type="button"
-            role="tab"
-            className={key === "limited" ? "tab limited" : `tab tab-${key}`}
-            aria-selected={key === group?.key}
-            onClick={() => setTab(key)}
-          >
-            {title}
-          </button>
+    <div className="card">
+      <h3 className="card-title">{CARD_TITLES.event}</h3>
+      <div className="lines" aria-live="polite">
+        {text.lines.map((line, k) => (
+          <p key={k} style={{ animationDelay: `${k * 0.2}s` }}>
+            {line}
+          </p>
         ))}
       </div>
-      {/* Every tab's tiles share one grid cell, so the tallest sets the height and switching
-          tabs does not shift the screen; the hidden ones are inert. */}
-      <div className="tile-stack">
-        {shown.map(({ key, specs }) => (
-          <div
-            key={key}
-            className={key === group?.key ? "tiles active" : "tiles"}
-            role="tabpanel"
-            inert={key !== group?.key}
-          >
-            {specs.map((spec) => {
-              const chosen = timetable.includes(spec.key);
-              const dropped = preview.dropped.includes(spec.key);
-              // A paid tile the savings left this week cannot cover is not offered at all.
-              const unaffordable = !chosen && spec.weeklyMoney > life.money - preview.paid;
-              return (
-                <button
-                  key={spec.key}
-                  type="button"
-                  className={[
-                    "activity",
-                    chosen ? "chosen" : "",
-                    dropped || unaffordable ? "dropped" : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                  aria-pressed={chosen}
-                  aria-label={routineDetail(spec)}
-                  disabled={unaffordable}
-                  onClick={() => toggle(spec)}
-                >
-                  <span className="activity-name">{routineTileLabel(spec.key)}</span>
-                  <span className="activity-cost">
-                    {dropped || unaffordable
-                      ? `${yen(spec.weeklyMoney)}・${CANNOT_PAY}`
-                      : tileCost(spec, week)}
-                  </span>
-                  <span className="activity-effects">{routineEffects(spec)}</span>
-                </button>
-              );
-            })}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/** A tile's hours, then its weeks left or its price, e.g. "週4時間・5,000円". */
-function tileCost(spec: RoutineSpec, week: number): string {
-  const hours = `週${spec.weeklyHours}時間`;
-  if (isLimited(spec)) return `${hours}・${weeksLeftLine(spec.until - week)}`;
-  if (spec.weeklyMoney) return `${hours}・${yen(spec.weeklyMoney)}`;
-  if (spec.weeklyPay) return `${hours}・+${yen(spec.weeklyPay)}`;
-  return hours;
-}
-
-/** The tab a routine's tile is on. */
-function tabOf(key: RoutineKey): string {
-  const spec = routineOf(key);
-  return isLimited(spec) ? "limited" : spec.kind;
-}
-
-/** Open routines grouped for the tiles: limited-time preparation first, when there is any. */
-function groups(week: number, life: Life) {
-  const open = ROUTINES.filter((spec) => isAvailable(spec, week, life));
-  const limited = open.filter(isLimited);
-  return [
-    ...(limited.length ? [{ key: "limited", title: LIMITED_TITLE, specs: limited }] : []),
-    ...(["job", "study", "life", "work"] as const).map((kind) => ({
-      key: kind,
-      title: SECTION[kind],
-      specs: open.filter((spec) => spec.kind === kind && !isLimited(spec)),
-    })),
-  ];
-}
-
-function WeekBar({
-  budget,
-  preview,
-  oneOffHours,
-  lost,
-}: {
-  budget: number;
-  preview: ReturnType<typeof planWeek>;
-  oneOffHours: number;
-  /** Hours lost this week and why, when any are. */
-  lost: { reason: LostReason; weekly: number; weeks: number } | null;
-}) {
-  const slack = slackLine(preview.shortHours, Math.max(0, budget - preview.hours));
-  return (
-    <div className="time-bar">
-      <p className="time-total">{budgetLine(preview.hours, budget)}</p>
-      <HourBar budget={budget} preview={preview} oneOffHours={oneOffHours} />
-      {lost ? (
-        <p className="time-left">{lostHoursLine(lost.reason, lost.weekly, lost.weeks)}</p>
+      {text.table ? (
+        <dl className="status event-table">
+          {text.table.map(({ label, value }) => (
+            <div key={label} className="status-item">
+              <dt>{label}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
+        </dl>
       ) : null}
-      {oneOffHours ? <p className="time-left">{oneOffLine(oneOffHours)}</p> : null}
-      {slack ? <p className={preview.shortHours ? "time-over" : "time-spare"}>{slack}</p> : null}
+      {preview ? (
+        <div className="week-status-block">
+          <p className="week-status">{weekStatusLine(preview.hours, preview.budget, life.money)}</p>
+          <HourBar budget={preview.budget} preview={preview} oneOffHours={bookedHours} />
+        </div>
+      ) : null}
     </div>
   );
 }
 
-type BarPart = keyof typeof BAR_LABELS;
-
-/**
- * The week's hours as one bar, with a legend naming each part present: one-offs, job hunting,
- * oneself, part-time work, then hours over the budget.
- */
-function HourBar({
-  budget,
-  preview,
-  oneOffHours,
+/** Hours short with the rest tiles picked so far, and the buttons to take or leave the option. */
+function RestPick({
+  plan,
+  onConfirm,
+  onBack,
 }: {
-  budget: number;
-  preview: ReturnType<typeof planWeek>;
-  oneOffHours: number;
+  plan: WeekOutcome;
+  onConfirm: () => void;
+  onBack: () => void;
 }) {
-  const hoursOf = (kind: RoutineSpec["kind"]) =>
-    preview.taken
-      .filter((spec) => spec.kind === kind)
-      .reduce((sum, spec) => sum + spec.weeklyHours, 0);
-  const hours: Record<BarPart, number> = {
-    oneOff: oneOffHours,
-    job: hoursOf("job"),
-    study: hoursOf("study"),
-    life: hoursOf("life"),
-    work: hoursOf("work"),
-    over: preview.shortHours,
-  };
-  const scale = Math.max(budget, preview.hours) || 1;
-  let room = budget;
-  const drawn = (part: BarPart) => {
-    if (part === "over") return hours.over;
-    const inside = Math.min(hours[part], Math.max(0, room));
-    room -= inside;
-    return inside;
-  };
-  const parts = (Object.keys(BAR_LABELS) as BarPart[]).map((part) => ({
-    part,
-    width: drawn(part),
-  }));
-  const present = (Object.keys(BAR_LABELS) as BarPart[]).filter((part) => hours[part] > 0);
   return (
     <>
-      <div className="bar" aria-hidden="true">
-        {parts.map(({ part, width }) => (
-          <span
-            key={part}
-            className={`bar-${part}`}
-            style={{ width: `${(width / scale) * 100}%` }}
-          />
-        ))}
-      </div>
-      {present.length ? (
-        <ul className="bar-legend">
-          {present.map((part) => (
-            <li key={part}>
-              <i className={`bar-${part}`} aria-hidden="true" />
-              {barLegendItem(BAR_LABELS[part], hours[part])}
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      <p className={plan.shortHours > 0 ? "rest-status over" : "rest-status"}>
+        {restStatusLine(plan.shortHours)}
+      </p>
+      <button type="button" className="rest-confirm" onClick={onConfirm}>
+        {REST_PICK_CONFIRM}
+      </button>
+      <button type="button" className="toggle" onClick={onBack}>
+        {REST_PICK_BACK}
+      </button>
     </>
   );
 }
@@ -654,11 +379,6 @@ function OptionRoom({ room }: { room: ReturnType<typeof optionRoom> }) {
       {room.sub ? <span className="room-sub">{room.sub}</span> : null}
     </span>
   );
-}
-
-/** Whether two timetables hold the same tiles, in any order. */
-function sameKeys(a: readonly RoutineKey[], b: readonly RoutineKey[]): boolean {
-  return a.length === b.length && a.every((key) => b.includes(key));
 }
 
 /** The life as if `hours` were booked over `weeks` on the usual timetable, for planning only. */

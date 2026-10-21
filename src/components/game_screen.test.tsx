@@ -1,85 +1,22 @@
 // @vitest-environment happy-dom
-import { act } from "react";
-import { createRoot } from "react-dom/client";
-
-import { GameScreen } from "./game_screen";
+import {
+  chooseDifficulty,
+  click,
+  keepFlowing,
+  mount,
+  mountRaw,
+  passMs,
+  speedButton,
+  startYear,
+  stepButton,
+  tabNamed,
+  tileNamed,
+  when,
+  setUpGameScreenTests,
+} from "./game_screen_driver";
 import { playToReveal } from "./play_to_reveal";
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-
-// Current browsers resolve scroll methods with a promise, unlike happy-dom.
-beforeEach(() => {
-  vi.useFakeTimers();
-  vi.spyOn(window, "scrollTo").mockImplementation((() =>
-    Promise.resolve()) as typeof window.scrollTo);
-});
-
-afterEach(() => {
-  vi.useRealTimers();
-});
-
-function mountRaw() {
-  const host = document.createElement("div");
-  document.body.append(host);
-  act(() => createRoot(host).render(<GameScreen />));
-  return host;
-}
-
-function click(button: HTMLButtonElement) {
-  act(() => button.click());
-}
-
-function chooseDifficulty(host: HTMLElement, name: string) {
-  const buttons = [...host.querySelectorAll<HTMLButtonElement>(".difficulty .opt")];
-  click(buttons.find((button) => button.querySelector(".label")?.textContent === name)!);
-}
-
-/** Mounts the game and starts it at normal difficulty. */
-function mount() {
-  const host = mountRaw();
-  chooseDifficulty(host, "ふつう");
-  return host;
-}
-
-function startYear(host: HTMLElement) {
-  click(host.querySelector<HTMLButtonElement>(".event .next")!);
-}
-
-const when = (host: HTMLElement) => host.querySelector(".when")?.textContent;
-/** The tile named `name`, switching tabs until its group is shown. */
-function tileNamed(host: HTMLElement, name: string): HTMLButtonElement {
-  const visible = () =>
-    [...host.querySelectorAll<HTMLButtonElement>(".tiles.active .activity")].find(
-      (button) => button.querySelector(".activity-name")?.textContent === name,
-    );
-  for (const tab of [null, ...host.querySelectorAll<HTMLButtonElement>(".tab")]) {
-    if (tab) click(tab);
-    const found = visible();
-    if (found) return found;
-  }
-  throw new Error(`no tile named ${name}`);
-}
-
-function tabNamed(host: HTMLElement, name: string): HTMLButtonElement {
-  return [...host.querySelectorAll<HTMLButtonElement>(".tab")].find(
-    (tab) => tab.textContent === name,
-  )!;
-}
-const stepButton = (host: HTMLElement) => host.querySelector<HTMLButtonElement>(".actions .step");
-const speedButton = (host: HTMLElement, label: string) =>
-  [...host.querySelectorAll<HTMLButtonElement>(".speeds button")].find(
-    (button) => button.textContent === label,
-  )!;
-const passMs = (ms: number) =>
-  act(() => {
-    vi.advanceTimersByTime(ms);
-  });
-
-/** Lets a week pass at double speed, setting the speed again if time went back to steps. */
-function keepFlowing(host: HTMLElement) {
-  if (stepButton(host)) click(speedButton(host, "▶▶ 2倍"));
-  passMs(300);
-}
+setUpGameScreenTests();
 
 test("opens on a title screen that explains the game above the difficulty choice", () => {
   const host = mountRaw();
@@ -251,13 +188,8 @@ test("stops only for choices, listing other happenings while time flows", () => 
 
   const stopsWithoutChoice: string[] = [];
   for (let guard = 0; guard < 400 && !host.querySelector(".event .next"); guard++) {
-    const event = host.querySelector(".event");
-    const option =
-      event?.querySelector<HTMLButtonElement>(".opt:not([disabled])") ??
-      event?.querySelector<HTMLButtonElement>(".rest-confirm");
-    if (event && !event.querySelector(".opt, .timetable.booking")) {
-      stopsWithoutChoice.push(when(host) ?? "");
-    }
+    if (isStopWithoutChoice(host)) stopsWithoutChoice.push(when(host) ?? "");
+    const option = eventAction(host);
     if (option) click(option);
     else keepFlowing(host);
   }
@@ -266,6 +198,22 @@ test("stops only for choices, listing other happenings while time flows", () => 
   expect(when(host)).toBe("6月1日");
   expect(host.querySelectorAll(".feed-entry").length).toBeGreaterThan(0);
 });
+
+/** Whether time stopped at an event that offers no choice and books nothing. */
+function isStopWithoutChoice(host: HTMLElement): boolean {
+  const event = host.querySelector(".event");
+  return Boolean(event && !event.querySelector(".opt, .timetable.booking"));
+}
+
+/** The first affordable option at an event, or else the button confirming a booking's rest. */
+function eventAction(host: HTMLElement): HTMLButtonElement | null {
+  const event = host.querySelector(".event");
+  return (
+    event?.querySelector<HTMLButtonElement>(".opt:not([disabled])") ??
+    event?.querySelector<HTMLButtonElement>(".rest-confirm") ??
+    null
+  );
+}
 
 test("can be played from the first week to the reveal", () => {
   const host = mount();
@@ -320,11 +268,22 @@ function toOptionThatDoesNotFit() {
       /たりない$/.test(button.querySelector(".room-head")?.textContent ?? ""),
     );
   for (let guard = 0; guard < 100 && !doesNotFit(); guard++) {
-    const options = [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")];
-    if (options.length) click(options.at(-1)!);
-    else keepFlowing(host);
+    takeLastOrFlow(host);
   }
   return { host, option: doesNotFit()! };
+}
+
+/** Takes the last affordable option at an event; whether there was one. */
+function takeLastOption(host: HTMLElement): boolean {
+  const options = [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")];
+  if (!options.length) return false;
+  click(options.at(-1)!);
+  return true;
+}
+
+/** Takes the last affordable option at an event, or lets a week pass. */
+function takeLastOrFlow(host: HTMLElement): void {
+  if (!takeLastOption(host)) keepFlowing(host);
 }
 
 const actionNamed = (host: HTMLElement, label: string) =>
@@ -340,18 +299,19 @@ test("sets a timetable for the booking when an option's hours do not fit, then r
   click(option);
 
   const card = () => host.querySelector(".timetable.booking");
+  const restStatus = () => host.querySelector(".actions .rest-status")?.textContent;
   expect(card()?.querySelector(".activity-section")?.textContent).toMatch(
     /^予定の間の時間割（あと\d+週）$/,
   );
   expect(card()?.querySelector(".booking-note")?.textContent).toBe(
     "予定が終わると，いつもの時間割に戻る",
   );
-  expect(host.querySelector(".actions .rest-status")?.textContent).toMatch(/睡眠を削る/);
+  expect(restStatus()).toMatch(/睡眠を削る/);
   // Takes out the large tiles and fits a small one in between.
   click(tileNamed(host, "友達と遊ぶ"));
   click(tileNamed(host, "ゆっくり休む"));
   click(tileNamed(host, "自己分析"));
-  expect(host.querySelector(".actions .rest-status")?.textContent).toBe("時間内に収まる");
+  expect(restStatus()).toBe("時間内に収まる");
 
   click(actionNamed(host, "この時間割で進む"));
 
@@ -363,12 +323,9 @@ test("sets a timetable for the booking when an option's hours do not fit, then r
 
   // Once the booking is over, the usual timetable is back.
   for (let guard = 0; guard < 60 && card(); guard++) {
-    const options = [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")];
-    if (options.length) click(options.at(-1)!);
-    else keepFlowing(host);
+    takeLastOrFlow(host);
   }
-  const options = [...host.querySelectorAll<HTMLButtonElement>(".event .opt:not([disabled])")];
-  if (options.length) click(options.at(-1)!);
+  takeLastOption(host);
   expect(card()).toBeNull();
   expect(tileNamed(host, "友達と遊ぶ").getAttribute("aria-pressed")).toBe("true");
   expect(tileNamed(host, "自己分析").getAttribute("aria-pressed")).toBe("false");
@@ -458,298 +415,4 @@ test("moves focus to an event when time stops for it", () => {
 
   expect(host.querySelector(".event")).not.toBeNull();
   expect(document.activeElement).toBe(host.querySelector(".when"));
-});
-
-test("the reveal opens with the offers, the luck and effort gaps, and which was larger", () => {
-  const host = mount();
-  playToReveal(host);
-
-  const summary = host.querySelector(".reveal-summary");
-  expect(summary?.querySelector(".gap-luck")?.textContent).toMatch(
-    /^運の差仕送りで内定率が \d+% 違う$/,
-  );
-  expect(summary?.querySelector(".gap-effort")?.textContent).toMatch(
-    /^努力の差選び方で内定率が \d+% 違う$/,
-  );
-  expect(summary?.querySelector(".gap-verdict")?.textContent).toMatch(
-    /^→ この1年は，(運|努力)の差のほうが大きかった$/,
-  );
-  expect(host.querySelector(".reveal-details > summary")?.textContent).toBe("内訳を見る");
-  expect(host.querySelector<HTMLAnchorElement>(".sources-link")?.getAttribute("href")).toBe(
-    "/effort-or-luck/sources/",
-  );
-});
-
-test("describes each allowance row in words for screen readers", () => {
-  const host = mount();
-  playToReveal(host);
-
-  const rows = [...host.querySelectorAll(".band")];
-
-  expect(rows).toHaveLength(4);
-  for (const row of rows) {
-    expect(row.querySelector(".dots")?.getAttribute("aria-hidden")).toBe("true");
-    expect(row.querySelector(".sr-only")?.textContent).toMatch(
-      /^仕送り.+円の \d+ 人のうち，内定は \d+ 人/,
-    );
-  }
-  expect(host.querySelectorAll(".band .sr-only")).toHaveLength(4);
-  expect(
-    [...host.querySelectorAll(".band .sr-only")].filter((n) => n.textContent?.includes("あなた")),
-  ).toHaveLength(1);
-});
-
-test("shows, next to this game's counts, the long-run rate for the same choices", async () => {
-  const host = mount();
-  playToReveal(host);
-
-  await act(async () => {
-    await vi.runAllTimersAsync();
-  });
-
-  const averages = [...host.querySelectorAll(".band .band-average")].map(
-    (node) => node.textContent,
-  );
-  expect(averages).toHaveLength(4);
-  for (const average of averages) expect(average).toMatch(/^平均 \d+%$/);
-  expect(host.querySelector(".long-run-note")?.textContent).toBeTruthy();
-});
-
-test("the reveal sets luck against effort in two labeled parts", () => {
-  const host = mount();
-  playToReveal(host);
-
-  const parts = [...host.querySelectorAll(".reveal h3")].map((node) => node.textContent);
-  expect(parts).toEqual([
-    "① 努力をそろえて，運だけ変えると",
-    "② 運をそろえて，努力だけ変えると",
-    "注",
-  ]);
-  // Each part leads with its gap, as in the summary above.
-  const gaps = [...host.querySelectorAll(".part .part-gap")].map((node) => node.textContent);
-  expect(gaps).toEqual([
-    host.querySelector(".gap-luck")?.textContent?.replace("運の差", ""),
-    host.querySelector(".gap-effort")?.textContent?.replace("努力の差", ""),
-  ]);
-  const bars = [...host.querySelectorAll(".path-bar")].map((bar) => [
-    bar.querySelector(".path-label")?.textContent,
-    bar.classList.contains("yours"),
-  ]);
-  expect(bars).toEqual([
-    ["自分のことだけ", false],
-    ["あなた", true],
-    ["就活に全部使う", false],
-  ]);
-  for (const rate of host.querySelectorAll(".path-bar .path-rate")) {
-    expect(rate.textContent).toMatch(/^\d+%$/);
-  }
-  expect(host.querySelector(".effort-detail > summary")?.textContent).toBe("仕送り別に見る");
-
-  const header = [...host.querySelectorAll(".effort-table thead th")].map(
-    (node) => node.textContent,
-  );
-  expect(header).toEqual(["仕送り", "自分のことだけ", "あなた", "就活に全部使う"]);
-
-  const rows = [...host.querySelectorAll(".effort-table tbody tr")];
-  expect(rows).toHaveLength(4);
-  const yours = rows.map((row) => row.querySelectorAll("td")[1]?.textContent?.replace(/\s/g, ""));
-  const bands = [...host.querySelectorAll(".band .band-count")].map((node) =>
-    node.firstChild?.textContent?.replace(/\s|人/g, ""),
-  );
-  expect(yours).toEqual(bands);
-  expect(host.querySelector(".toggle[aria-pressed]")).toBeNull();
-});
-
-test("the reveal gathers what counts as effort and the counts into notes at the end", () => {
-  const host = mount();
-  playToReveal(host);
-  const notes = host.querySelector(".reveal-notes")!;
-
-  for (const name of ["effort-definition", "blocked-count", "ended-count", "long-run-note"]) {
-    expect(notes.querySelector(`li.${name}`)).not.toBeNull();
-  }
-  expect(notes.querySelector("cite")?.textContent).toMatch(/^出典：/);
-
-  expect(host.querySelector(".effort-definition")?.textContent).toContain(
-    "努力 ＝ どれを選ぼうとしたか",
-  );
-  expect(host.querySelector(".blocked-count")?.textContent).toMatch(
-    /^(お金か時間が足りず，選んだことができなかった人：\d+ 人|全員が，選んだとおりにできた．)$/,
-  );
-});
-
-describe("the weekly timetable", () => {
-  function firstWeek() {
-    const host = mount();
-    startYear(host);
-    return host;
-  }
-  const total = (host: HTMLElement) => host.querySelector(".time-total")?.textContent;
-  const tile = tileNamed;
-
-  it("adds a chosen routine's weekly hours to the bar and removes them when chosen again", () => {
-    const host = firstWeek();
-    const before = total(host);
-
-    click(tile(host, "説明会"));
-    expect(total(host)).toMatch(/^週6／\d+時間（あと\d+(\.\d)?時間）$/);
-
-    click(tile(host, "説明会"));
-    expect(total(host)).toBe(before);
-  });
-
-  it("offers limited-time preparation only in the weeks before its event, with weeks left", () => {
-    const host = firstWeek();
-    expect(host.querySelector(".limited")).toBeNull();
-
-    for (let i = 0; i < 4; i++) click(stepButton(host)!);
-
-    expect(when(host)).toBe("5月 第1週");
-    click(tabNamed(host, "★ 今だけ"));
-    const tile = host.querySelector(".tiles.active .activity");
-    expect(tile?.querySelector(".activity-name")?.textContent).toBe("夏インターンのES対策");
-    expect(tile?.querySelector(".activity-cost")?.textContent).toBe("週4時間・あと4週");
-  });
-
-  it("shows one group of tiles at a time, chosen by tabs", () => {
-    const host = firstWeek();
-    const names = () =>
-      [...host.querySelectorAll(".tiles.active .activity-name")].map((n) => n.textContent);
-
-    expect([...host.querySelectorAll(".tab")].map((n) => n.textContent)).toEqual([
-      "就活",
-      "学業",
-      "自分のこと",
-      "お金",
-    ]);
-    click(tabNamed(host, "学業"));
-    expect(names()).toEqual(["資格の勉強", "研究・ゼミ", "授業の予習・復習"]);
-  });
-
-  it("keeps every tab's tiles stacked in one place, so switching tabs keeps the height", () => {
-    const host = firstWeek();
-    const panels = [...host.querySelectorAll(".tile-stack > .tiles")];
-
-    expect(panels).toHaveLength(host.querySelectorAll(".tab").length);
-    expect(panels.filter((panel) => panel.classList.contains("active"))).toHaveLength(1);
-    for (const panel of panels.filter((p) => !p.classList.contains("active"))) {
-      expect(panel.hasAttribute("inert")).toBe(true);
-    }
-  });
-
-  it("lists the chosen tiles under the bar as small chips, each removed by its ×", () => {
-    const host = firstWeek();
-    click(tile(host, "説明会"));
-    click(tile(host, "友達と遊ぶ"));
-    const chips = () =>
-      [...host.querySelectorAll(".chosen-chips .chip-name")].map((c) => c.textContent);
-
-    expect(chips()).toEqual(["説明会", "友達と遊ぶ"]);
-
-    click(host.querySelector<HTMLButtonElement>(".chosen-chips .chip-remove")!);
-
-    expect(chips()).toEqual(["友達と遊ぶ"]);
-    expect(tile(host, "説明会").getAttribute("aria-pressed")).toBe("false");
-  });
-
-  it("opens the tab of a chosen tile when its chip is tapped", () => {
-    const host = firstWeek();
-    click(tile(host, "友達と遊ぶ"));
-    click(tabNamed(host, "就活"));
-
-    click(host.querySelector<HTMLButtonElement>(".chosen-chips .chip-name")!);
-
-    expect(host.querySelector(".tab[aria-selected='true']")?.textContent).toBe("自分のこと");
-    const shown = [...host.querySelectorAll(".tiles.active .activity-name")].map(
-      (n) => n.textContent,
-    );
-    expect(shown).toContain("友達と遊ぶ");
-  });
-
-  it("gives the price of tiles that cost or pay money", () => {
-    // Easy starts with savings, so the paid tile is affordable whatever the draw.
-    const host = mountRaw();
-    chooseDifficulty(host, "やさしい");
-    startYear(host);
-
-    expect(tile(host, "就活講座").querySelector(".activity-cost")?.textContent).toBe(
-      "週4時間・5,000円",
-    );
-    expect(tile(host, "バイト").querySelector(".activity-cost")?.textContent).toBe(
-      "週8時間・+9,000円",
-    );
-  });
-
-  it("cannot choose a paid tile the savings do not cover, and says why", () => {
-    const host = mountRaw();
-    chooseDifficulty(host, "きびしい");
-    startYear(host);
-
-    const course = tile(host, "就活講座");
-
-    expect(course.disabled).toBe(true);
-    expect(course.querySelector(".activity-cost")?.textContent).toBe("5,000円・お金が足りない");
-  });
-
-  it("clears every tile at once", () => {
-    const host = firstWeek();
-    click(tile(host, "説明会"));
-    click(tile(host, "友達と遊ぶ"));
-
-    click(host.querySelector<HTMLButtonElement>(".clear-all")!);
-
-    expect(host.querySelectorAll(".activity[aria-pressed='true']")).toHaveLength(0);
-    expect(host.querySelector<HTMLButtonElement>(".clear-all")?.disabled).toBe(true);
-  });
-
-  it("lets only one amount of part-time work be chosen", () => {
-    const host = firstWeek();
-
-    click(tile(host, "バイト"));
-    click(tile(host, "バイト（多め）"));
-
-    expect(tile(host, "バイト（多め）").getAttribute("aria-pressed")).toBe("true");
-    expect(tile(host, "バイト").getAttribute("aria-pressed")).toBe("false");
-  });
-
-  it("says on each tile what it raises and lowers", () => {
-    const host = firstWeek();
-
-    expect(tile(host, "ゆっくり休む").querySelector(".activity-effects")?.textContent).toBe(
-      "健康↑・心↑",
-    );
-  });
-
-  it("names the bar's colors with their hours", () => {
-    const host = firstWeek();
-
-    click(tile(host, "説明会"));
-    click(tile(host, "研究・ゼミ"));
-    click(tile(host, "友達と遊ぶ"));
-
-    const legend = [...host.querySelectorAll(".bar-legend li")].map((n) => n.textContent);
-    expect(legend).toEqual(["就活 6時間", "学業 10時間", "自分のこと 10時間"]);
-  });
-
-  it("keeps the numbers off the screen, for screen readers only", () => {
-    const host = firstWeek();
-
-    click(tile(host, "ゆっくり休む"));
-
-    expect(host.querySelector(".activity-detail")).toBeNull();
-    expect(tile(host, "ゆっくり休む").getAttribute("aria-label")).toBe(
-      "ゆっくり休む（週10時間）：健康 +2.4・心の余裕 +0.6／週",
-    );
-  });
-
-  it("shows the four stats", () => {
-    const host = firstWeek();
-
-    const labels = [...host.querySelectorAll(".stat-bar dt")].map((node) => node.textContent);
-    // Each value sits beside its own label, before the gauge, so it is never read with the next stat.
-    for (const bar of host.querySelectorAll(".stat-bar dd")) {
-      expect([...bar.children].map((child) => child.className)).toEqual(["meter-value", "meter"]);
-    }
-    expect(labels).toEqual(["健康", "心の余裕", "人間関係", "研究", "勉強"]);
-  });
 });
