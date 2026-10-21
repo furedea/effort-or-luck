@@ -41,14 +41,19 @@ function routine(
   return { weeklyMoney: 0, weeklyPay: 0, ...ALL_YEAR, ...NONE, ...spec };
 }
 
+/** The `weeks` weeks open up to the event in `eventWeek`. */
+interface PrepWindow {
+  readonly eventWeek: number;
+  readonly weeks: number;
+}
+
 /**
  * Preparation for one event, open for `weeks` weeks up to it: 4 hours a week that raise that
  * event's pass rate a little each week.
  */
 function limited(
   key: RoutineKey,
-  eventWeek: number,
-  weeks: number,
+  { eventWeek, weeks }: PrepWindow,
   boostsPerWeek: Partial<Record<Boost, number>>,
 ): RoutineSpec {
   return routine({
@@ -124,10 +129,10 @@ export const ROUTINES: readonly RoutineSpec[] = [
   routine({ key: "rest", kind: "life", weeklyHours: 10, statsPerWeek: { health: 2.4, mind: 0.6 } }),
   // Pay is the hourly wage times the hours, rounded to the thousand so savings stay plain amounts.
   routine({ key: "extraWork", kind: "work", weeklyHours: 8, weeklyPay: roundPay(8) }),
-  limited("summerEsPrep", EVENT_WEEKS.internEs, 4, { internEs: 0.03 }),
-  limited("earlyPrep", EVENT_WEEKS.early, 4, { early: 0.03 }),
-  limited("entryPrep", EVENT_WEEKS.entries, 4, { entryEs: 0.02 }),
-  limited("finalPrep", EVENT_WEEKS.finals, 6, { final: 0.02 }),
+  limited("summerEsPrep", { eventWeek: EVENT_WEEKS.internEs, weeks: 4 }, { internEs: 0.03 }),
+  limited("earlyPrep", { eventWeek: EVENT_WEEKS.early, weeks: 4 }, { early: 0.03 }),
+  limited("entryPrep", { eventWeek: EVENT_WEEKS.entries, weeks: 4 }, { entryEs: 0.02 }),
+  limited("finalPrep", { eventWeek: EVENT_WEEKS.finals, weeks: 6 }, { final: 0.02 }),
   routine({ key: "moreWork", kind: "work", weeklyHours: 20, weeklyPay: roundPay(20) }),
   routine({ key: "coursework", kind: "study", weeklyHours: 4, statsPerWeek: { study: 1.2 } }),
 ];

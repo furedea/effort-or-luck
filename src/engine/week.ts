@@ -33,8 +33,7 @@ export function planWeek(life: Life, week: number, timetable: readonly RoutineKe
   let paid = 0;
   const taken: RoutineSpec[] = [];
   const dropped: RoutineKey[] = [];
-  const followed = life.oneOff.weeks > 0 ? (life.oneOff.timetable ?? timetable) : timetable;
-  for (const key of new Set(followed)) {
+  for (const key of new Set(followedTimetable(life, timetable))) {
     const spec = routineOf(key);
     if (!isAvailable(spec, week, life)) continue;
     if (taken.some((other) => areAlternatives(spec, other))) continue;
@@ -60,6 +59,11 @@ export function planWeek(life: Life, week: number, timetable: readonly RoutineKe
   const earned = taken.reduce((sum, spec) => sum + spec.weeklyPay, 0);
   const shortHours = Math.max(0, hours - budget);
   return { budget, taken, dropped, skipped, hours, shortHours, paid, earned };
+}
+
+/** The booking's own timetable while it lasts and the player set one, else `timetable`. */
+function followedTimetable(life: Life, timetable: readonly RoutineKey[]): readonly RoutineKey[] {
+  return life.oneOff.weeks > 0 ? (life.oneOff.timetable ?? timetable) : timetable;
 }
 
 /** Rest cannot happen in hours taken from sleep, so its effect shrinks by the hours over. */

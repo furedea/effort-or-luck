@@ -54,37 +54,19 @@ export function encode({ seed, player, difficulty, decisions }: ShareParams): st
 }
 
 export function parse(search: string): Result<ShareParams> {
-  const query = new URLSearchParams(search);
-  const rules = query.get("r");
-  const seed = query.get("s");
-  const player = query.get("p");
-  const choices = query.get("c");
-  // Links made before difficulty existed were all normal.
-  const difficulty = query.get("d") ?? "normal";
-  if (rules === null || seed === null || player === null || choices === null) {
-    return failure("unreadable");
-  }
+  const fields = readFields(new URLSearchParams(search));
+  if (!fields) return failure("unreadable");
+  const { rules, seed, player, choices, difficulty } = fields;
   if (rules !== String(RULES_VERSION)) {
     return /^\d+$/.test(rules) ? failure("oldRules") : failure("unreadable");
   }
-  if (!/^[0-9a-z]{1,7}$/.test(seed) || !/^\d{1,2}$/.test(player) || !/^[0-9a-z.]*$/.test(choices)) {
-    return failure("unreadable");
-  }
-  if (!isDifficulty(difficulty)) return failure("unreadable");
+  if (!isWellFormed(fields) || !isDifficulty(difficulty)) return failure("unreadable");
   const parsedSeed = Number.parseInt(seed, 36);
   const parsedPlayer = Number(player);
   if (parsedSeed > 0xffffffff || parsedPlayer >= COHORT_SIZE) return failure("unreadable");
-  const decisions = choices === "" ? [] : choices.split(DECISION_SEPARATOR).map(decodeDecision);
-  if (decisions.some((decision) => decision === null)) return failure("unreadable");
-  return {
-    ok: true,
-    value: {
-      seed: parsedSeed,
-      player: parsedPlayer,
-      difficulty,
-      decisions: decisions.filter((decision) => decision !== null),
-    },
-  };
+  const decisions = decodeDecisions(choices);
+  if (!decisions) return failure("unreadable");
+  return { ok: true, value: { seed: parsedSeed, player: parsedPlayer, difficulty, decisions } };
 }
 
 /**
@@ -99,28 +81,62 @@ export function replay({
 }: ShareParams): Result<{ cohort: Cohort; yearEnd: YearEnd }> {
   let cohort = startCohort(seed, difficulty);
   for (const decision of decisions) {
-    while (cohort.week < decision.week) {
-      if (awaitsChoice(cohort, player)) return failure("unreadable");
-      cohort = step(cohort);
-    }
-    if (cohort.week !== decision.week) return failure("unreadable");
-    if (decision.kind === "timetable") {
-      cohort = setTimetable(cohort, decision.timetable);
-      continue;
-    }
-    if (decision.kind === "booking") {
-      cohort = setBookingTimetable(cohort, decision.timetable);
-      continue;
-    }
-    const offered = cohort.events[player]?.options.find((o) => o.key === decision.option);
-    if (!offered || offered.shortfall) return failure("unreadable");
-    cohort = choose(cohort, decision.option);
+    const reached = stepWhile(cohort, player, (current) => current.week < decision.week);
+    if (!reached || reached.week !== decision.week) return failure("unreadable");
+    const decided = applyDecision(reached, player, decision);
+    if (!decided) return failure("unreadable");
+    cohort = decided;
   }
-  while (!isOver(cohort)) {
-    if (awaitsChoice(cohort, player)) return failure("unreadable");
-    cohort = step(cohort);
+  const ended = stepWhile(cohort, player, (current) => !isOver(current));
+  if (!ended) return failure("unreadable");
+  return { ok: true, value: { cohort: ended, yearEnd: replayYear(ended) } };
+}
+
+interface QueryFields {
+  readonly rules: string;
+  readonly seed: string;
+  readonly player: string;
+  readonly choices: string;
+  readonly difficulty: string;
+}
+
+/** The raw query fields, or null when a required one is missing. */
+function readFields(query: URLSearchParams): QueryFields | null {
+  const rules = query.get("r");
+  const seed = query.get("s");
+  const player = query.get("p");
+  const choices = query.get("c");
+  // Links made before difficulty existed were all normal.
+  const difficulty = query.get("d") ?? "normal";
+  if (rules === null || seed === null || player === null || choices === null) return null;
+  return { rules, seed, player, choices, difficulty };
+}
+
+function isWellFormed({ seed, player, choices }: QueryFields): boolean {
+  return /^[0-9a-z]{1,7}$/.test(seed) && /^\d{1,2}$/.test(player) && /^[0-9a-z.]*$/.test(choices);
+}
+
+/** Steps the year while `holds`, or null if the player meets an unanswered event on the way. */
+function stepWhile(
+  cohort: Cohort,
+  player: number,
+  holds: (cohort: Cohort) => boolean,
+): Cohort | null {
+  let current = cohort;
+  while (holds(current)) {
+    if (awaitsChoice(current, player)) return null;
+    current = step(current);
   }
-  return { ok: true, value: { cohort, yearEnd: replayYear(cohort) } };
+  return current;
+}
+
+/** The year after `decision`, or null when the player was not offered or cannot afford it. */
+function applyDecision(cohort: Cohort, player: number, decision: Decision): Cohort | null {
+  if (decision.kind === "timetable") return setTimetable(cohort, decision.timetable);
+  if (decision.kind === "booking") return setBookingTimetable(cohort, decision.timetable);
+  const offered = cohort.events[player]?.options.find((o) => o.key === decision.option);
+  if (!offered || offered.shortfall) return null;
+  return choose(cohort, decision.option);
 }
 
 function isDifficulty(text: string): text is Difficulty {
@@ -140,6 +156,12 @@ function encodeDecision(decision: Decision): string {
   const routines = decision.timetable.map((key) => ROUTINE_KEYS.indexOf(key).toString(36));
   const mark = decision.kind === "booking" ? BOOKING_MARK : TIMETABLE_MARK;
   return `${decision.week}${mark}${routines.join("")}`;
+}
+
+function decodeDecisions(text: string): Decision[] | null {
+  if (text === "") return [];
+  const decisions = text.split(DECISION_SEPARATOR).map(decodeDecision);
+  return decisions.every((decision) => decision !== null) ? decisions : null;
 }
 
 function decodeDecision(text: string): Decision | null {

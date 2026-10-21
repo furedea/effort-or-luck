@@ -28,8 +28,7 @@ function withoutRng({ rng: _, ...rest }: Life) {
 function playYear(
   seed: number,
   player: number,
-  first: readonly RoutineKey[],
-  later: readonly RoutineKey[],
+  { first, later }: { first: readonly RoutineKey[]; later: readonly RoutineKey[] },
 ): Cohort {
   let cohort = setTimetable(startCohort(seed), first);
   while (!isOver(cohort)) {
@@ -62,12 +61,10 @@ describe("starting the 100 selves", () => {
 
 describe("a shared year", () => {
   it("gives each self the year its recorded decisions give it alone", () => {
-    const cohort = playYear(
-      2026,
-      0,
-      ["selfAnalysis", "friends", "rest"],
-      ["interviewPractice", "research"],
-    );
+    const cohort = playYear(2026, 0, {
+      first: ["selfAnalysis", "friends", "rest"],
+      later: ["interviewPractice", "research"],
+    });
 
     expect(isOver(cohort)).toBe(true);
     for (const life of cohort.lives) {
@@ -100,7 +97,7 @@ describe("a shared year", () => {
   });
 
   it("records each timetable and choice with the week it was made", () => {
-    const cohort = playYear(3, 0, ["friends"], ["rest"]);
+    const cohort = playYear(3, 0, { first: ["friends"], later: ["rest"] });
 
     expect(cohort.decisions[0]).toEqual({ week: 0, kind: "timetable", timetable: ["friends"] });
     expect(cohort.decisions).toContainEqual({
@@ -117,7 +114,7 @@ describe("a shared year", () => {
 
 describe("the end of the year", () => {
   it("replays the same seeds putting the most and the least into job hunting", () => {
-    const cohort = playYear(9, 0, ["friends"], ["friends"]);
+    const cohort = playYear(9, 0, { first: ["friends"], later: ["friends"] });
 
     const { most, least } = replayYear(cohort);
 
@@ -130,7 +127,10 @@ describe("the end of the year", () => {
   });
 
   it("counts, for each allowance, how many selves had an offer", () => {
-    const cohort = playYear(11, 0, ["selfAnalysis", "infoSessions"], ["interviewPractice"]);
+    const cohort = playYear(11, 0, {
+      first: ["selfAnalysis", "infoSessions"],
+      later: ["interviewPractice"],
+    });
 
     const rows = revealByAllowance(cohort.lives, cohort.allowanceRanks);
 
@@ -180,12 +180,10 @@ describe("choosing whom the player lives as", () => {
 });
 
 test("the reveal's two gaps: across allowances for the same choices, and across choices for the same luck", () => {
-  const cohort = playYear(
-    13,
-    0,
-    ["selfAnalysis", "friends", "rest"],
-    ["interviewPractice", "research"],
-  );
+  const cohort = playYear(13, 0, {
+    first: ["selfAnalysis", "friends", "rest"],
+    later: ["interviewPractice", "research"],
+  });
   const { most, least } = replayYear(cohort);
   const rate = (lives: readonly Life[]) =>
     lives.filter((l) => l.offers.length).length / lives.length;

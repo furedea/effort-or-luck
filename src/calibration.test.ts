@@ -96,16 +96,20 @@ function playerRate(policy: Policy, difficulty: Difficulty, sample = 1000): numb
   let offered = 0;
   for (let i = 0; lived < sample; i++) {
     const life = autoLive((1 + i * 7919) >>> 0, policy, difficulty);
-    const start = life.log[0];
-    if (start?.kind !== "profile") continue;
-    const circumstances = { metro: life.metro, allowance: start.allowance };
-    if (difficulty === "easy" && !(circumstances.metro && circumstances.allowance === 120_000))
-      continue;
-    if (difficulty === "hard" && !(!circumstances.metro && circumstances.allowance === 0)) continue;
+    if (!isPlayerCircumstance(life, difficulty)) continue;
     lived++;
     if (life.offers.length) offered++;
   }
   return offered / lived;
+}
+
+/** Whether `life` began in the circumstances `difficulty` gives the player. */
+function isPlayerCircumstance(life: Life, difficulty: Difficulty): boolean {
+  const start = life.log[0];
+  if (start?.kind !== "profile") return false;
+  if (difficulty === "easy") return life.metro && start.allowance === 120_000;
+  if (difficulty === "hard") return !life.metro && start.allowance === 0;
+  return true;
 }
 
 describe("difficulty as the luck the player draws", () => {
