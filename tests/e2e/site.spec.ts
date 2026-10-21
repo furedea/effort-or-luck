@@ -46,6 +46,13 @@ test("a played year's share link opens the same result", async ({ page }) => {
 
   await expect(page.locator(".reveal")).toBeVisible();
   expect(await revealedResult(page)).toEqual(played);
+
+  // The Worker adds the trailing slash and keeps the query, so a link missing it still works.
+  await page.goto(url!.replace(`${LINKS.share}?`, `${LINKS.share.slice(0, -1)}?`));
+
+  await expect(page).toHaveURL(url!);
+  await expect(page.locator(".reveal")).toBeVisible();
+  expect(await revealedResult(page)).toEqual(played);
 });
 
 /** What a reveal says about the year, leaving out whose year it is. */

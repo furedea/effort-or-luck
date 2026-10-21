@@ -5,6 +5,8 @@ import { pickDifficulty } from "../game_driver";
 import { builtRoutes } from "../site_routes";
 import {
   findAssetBudgetViolations,
+  findBrokenAssets,
+  recordNetworkEvent,
   summarizeAssets,
   type AssetBudget,
   type AssetUsage,
@@ -29,18 +31,21 @@ const GAME_SCREEN_BUDGET: AssetBudget = {
 
 const GAME_SCREEN = "game screen";
 
+/** What a visit transferred, and the assets that did not load, which would weigh nothing. */
+type AssetMeasurement = { usage: AssetUsage; broken: string[] };
+
 for (const route of builtRoutes()) {
   test(`${route} remains within its asset budget`, async ({ browser, baseURL }) => {
-    const usage = await measureAssets(browser, baseURL!, async (page) => {
+    const measurement = await measureAssets(browser, baseURL!, async (page) => {
       await page.goto(route, { waitUntil: "networkidle" });
     });
 
-    expectWithinBudget(route, usage, PAGE_BUDGET);
+    expectWithinBudget(route, measurement, PAGE_BUDGET);
   });
 }
 
 test(`the ${GAME_SCREEN} remains within its asset budget`, async ({ browser, baseURL }) => {
-  const usage = await measureAssets(browser, baseURL!, async (page) => {
+  const measurement = await measureAssets(browser, baseURL!, async (page) => {
     await page.goto(LINKS.game, { waitUntil: "networkidle" });
     await pickDifficulty(page);
     // The year's first week brings text, and so font subsets, the title screen has none of.
@@ -51,14 +56,31 @@ test(`the ${GAME_SCREEN} remains within its asset budget`, async ({ browser, bas
     });
   });
 
-  expectWithinBudget(GAME_SCREEN, usage, GAME_SCREEN_BUDGET);
+  expectWithinBudget(GAME_SCREEN, measurement, GAME_SCREEN_BUDGET);
+});
+
+test("a font that answers 404 fails the budget check", async ({ browser, baseURL }) => {
+  const { broken } = await measureAssets(browser, baseURL!, async (page) => {
+    // Sends font requests to a path the test server does not have, so it answers a real 404.
+    await page.route("**/*.woff2", (route) =>
+      route.continue({
+        url: route
+          .request()
+          .url()
+          .replace(/\.woff2$/, ".missing.woff2"),
+      }),
+    );
+    await page.goto(LINKS.game, { waitUntil: "networkidle" });
+  });
+
+  expect(broken).toEqual(expect.arrayContaining([expect.stringMatching(/\.woff2 answered 404$/)]));
 });
 
 async function measureAssets(
   browser: Browser,
   baseURL: string,
   visit: (page: Page) => Promise<void>,
-): Promise<AssetUsage> {
+): Promise<AssetMeasurement> {
   const context = await browser.newContext({ baseURL, serviceWorkers: "block" });
   try {
     const page = await context.newPage();
@@ -68,7 +90,7 @@ async function measureAssets(
     await session.send("Network.enable");
     await visit(page);
 
-    return summarizeAssets(assets.values());
+    return { usage: summarizeAssets(assets.values()), broken: findBrokenAssets(assets.values()) };
   } finally {
     await context.close();
   }
@@ -76,19 +98,38 @@ async function measureAssets(
 
 function observeNetworkAssets(session: CDPSession): Map<string, NetworkAsset> {
   const assets = new Map<string, NetworkAsset>();
-  session.on("Network.requestWillBeSent", ({ requestId, type }) => {
-    assets.set(requestId, { size: 0, type: type ?? "Other" });
+  session.on("Network.requestWillBeSent", ({ requestId, request, type }) => {
+    recordNetworkEvent(assets, {
+      kind: "request",
+      requestId,
+      url: request.url,
+      type: type ?? "Other",
+    });
+  });
+  session.on("Network.responseReceived", ({ requestId, response }) => {
+    recordNetworkEvent(assets, { kind: "response", requestId, status: response.status });
   });
   session.on("Network.loadingFinished", ({ requestId, encodedDataLength }) => {
-    const asset = assets.get(requestId);
-    if (asset !== undefined) asset.size = encodedDataLength;
+    recordNetworkEvent(assets, { kind: "finished", requestId, size: encodedDataLength });
   });
-  session.on("Network.loadingFailed", ({ requestId }) => assets.delete(requestId));
+  session.on("Network.loadingFailed", ({ requestId, errorText, canceled }) => {
+    recordNetworkEvent(assets, {
+      kind: "failed",
+      requestId,
+      errorText,
+      canceled: canceled === true,
+    });
+  });
   return assets;
 }
 
-function expectWithinBudget(name: string, usage: AssetUsage, budget: AssetBudget): void {
+function expectWithinBudget(
+  name: string,
+  { usage, broken }: AssetMeasurement,
+  budget: AssetBudget,
+): void {
   printUsage(name, usage);
+  expect(broken, "assets that did not load").toEqual([]);
   expect(findAssetBudgetViolations(usage, budget), "asset budget violations").toEqual([]);
 }
 

@@ -10,7 +10,8 @@ export default defineConfig({
   outputDir: "test-results/performance",
   reporter: [["list"], ["./tests/performance/performance_reporter.ts"]],
   webServer: {
-    command: "pnpm preview --host 127.0.0.1",
+    // Serves dist/ as the Worker does, with _headers applied; astro preview ignores both.
+    command: "pnpm run preview:worker",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     url: "http://127.0.0.1:4321/effort-or-luck/",
