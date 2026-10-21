@@ -78,8 +78,7 @@ describe("living a week", () => {
   it("earns what paid routines pay and uses up one-offs and lost hours", () => {
     const life = richLife();
     life.oneOff = { hours: 30, weeks: 3, timetable: null };
-    life.lostWeekly = 5;
-    life.lostWeeks = 2;
+    life.lost = { weekly: 5, weeks: 2, reason: "sick" };
     const before = life.money;
 
     const outcome = liveWeek(life, 0, ["extraWork"]);
@@ -89,7 +88,7 @@ describe("living a week", () => {
       before + monthlyIncomeYen(life) + (outcome?.earned ?? 0) - (outcome?.paid ?? 0),
     );
     expect(life.oneOff).toEqual({ hours: 20, weeks: 2, timetable: null });
-    expect(life.lostWeeks).toBe(1);
+    expect(life.lost?.weeks).toBe(1);
   });
 
   it("does nothing once the year has ended", () => {
@@ -172,8 +171,7 @@ describe("unnatural trades the week rules out", () => {
 
   it("skips the last routines that no longer fit when hours are lost, instead of cutting sleep", () => {
     const life = richLife();
-    life.lostWeekly = 12.5;
-    life.lostWeeks = 1;
+    life.lost = { weekly: 12.5, weeks: 1, reason: "sick" };
 
     const outcome = planWeek(life, 30, full);
 

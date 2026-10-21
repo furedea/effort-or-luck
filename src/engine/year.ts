@@ -1,5 +1,5 @@
 import { WEEKS } from "./calendar";
-import { eventAt, OPTION_EFFORT, pickOption, resolve, type Event } from "./events";
+import { eventAt, missedWish, OPTION_EFFORT, pickOption, resolve, type Event } from "./events";
 import type { Effort, OptionKey, RoutineKey } from "./facts";
 import { makeLife, neededWorkHours, weekBudget, type Life } from "./life";
 import type { Difficulty } from "./parameters";
@@ -139,7 +139,9 @@ export function setBooking(life: Life, timetable: readonly RoutineKey[]): void {
 /** Meets an event with options by `choice`, falling back to what the life can afford. */
 export function meet(life: Life, event: Event, choice: Choice): void {
   const picked = pickOption(event, choice.key, choice.want);
-  resolve(life, event, { option: picked, wanted: choice.key });
+  resolve(life, picked);
+  const missed = missedWish(event, picked.key, choice.key);
+  if (missed) life.log.push(missed);
 }
 
 /** Lives a whole year from `seed` by `policy`. */

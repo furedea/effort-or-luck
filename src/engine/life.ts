@@ -39,10 +39,8 @@ export interface Life {
   longInternAccepted: boolean;
   /** Whether the self applied to the long internship, so its result comes the week after. */
   longInternApplied: boolean;
-  /** Hours lost each week to illness, a trip home, or deadlines, for `lostWeeks` more weeks. */
-  lostWeekly: number;
-  lostWeeks: number;
-  lostReason: LostReason | null;
+  /** Hours lost each week to illness or a trip home while any such weeks remain. */
+  lost: HourLoss | null;
   /**
    * Hours of a one-off choice, such as an internship, spread over its remaining weeks, and the
    * timetable followed meanwhile instead of the usual one, when the player set one.
@@ -79,9 +77,7 @@ export function makeLife(seed: number, difficulty: Difficulty = "normal"): Life 
     boosts: { internEs: 0, early: 0, entryEs: 0, final: 0 },
     longInternAccepted: false,
     longInternApplied: false,
-    lostWeekly: 0,
-    lostWeeks: 0,
-    lostReason: null,
+    lost: null,
     oneOff: { hours: 0, weeks: 0, timetable: null },
     internApplications: 0,
     intern: "none",
@@ -115,8 +111,7 @@ export function neededWorkHours(life: Life): number {
 
 /** Hours the self can divide this week, after any hours lost. */
 export function weekBudget(life: Life): number {
-  const lost = life.lostWeeks > 0 ? life.lostWeekly : 0;
-  return Math.max(0, WEEKLY_HOURS - lost);
+  return Math.max(0, WEEKLY_HOURS - (life.lost?.weekly ?? 0));
 }
 
 /** Hours lost each week for a number of weeks, and why. */
@@ -127,10 +122,8 @@ export interface HourLoss {
 }
 
 /** Loses `weekly` hours each week for the next `weeks` weeks. */
-export function loseHours(life: Life, { weekly, weeks, reason }: HourLoss): void {
-  life.lostWeekly = weekly;
-  life.lostWeeks = weeks;
-  life.lostReason = reason;
+export function loseHours(life: Life, loss: HourLoss): void {
+  life.lost = loss;
 }
 
 export function tripYen(life: Life): number {

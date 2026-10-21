@@ -2,7 +2,7 @@ import { dateOf, EVENT_WEEKS, WEEKS, weekOfMonthStart } from "./calendar";
 import { academicFactor, applicationQuality } from "./chances";
 import { eventAt, pickOption, resolve, type Event } from "./events";
 import type { EventFacts, EventId, Stat } from "./facts";
-import { makeLife, tripYen, weekBudget, type Life } from "./life";
+import { makeLife, tripYen, weekBudget, type HourLoss, type Life } from "./life";
 import {
   ACADEMIC,
   FAMILY_TRIP_HOURS,
@@ -21,8 +21,7 @@ interface Moment {
   readonly event: Event;
   readonly moneyBefore: number;
   readonly moneyAt: number;
-  readonly lostWeeklyAt: number;
-  readonly lostWeeksAt: number;
+  readonly lostAt: HourLoss | null;
 }
 
 function momentsAt(id: EventId, policy: Policy, seeds: number): Moment[] {
@@ -41,8 +40,7 @@ function momentsOfSeed(id: EventId, policy: Policy, seed: number): Moment[] {
         event,
         moneyBefore,
         moneyAt: life.money,
-        lostWeeklyAt: life.lostWeekly,
-        lostWeeksAt: life.lostWeeks,
+        lostAt: life.lost,
       });
     }
     if (event?.options.length) meet(life, event, policy.choose(life, event, week));
@@ -66,8 +64,7 @@ describe("autumn events", () => {
 
     expect(ill.length).toBeGreaterThan(0);
     for (const m of ill) {
-      expect([m.lostWeeklyAt, m.lostWeeksAt]).toEqual([SICK_HOURS / 2, 2]);
-      expect(m.life.lostReason).toBe("sick");
+      expect(m.lostAt).toEqual({ weekly: SICK_HOURS / 2, weeks: 2, reason: "sick" });
     }
   });
 
@@ -77,7 +74,7 @@ describe("autumn events", () => {
     expect(trips.length).toBeGreaterThan(0);
     for (const m of trips) {
       expect(m.moneyAt).toBe(Math.max(0, m.moneyBefore - FAMILY_TRIP_YEN));
-      expect([m.lostWeeklyAt, m.lostWeeksAt]).toEqual([FAMILY_TRIP_HOURS, 1]);
+      expect(m.lostAt).toEqual({ weekly: FAMILY_TRIP_HOURS, weeks: 1, reason: "family" });
     }
   });
 
@@ -105,7 +102,7 @@ describe("reports and exams at the end of each term", () => {
       const event = eventAt(life, EVENT_WEEKS.firstTermExam)!;
       const option = event.options.find((o) => o.key === key)!;
       const before = life.stats.study;
-      resolve(life, event, { option, wanted: option.key });
+      resolve(life, option);
       return life.stats.study - before;
     };
 
@@ -171,10 +168,14 @@ describe("choosing at an event", () => {
     const life = makeLife(1);
     const event = internEs(life);
 
-    resolve(life, event, {
-      option: event.options.find((o) => o.key === "esTwo")!,
-      wanted: "esFive",
-    });
+    const broke = {
+      ...event,
+      options: event.options.map((o) =>
+        o.key === "esFive" ? { ...o, shortfall: "money" as const } : o,
+      ),
+    };
+
+    meet(life, broke, { key: "esFive", want: 2 });
 
     expect(life.log).toContainEqual({ kind: "missed", event: "internEs", option: "esFive" });
     expect(life.oneOff).toEqual({ hours: 6, weeks: 3, timetable: null });
@@ -210,7 +211,7 @@ describe("small choices", () => {
     const option = event.options[0]!;
     const before = { ...life.stats, money: life.money, prep: life.prep };
 
-    resolve(life, event, { option, wanted: option.key });
+    resolve(life, option);
 
     for (const [stat, amount] of Object.entries(option.stats ?? {}) as [Stat, number][]) {
       expect(life.stats[stat]).toBeCloseTo(before[stat] + amount);
@@ -232,10 +233,10 @@ describe("the long internship", () => {
     const outcomes = Array.from({ length: 400 }, (_, i) => {
       const life = makeLife(1 + i);
       const event = callFor(life);
-      resolve(life, event, {
-        option: event.options.find((o) => o.key === "applyIntern")!,
-        wanted: "applyIntern",
-      });
+      resolve(
+        life,
+        event.options.find((o) => o.key === "applyIntern")!,
+      );
       return life;
     });
     const accepted = outcomes.filter((life) => life.longInternAccepted);
@@ -244,20 +245,20 @@ describe("the long internship", () => {
     expect(accepted.length).toBeLessThan(outcomes.length);
     const skipped = makeLife(1);
     const event = callFor(skipped);
-    resolve(skipped, event, {
-      option: event.options.find((o) => o.key === "skipInternCall")!,
-      wanted: "skipInternCall",
-    });
+    resolve(
+      skipped,
+      event.options.find((o) => o.key === "skipInternCall")!,
+    );
     expect(skipped.longInternAccepted).toBe(false);
   });
 
   it("tells the result the next week", () => {
     const life = makeLife(3);
     const event = callFor(life);
-    resolve(life, event, {
-      option: event.options.find((o) => o.key === "applyIntern")!,
-      wanted: "applyIntern",
-    });
+    resolve(
+      life,
+      event.options.find((o) => o.key === "applyIntern")!,
+    );
 
     expect(eventAt(life, EVENT_WEEKS.longInternCall + 1)?.facts).toEqual({
       id: "longInternResult",

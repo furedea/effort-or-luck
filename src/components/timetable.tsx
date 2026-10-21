@@ -19,8 +19,8 @@ import {
   TIMETABLE_TITLE,
   weeksLeftLine,
 } from "../copy/screen";
-import type { LostReason, RoutineKey } from "../engine/facts";
-import type { Life } from "../engine/life";
+import type { RoutineKey } from "../engine/facts";
+import type { HourLoss, Life } from "../engine/life";
 import {
   areAlternatives,
   isAvailable,
@@ -44,12 +44,6 @@ interface Group {
   readonly specs: readonly RoutineSpec[];
 }
 
-interface LostHours {
-  readonly reason: LostReason;
-  readonly weekly: number;
-  readonly weeks: number;
-}
-
 export function Timetable({
   life,
   week,
@@ -71,6 +65,13 @@ export function Timetable({
     // Part-time amounts are one choice: picking one replaces the other.
     else onChange([...timetable.filter((k) => !areAlternatives(spec, routineOf(k))), spec.key]);
   };
+  // A paid tile the savings left this week cannot cover is not offered at all.
+  const paymentOf = (spec: RoutineSpec, chosen: boolean): Payment =>
+    !chosen && spec.weeklyMoney > life.money - preview.paid
+      ? "unaffordable"
+      : preview.dropped.includes(spec.key)
+        ? "dropped"
+        : "payable";
   const oneOffHours = life.oneOff.weeks > 0 ? life.oneOff.hours / life.oneOff.weeks : 0;
   const shown = groups(week, life);
   const [group, setTab] = useTab(shown, week);
@@ -83,7 +84,7 @@ export function Timetable({
           budget={preview.budget}
           preview={preview}
           oneOffHours={oneOffHours}
-          lost={lostHours(life)}
+          lost={life.lost}
         />
         {timetable.length ? (
           <ul className="chosen-chips" aria-label={CHOSEN_LABEL}>
@@ -133,7 +134,9 @@ export function Timetable({
               <Tile
                 key={spec.key}
                 spec={spec}
-                tile={{ life, week, preview, chosen: timetable.includes(spec.key) }}
+                week={week}
+                chosen={timetable.includes(spec.key)}
+                payment={paymentOf(spec, timetable.includes(spec.key))}
                 onToggle={toggle}
               />
             ))}
@@ -196,51 +199,41 @@ function TimetableHead({
   );
 }
 
-/** What a tile is shown against: the life, the week, its plan, and whether the tile is chosen. */
-interface TileState {
-  readonly life: Life;
-  readonly week: number;
-  readonly preview: WeekOutcome;
-  readonly chosen: boolean;
-}
+/** Whether a tile's price can be paid this week: dropped from the plan, or not offered at all. */
+type Payment = "payable" | "dropped" | "unaffordable";
 
 function Tile({
   spec,
-  tile: { life, week, preview, chosen },
+  week,
+  chosen,
+  payment,
   onToggle,
 }: {
   spec: RoutineSpec;
-  tile: TileState;
+  week: number;
+  chosen: boolean;
+  payment: Payment;
   onToggle: (spec: RoutineSpec) => void;
 }) {
-  const dropped = preview.dropped.includes(spec.key);
-  // A paid tile the savings left this week cannot cover is not offered at all.
-  const unaffordable = !chosen && spec.weeklyMoney > life.money - preview.paid;
+  const cannotPay = payment !== "payable";
   return (
     <button
       type="button"
-      className={["activity", chosen ? "chosen" : "", dropped || unaffordable ? "dropped" : ""]
+      className={["activity", chosen ? "chosen" : "", cannotPay ? "dropped" : ""]
         .filter(Boolean)
         .join(" ")}
       aria-pressed={chosen}
       aria-label={routineDetail(spec)}
-      disabled={unaffordable}
+      disabled={payment === "unaffordable"}
       onClick={() => onToggle(spec)}
     >
       <span className="activity-name">{routineTileLabel(spec.key)}</span>
       <span className="activity-cost">
-        {dropped || unaffordable ? `${yen(spec.weeklyMoney)}・${CANNOT_PAY}` : tileCost(spec, week)}
+        {cannotPay ? `${yen(spec.weeklyMoney)}・${CANNOT_PAY}` : tileCost(spec, week)}
       </span>
       <span className="activity-effects">{routineEffects(spec)}</span>
     </button>
   );
-}
-
-/** Hours lost this week and why, when any are. */
-function lostHours(life: Life): LostHours | null {
-  return life.lostWeeks > 0 && life.lostReason
-    ? { reason: life.lostReason, weekly: life.lostWeekly, weeks: life.lostWeeks }
-    : null;
 }
 
 /** A tile's hours, then its weeks left or its price, e.g. "週4時間・5,000円". */
@@ -281,7 +274,7 @@ function WeekBar({
   budget: number;
   preview: WeekOutcome;
   oneOffHours: number;
-  lost: LostHours | null;
+  lost: HourLoss | null;
 }) {
   const slack = slackLine(preview.shortHours, Math.max(0, budget - preview.hours));
   return (

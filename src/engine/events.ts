@@ -3,7 +3,7 @@ import { drawAutumnEvent } from "./autumn";
 // order of draws here is part of what makes a seed reproducible.
 import { EVENT_WEEKS, weekOfMonthStart, WEEKS } from "./calendar";
 import { academicFactor, applicationQuality, documentChance, passChance } from "./chances";
-import type { Effort, EventFacts, OptionKey, Shortfall, Stat } from "./facts";
+import type { Effort, EventFacts, LogFact, OptionKey, Shortfall, Stat } from "./facts";
 import { isActive, neededWorkHours, tripYen, monthlyIncomeYen, type Life } from "./life";
 import {
   APPLICATION_FOCUS,
@@ -144,20 +144,21 @@ export function pickOption(event: Event, key: OptionKey | null, want: Effort): P
   return picked;
 }
 
-/** The option a self takes at an event, and the one it wanted if any. */
-export interface Taking {
-  readonly option: PricedOption;
-  readonly wanted: OptionKey | null;
-}
-
 /** Takes `option`: pays its money, books its hours for the coming weeks, and applies it. */
-export function resolve(life: Life, event: Event, { option, wanted }: Taking): void {
+export function resolve(life: Life, option: PricedOption): void {
   life.money -= option.money;
   life.oneOff = { hours: option.hours, weeks: option.weeks, timetable: null };
   option.apply?.(life);
-  if (wanted && wanted !== option.key && event.options.some((o) => o.key === wanted)) {
-    life.log.push({ kind: "missed", event: event.facts.id, option: wanted });
-  }
+}
+
+/** The wish missed when the self wanted an option the event offers but took `taken` instead. */
+export function missedWish(
+  event: Event,
+  taken: OptionKey,
+  wanted: OptionKey | null,
+): LogFact | null {
+  if (!wanted || wanted === taken || !event.options.some((o) => o.key === wanted)) return null;
+  return { kind: "missed", event: event.facts.id, option: wanted };
 }
 
 /** A small choice for a self still living the year; its options carry their effects as data. */

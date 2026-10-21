@@ -48,7 +48,7 @@ export function planWeek(life: Life, week: number, timetable: readonly RoutineKe
   // Hours lost to illness or family leave no time for the last routines; they are skipped rather
   // than squeezed out of sleep.
   const skipped: RoutineKey[] = [];
-  if (life.lostWeeks > 0) {
+  if (life.lost) {
     while (hours > budget && taken.length) {
       const last = taken.pop()!;
       skipped.unshift(last.key);
@@ -106,6 +106,7 @@ export function liveWeek(
       weeks: life.oneOff.weeks - 1,
     };
   }
-  if (life.lostWeeks > 0) life.lostWeeks -= 1;
+  if (life.lost)
+    life.lost = life.lost.weeks > 1 ? { ...life.lost, weeks: life.lost.weeks - 1 } : null;
   return outcome;
 }
