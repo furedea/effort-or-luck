@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 
 import {
   actualRate,
@@ -38,6 +38,7 @@ import type { Life } from "../engine/life";
 import type { Difficulty } from "../engine/parameters";
 import type { Decision } from "../engine/year";
 import { LINKS } from "../links";
+import { useFocusNextFrame } from "./use_focus_next_frame";
 import { useLongRun } from "./use_long_run";
 
 const PATHS: readonly Path[] = ["least", "same", "most"];
@@ -82,9 +83,7 @@ export function RevealView(props: Props) {
   const you = paths.same[player];
   const heading = useRef<HTMLHeadingElement>(null);
   const summary = gapSummary(revealGaps(paths.same, ranks, paths));
-  useEffect(() => {
-    heading.current?.focus({ preventScroll: true });
-  }, []);
+  useFocusNextFrame(heading, true);
   return (
     <section className="reveal">
       <header className="reveal-head">
