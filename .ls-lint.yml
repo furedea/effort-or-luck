@@ -19,4 +19,4 @@ ignore:
   - "{dist,build,coverage,.next,out,.nuxt,.output,.svelte-kit}"
   - "**/{dist,build,coverage,.next,out,.nuxt,.output,.svelte-kit}"
 
-  - "{playwright-report,performance-results,test-results}"
+  - "{playwright-report,performance-results,test-results,.wrangler}"
