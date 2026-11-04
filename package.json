@@ -45,7 +45,7 @@
     "knip": "6.41.0",
     "oxfmt": "0.72.0",
     "oxlint": "1.87.0",
-    "oxlint-tsgolint": "7.0.2003",
+    "oxlint-tsgolint": "7.0.2005",
     "typescript": "6.0.3",
     "vitest": "5.0.5",
     "wrangler": "4.154.0"
