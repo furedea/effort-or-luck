@@ -16,9 +16,11 @@ minimumReleaseAgeExclude:
   - happy-dom@21.0.4
 
 # pnpm 11 fails on unreviewed build scripts. esbuild ships its binary via optional
-# platform packages, so its postinstall stays disabled as it was under pnpm 10.
+# platform packages, so its postinstall stays disabled as it was under pnpm 10. workerd's postinstall
+# checks the runtime binary that wrangler dev serves the tests with, so it runs.
 allowBuilds:
   esbuild: false
+  workerd: true
 
 # pnpm 11 links packages from a global virtual store by default outside CI. Astro's container
 # API then cannot resolve @astrojs/react from inside the store, so the page tests fail locally;

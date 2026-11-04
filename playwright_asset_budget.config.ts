@@ -8,8 +8,9 @@ export default defineConfig({
   retries: 0,
   timeout: 30_000,
   webServer: {
-    // Serves dist/ as the Worker does, with _headers applied; astro preview ignores both.
-    command: "pnpm run preview:worker",
+    // Serves dist/ with the production runtime and wrangler.jsonc; astro preview applies neither.
+    command: "pnpm exec wrangler dev --ip 127.0.0.1 --port 4321",
+    env: { WRANGLER_SEND_METRICS: "false" },
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     url: "http://127.0.0.1:4321/effort-or-luck/",
