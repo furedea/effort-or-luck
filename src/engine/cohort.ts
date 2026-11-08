@@ -63,7 +63,7 @@ export function startCohort(baseSeed: number, difficulty: Difficulty = "normal")
 /**
  * The self the player lives as. Difficulty picks the circumstances: easy is a metro self on the
  * largest allowance, hard a regional self on none, normal anyone. When no self fits,
- * the nearest ones are taken. `draw` is a random number in [0, 1).
+ * the nearest ones are taken, keeping the region the difficulty promises. `draw` is a random number in [0, 1).
  */
 export function pickPlayer(cohort: Cohort, difficulty: Difficulty, draw: number): number {
   const all = cohort.lives.map((_, i) => i);
@@ -78,10 +78,11 @@ function fitsDifficulty(life: Life, difficulty: Difficulty): boolean {
   return true;
 }
 
-/** The selves closest to the difficulty's circumstances: by allowance first, then region. */
+/** The selves closest to the difficulty's circumstances: by region first, then allowance. */
 function nearest(cohort: Cohort, difficulty: Difficulty): number[] {
+  const regionWeight = maxAllowance() + 1;
   const score = (life: Life) =>
-    (difficulty === "easy" ? 1 : -1) * (life.allowance * 2 + Number(life.metro));
+    (difficulty === "easy" ? 1 : -1) * (Number(life.metro) * regionWeight + life.allowance);
   const best = Math.max(...cohort.lives.map(score));
   return cohort.lives.flatMap((life, i) => (score(life) === best ? [i] : []));
 }

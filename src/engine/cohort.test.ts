@@ -173,6 +173,16 @@ describe("choosing whom the player lives as", () => {
     }
   });
 
+  it("stays regional when hard even if no self is regional on no allowance", () => {
+    const unluckyCohort = startCohort(117, "hard");
+    expect(unluckyCohort.lives.some((l) => !l.metro && l.allowance === 0)).toBe(false);
+
+    for (const draw of [0, 0.5, 0.99]) {
+      const life = unluckyCohort.lives[pickPlayer(unluckyCohort, "hard", draw)]!;
+      expect(life.metro).toBe(false);
+    }
+  });
+
   it("is anyone when normal", () => {
     expect(pickPlayer(cohort, "normal", 0)).toBe(0);
     expect(pickPlayer(cohort, "normal", 0.999)).toBe(COHORT_SIZE - 1);
