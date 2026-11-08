@@ -1,29 +1,58 @@
 import { act } from "react";
-import { createRoot } from "react-dom/client";
+import { createRoot, type Root } from "react-dom/client";
 
+import { createRng } from "../engine/random";
 import { GameScreen } from "./game_screen";
 
 // Drives the game screen in happy-dom for component tests, as a player would.
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-/** Runs each test on fake timers; current browsers resolve scroll methods with a promise, unlike happy-dom. */
+const DEFAULT_SEED = 1;
+
+/**
+ * Runs each test on fake timers and a fixed seed, so every run plays the same game; current
+ * browsers resolve scroll methods with a promise, unlike happy-dom.
+ */
 export function setUpGameScreenTests(): void {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.spyOn(window, "scrollTo").mockImplementation((() =>
       Promise.resolve()) as typeof window.scrollTo);
+    seedGame(DEFAULT_SEED);
   });
 
   afterEach(() => {
+    unmountAll();
     vi.useRealTimers();
+    vi.restoreAllMocks();
   });
+}
+
+const mounted: { root: Root; host: HTMLElement }[] = [];
+
+function unmountAll(): void {
+  for (const { root, host } of mounted.splice(0)) {
+    act(() => root.unmount());
+    host.remove();
+  }
+}
+
+/** Fixes the game's base seed and the draw that picks the player, until the test ends. */
+export function seedGame(seed: number): void {
+  vi.spyOn(crypto, "getRandomValues").mockImplementation(((array: Uint32Array) => {
+    array[0] = seed >>> 0;
+    return array;
+  }) as typeof crypto.getRandomValues);
+  vi.spyOn(Math, "random").mockImplementation(createRng(seed));
 }
 
 export function mountRaw() {
   const host = document.createElement("div");
   document.body.append(host);
-  act(() => createRoot(host).render(<GameScreen />));
+  const root = createRoot(host);
+  mounted.push({ root, host });
+  act(() => root.render(<GameScreen />));
   return host;
 }
 
