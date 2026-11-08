@@ -6,6 +6,7 @@ import {
   mount,
   mountRaw,
   passMs,
+  seedGame,
   speedButton,
   startYear,
   stepButton,
@@ -44,6 +45,16 @@ test("asks for a difficulty before the year starts", () => {
 });
 
 test("hard places the player in a regional home on little allowance", () => {
+  const host = mountRaw();
+
+  chooseDifficulty(host, "きびしい");
+
+  expect(host.querySelector(".event .lines")?.textContent).toContain("地方で一人暮らし");
+});
+
+// Seed 117 has no regional self on no allowance, which once put hard players in the metro area.
+test("hard keeps the player in a regional home even when no self lives on no allowance", () => {
+  seedGame(117);
   const host = mountRaw();
 
   chooseDifficulty(host, "きびしい");
