@@ -1,4 +1,4 @@
-import { act } from "react";
+import { act, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 
 import { createRng } from "../engine/random";
@@ -22,11 +22,21 @@ export function setUpGameScreenTests(): void {
     seedGame(DEFAULT_SEED);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     unmountAll();
     vi.useRealTimers();
     vi.restoreAllMocks();
+    await endMacrotask();
   });
+}
+
+/**
+ * V8 keeps every WeakRef target that was created or read in the current macrotask alive until it
+ * ends, and happy-dom holds DOM nodes through WeakRefs. These tests run on fake timers and never
+ * wait on I/O, so without this the unmounted trees of every test pile up until the file ends.
+ */
+function endMacrotask(): Promise<void> {
+  return new Promise((resolve) => setImmediate(resolve));
 }
 
 const mounted: { root: Root; host: HTMLElement }[] = [];
@@ -47,12 +57,13 @@ export function seedGame(seed: number): void {
   vi.spyOn(Math, "random").mockImplementation(createRng(seed));
 }
 
-export function mountRaw() {
+/** Mounts `screen`, the game by default, and unmounts it when the test ends. */
+export function mountRaw(screen: ReactNode = <GameScreen />) {
   const host = document.createElement("div");
   document.body.append(host);
   const root = createRoot(host);
   mounted.push({ root, host });
-  act(() => root.render(<GameScreen />));
+  act(() => root.render(screen));
   return host;
 }
 

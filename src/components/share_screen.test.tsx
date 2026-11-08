@@ -1,29 +1,11 @@
 // @vitest-environment happy-dom
 import { act } from "react";
-import { createRoot } from "react-dom/client";
 
-import { GameScreen } from "./game_screen";
+import { mountRaw, setUpGameScreenTests } from "./game_screen_driver";
 import { playToReveal } from "./play_to_reveal";
 import { ShareScreen } from "./share_screen";
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-
-beforeEach(() => {
-  vi.useFakeTimers();
-  vi.spyOn(window, "scrollTo").mockImplementation((() =>
-    Promise.resolve()) as typeof window.scrollTo);
-});
-
-afterEach(() => {
-  vi.useRealTimers();
-});
-
-function mount(node: React.ReactNode) {
-  const host = document.createElement("div");
-  document.body.append(host);
-  act(() => createRoot(host).render(node));
-  return host;
-}
+setUpGameScreenTests();
 
 async function shareLinkOf(host: HTMLElement): Promise<string> {
   let copied = "";
@@ -52,13 +34,13 @@ function summary(host: HTMLElement) {
 }
 
 test("a shared link shows the same reveal the player saw", async () => {
-  const game = mount(<GameScreen />);
+  const game = mountRaw();
   act(() => game.querySelector<HTMLButtonElement>(".difficulty .opt")!.click());
   playToReveal(game);
   const link = await shareLinkOf(game);
 
   window.history.replaceState({}, "", new URL(link).pathname + new URL(link).search);
-  const shared = mount(<ShareScreen />);
+  const shared = mountRaw(<ShareScreen />);
 
   expect(new URL(link).pathname).toBe("/effort-or-luck/share/");
   expect(summary(shared)).toEqual(summary(game));
@@ -68,7 +50,7 @@ test("a shared link shows the same reveal the player saw", async () => {
 test("an unreadable link explains itself and offers to play", () => {
   window.history.replaceState({}, "", "/effort-or-luck/share/?r=1&s=!!");
 
-  const shared = mount(<ShareScreen />);
+  const shared = mountRaw(<ShareScreen />);
 
   expect(shared.querySelector(".link-error")?.textContent).toBeTruthy();
   expect(shared.querySelector<HTMLAnchorElement>("a.next")?.getAttribute("href")).toBe(
