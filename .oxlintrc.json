@@ -1,6 +1,8 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
+  // react: this project is a React app
   "plugins": ["typescript", "react", "import", "promise", "node", "vitest"],
+  // .astro/**: Astro build output
   "ignorePatterns": [".astro/**", "coverage/**", "dist/**", "node_modules/**"],
   "settings": {
     "vitest": {
@@ -8,43 +10,21 @@
     }
   },
   "rules": {
-    "complexity": [
-      "error",
-      {
-        "max": 10
-      }
-    ],
+    "complexity": ["error", { "max": 10 }],
     "import/no-cycle": "error",
-    "max-depth": [
-      "error",
-      {
-        "max": 2
-      }
-    ],
-    "max-lines": [
-      "error",
-      {
-        "max": 500
-      }
-    ],
-    "max-params": [
-      "error",
-      {
-        "max": 3
-      }
-    ],
-    "no-unused-vars": [
-      "warn",
-      {
-        "ignoreRestSiblings": true
-      }
-    ],
+    "max-depth": ["error", { "max": 2 }],
+    "max-lines": ["error", { "max": 500 }],
+    "max-params": ["error", { "max": 3 }],
+    "no-unused-vars": ["warn", { "ignoreRestSiblings": true }],
     "typescript/await-thenable": "error",
+    "typescript/consistent-type-imports": "error",
+    "typescript/no-explicit-any": "error",
     "typescript/no-floating-promises": "error",
     "typescript/no-misused-promises": "error"
   },
   "overrides": [
     {
+      // *.test.tsx and *.spec.tsx: React component tests
       "files": ["**/*.test.ts", "**/*.spec.ts", "**/*.test.tsx", "**/*.spec.tsx"],
       "globals": {
         "afterAll": "readonly",
@@ -58,6 +38,7 @@
       }
     },
     {
+      // The engine is pure calculation: keep copy, data, and UI out of it.
       "files": ["src/engine/**"],
       "rules": {
         "no-restricted-imports": [
