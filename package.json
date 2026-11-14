@@ -27,7 +27,7 @@
     "check:full": "pnpm run check && pnpm run test:e2e && pnpm run test:asset-budget && pnpm run test:performance"
   },
   "dependencies": {
-    "@astrojs/react": "7.0.1",
+    "@astrojs/react": "7.1.4",
     "@fontsource/biz-udpgothic": "5.3.0",
     "@fontsource/biz-udpmincho": "5.3.0",
     "astro": "7.3.8",
@@ -35,7 +35,7 @@
     "react-dom": "19.3.0"
   },
   "devDependencies": {
-    "@astrojs/check": "0.9.10",
+    "@astrojs/check": "0.9.12",
     "@axe-core/playwright": "4.12.1",
     "@playwright/test": "1.64.1",
     "@types/node": "26.6.5",
