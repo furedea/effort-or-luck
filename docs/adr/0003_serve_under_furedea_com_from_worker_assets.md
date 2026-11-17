@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-10-19
-related: [ADR-0002]  # amends ADR-0002 (hosting only; the site stays static)
+related: [ADR-0002] # amends ADR-0002 (hosting only; the site stays static)
 ---
 
 # ADR-0003: Serve the game at furedea.com/effort-or-luck/ from a Worker of static assets

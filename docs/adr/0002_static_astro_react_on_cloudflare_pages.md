@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-10-15
-related: [ADR-0003]  # amended by ADR-0003 (hosting moved from Pages to a Worker of static assets)
+related: [ADR-0003] # amended by ADR-0003 (hosting moved from Pages to a Worker of static assets)
 ---
 
 # ADR-0002: Static Astro site with a React game screen on Cloudflare
